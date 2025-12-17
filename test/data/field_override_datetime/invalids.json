@@ -1,0 +1,31 @@
+[
+  {
+    "id": 1,
+    "timestamp": "not-a-date",
+    "message": "Invalid format"
+  },
+  {
+    "id": 2,
+    "timestamp": "2025-12-17",
+    "message": "Date only, not datetime"
+  },
+  {
+    "id": 3,
+    "timestamp": 1234567890,
+    "message": "Unix timestamp as number"
+  },
+  {
+    "id": 4,
+    "message": "Missing timestamp"
+  },
+  {
+    "id": 5,
+    "timestamp": null,
+    "message": "Null timestamp"
+  },
+  {
+    "id": "not-a-number",
+    "timestamp": "2025-12-17T10:30:00Z",
+    "message": "Invalid id type"
+  }
+]

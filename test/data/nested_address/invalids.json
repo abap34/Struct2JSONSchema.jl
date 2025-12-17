@@ -1,0 +1,39 @@
+[
+  {
+    "name": "Missing address"
+  },
+  {
+    "address": {
+      "street": "123 Main St",
+      "city": "Springfield",
+      "zipcode": "12345"
+    }
+  },
+  {
+    "name": "Bob",
+    "address": {
+      "street": "456 Oak Ave"
+    }
+  },
+  {
+    "name": "Charlie",
+    "address": "123 Main St"
+  },
+  {
+    "name": "David",
+    "address": {
+      "street": "789 Pine Rd",
+      "city": "Boston",
+      "zipcode": 12345
+    }
+  },
+  {
+    "name": "Eve",
+    "address": {
+      "street": "101 Elm St",
+      "city": "Seattle",
+      "zipcode": "98101",
+      "country": "USA"
+    }
+  }
+]

@@ -94,11 +94,11 @@ struct TodoList
     items::Vector{String}
 end
 
-@enum Status pending approved rejected
+@enum RequestStatus pending approved rejected
 
 struct Request
     id::Int
-    status::Status
+    status::RequestStatus
 end
 
 struct Event

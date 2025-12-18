@@ -278,7 +278,7 @@ end
     @test enum_def["enum"] == ["low", "medium", "high", "urgent"]
 end
 
-@enum Status begin
+@enum RecordStatus begin
     active
     inactive
     pending
@@ -286,12 +286,12 @@ end
 end
 
 struct Record
-    status::Status
+    status::RecordStatus
 end
 
 @testset "enum schemas - Status" begin
     record = generate_schema(Record; ctx = SchemaContext())
-    enum_def = comp_def(record.doc["\$defs"], Status)
+    enum_def = comp_def(record.doc["\$defs"], RecordStatus)
     @test enum_def["enum"] == ["active", "inactive", "pending", "archived"]
 end
 

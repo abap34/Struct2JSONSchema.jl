@@ -1,0 +1,19 @@
+[
+  {
+    "name": "Acme Corp",
+    "employees": [
+      {"name": "Alice", "age": 30},
+      {"name": "Bob", "age": 25}
+    ]
+  },
+  {
+    "name": "Empty Company",
+    "employees": []
+  },
+  {
+    "name": "Single Employee",
+    "employees": [
+      {"name": "Charlie", "age": 40}
+    ]
+  }
+]

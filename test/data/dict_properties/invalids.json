@@ -1,0 +1,14 @@
+[
+  {
+    "metadata": "not a dict"
+  },
+  {
+    "metadata": {
+      "key": 123
+    }
+  },
+  {
+    "metadata": []
+  },
+  {}
+]

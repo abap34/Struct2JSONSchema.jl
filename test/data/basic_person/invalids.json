@@ -1,0 +1,26 @@
+[
+  {
+    "name": "Missing age field"
+  },
+  {
+    "age": 30
+  },
+  {
+    "name": "Wrong age type",
+    "age": "thirty"
+  },
+  {
+    "name": "Extra field not allowed",
+    "age": 25,
+    "email": "test@example.com"
+  },
+  {
+    "name": 123,
+    "age": 30
+  },
+  {
+    "name": "Float age",
+    "age": 30.5
+  },
+  {}
+]

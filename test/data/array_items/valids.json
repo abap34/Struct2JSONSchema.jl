@@ -1,0 +1,18 @@
+[
+  {
+    "title": "Shopping",
+    "items": ["milk", "eggs", "bread"]
+  },
+  {
+    "title": "Empty list",
+    "items": []
+  },
+  {
+    "title": "Single item",
+    "items": ["apple"]
+  },
+  {
+    "title": "Many items",
+    "items": ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"]
+  }
+]

@@ -1,0 +1,26 @@
+[
+  {
+    "name": "Alice",
+    "address": {
+      "street": "123 Main St",
+      "city": "Springfield",
+      "zipcode": "12345"
+    }
+  },
+  {
+    "name": "Bob",
+    "address": {
+      "street": "",
+      "city": "New York",
+      "zipcode": "10001"
+    }
+  },
+  {
+    "name": "Charlie",
+    "address": {
+      "street": "456 Oak Ave",
+      "city": "Los Angeles",
+      "zipcode": "90001"
+    }
+  }
+]

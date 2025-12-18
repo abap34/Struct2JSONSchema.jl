@@ -1,0 +1,17 @@
+[
+  {
+    "level1": {
+      "street": "Main St",
+      "city": "Springfield",
+      "zipcode": "12345"
+    },
+    "level2": {
+      "name": "John",
+      "address": {
+        "street": "Oak Ave",
+        "city": "Portland",
+        "zipcode": "97201"
+      }
+    }
+  }
+]

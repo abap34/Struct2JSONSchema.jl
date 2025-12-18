@@ -1,0 +1,25 @@
+[
+  {
+    "title": "Bad list",
+    "items": [1, 2, 3]
+  },
+  {
+    "title": "Mixed types",
+    "items": ["milk", 2, "bread"]
+  },
+  {
+    "title": "Not array",
+    "items": "should be array"
+  },
+  {
+    "items": ["missing", "title"]
+  },
+  {
+    "title": "Nested arrays not allowed",
+    "items": [["nested"]]
+  },
+  {
+    "title": "Object in array",
+    "items": [{"name": "not a string"}]
+  }
+]

@@ -1,0 +1,43 @@
+[
+  {
+    "id": "one",
+    "name": "Alice",
+    "score": 95.5,
+    "active": true,
+    "tags": ["developer"]
+  },
+  {
+    "id": 2,
+    "name": 123,
+    "score": 87.3,
+    "active": false,
+    "tags": []
+  },
+  {
+    "id": 3,
+    "name": "Charlie",
+    "score": "high",
+    "active": true,
+    "tags": ["intern"]
+  },
+  {
+    "id": 4,
+    "name": "Dave",
+    "score": 90.0,
+    "active": "yes",
+    "tags": []
+  },
+  {
+    "id": 5,
+    "name": "Eve",
+    "score": 85.0,
+    "active": true,
+    "tags": "developer"
+  },
+  {
+    "name": "Missing ID",
+    "score": 75.0,
+    "active": false,
+    "tags": []
+  }
+]

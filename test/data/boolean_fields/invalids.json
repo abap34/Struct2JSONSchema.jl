@@ -1,0 +1,21 @@
+[
+  {
+    "id": 1,
+    "active": "true",
+    "verified": true
+  },
+  {
+    "id": 2,
+    "active": 1,
+    "verified": false
+  },
+  {
+    "id": 3,
+    "active": true,
+    "verified": "yes"
+  },
+  {
+    "id": 4,
+    "active": true
+  }
+]

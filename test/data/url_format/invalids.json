@@ -1,0 +1,17 @@
+[
+  {
+    "id": 1,
+    "website": "not-a-uri"
+  },
+  {
+    "id": 2,
+    "website": 123
+  },
+  {
+    "id": 3,
+    "website": true
+  },
+  {
+    "id": 4
+  }
+]

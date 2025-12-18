@@ -1,0 +1,17 @@
+[
+  {
+    "value": "string value"
+  },
+  {
+    "value": 42
+  },
+  {
+    "value": 3.14
+  },
+  {
+    "value": true
+  },
+  {
+    "value": false
+  }
+]

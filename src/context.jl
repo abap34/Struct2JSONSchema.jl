@@ -78,17 +78,9 @@ function record_unknown!(ctx::SchemaContext, T; message::Union{Nothing,String}=n
     end
 end
 
-function h(T::Type)::String
-    repr_bytes = collect(codeunits(repr(T)))
-    hash_value = UInt64(hash(T))
-    hash_bytes = reinterpret(UInt8, [hash_value])
-    combined = Vector{UInt8}(undef, length(hash_bytes) + length(repr_bytes))
-    copyto!(combined, 1, hash_bytes, 1, length(hash_bytes))
-    copyto!(combined, length(hash_bytes) + 1, repr_bytes, 1, length(repr_bytes))
-    bytes2hex(sha256(combined))
-end
+h(T::Type) = string(hash(T), base=16, pad=16)
 
-function k(T::Type, ctx::SchemaContext)::String
+function k(T::Type, ctx::SchemaContext)
     get!(ctx.key_of, T) do
         "$(repr(T))__$(h(T)[1:16])"
     end

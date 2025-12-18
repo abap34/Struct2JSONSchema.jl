@@ -136,6 +136,19 @@ function vararg_tuple_schema(elem_type::Type, ctx::SchemaContext)
     return Dict("type" => "array", "items" => items_schema)
 end
 
+function ntuple_schema(N::Int, elem_type::Type, ctx::SchemaContext)
+    items_schema = with_path(ctx, Symbol("<items>")) do
+        normalized = define!(elem_type, ctx)
+        reference(normalized, ctx)
+    end
+    return Dict(
+        "type" => "array",
+        "items" => items_schema,
+        "minItems" => N,
+        "maxItems" => N
+    )
+end
+
 function dict_schema(T::Type, ctx::SchemaContext)
     values_schema = with_path(ctx, Symbol("<values>")) do
         val_type = T.parameters[2]
@@ -254,7 +267,9 @@ function is_union_with_missing(T::Type)::Bool
 end
 
 function primitive_schema(T::Type, _::SchemaContext)
-    if T === Bool
+    if T isa Union
+        return nothing
+    elseif T === Bool
         return Dict("type" => "boolean")
     elseif T <: Integer && T !== Integer && T !== BigInt
         return Dict(
@@ -306,9 +321,10 @@ function collection_schema(T::Type, ctx::SchemaContext)
             base = Base.unwrap_unionall(vararg_param)
             elem_type = base.parameters[1]
             return vararg_tuple_schema(elem_type, ctx)
-        elseif T <: NTuple && length(params) >= 2
-            elem_type = params[2]
-            return vararg_tuple_schema(elem_type, ctx)
+        elseif T <: NTuple && length(params) >= 1 && allequal(params)
+            N = length(params)
+            elem_type = params[1]
+            return ntuple_schema(N, elem_type, ctx)
         else
             return fixed_tuple_schema(params, ctx)
         end

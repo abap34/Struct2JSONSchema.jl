@@ -68,13 +68,9 @@ function record_unknown!(ctx::SchemaContext, T; message::Union{Nothing,String}=n
         return
     end
     push!(ctx.unknowns, (T, Tuple(ctx.path)))
-    if message !== nothing
+    if message !== nothing && ctx.verbose
         msg = "$(message) at path $(path_to_string(ctx.path))"
-        if ctx.verbose
-            @info msg
-        else
-            @warn msg
-        end
+        @info msg
     end
 end
 

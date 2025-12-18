@@ -1,6 +1,7 @@
 using Test
 using Struct2JSONSchema: SchemaContext, generate_schema, generate_schema!, register_abstract!, register_override!, k, define!
 using Dates
+import Logging
 
 struct WithFunctionField
     handler::Function
@@ -88,13 +89,15 @@ end
 end
 
 @testset "Verbose mode logging" begin
+    # verbose=false (default): no logs should be emitted at any level
     ctx = SchemaContext()
-    @test_logs (:warn, r"UnionAll type Vector encountered") begin
+    @test_logs min_level=Logging.Debug begin
         generate_schema(VerboseVectorHolder; ctx=ctx)
     end
 
+    # verbose=true: info logs should be emitted
     verbose_ctx = SchemaContext(verbose=true)
-    @test_logs (:info, r"UnionAll type Vector encountered") begin
+    @test_logs (:info, r"UnionAll type Vector encountered") min_level=Logging.Debug begin
         generate_schema(VerboseVectorHolder; ctx=verbose_ctx)
     end
 end

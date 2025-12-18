@@ -32,7 +32,9 @@ function define!(T::Type, ctx::SchemaContext)
     catch err
         ctx.defs[key] = Dict{String,Any}()
         record_unknown!(ctx, Tn; message="Unexpected error generating schema for $Tn ($err)")
-        @warn "Unexpected error generating schema for $Tn at path $(path_to_string(ctx.path))" exception=(err, catch_backtrace())
+        if ctx.verbose
+            @warn "Unexpected error generating schema for $Tn at path $(path_to_string(ctx.path))" exception=(err, catch_backtrace())
+        end
     finally
         delete!(ctx.visited, Tn)
     end
@@ -44,7 +46,9 @@ function build_def_safe(T::Type, ctx::SchemaContext)
         try
             return ctx.overrides[T](ctx)
         catch err
-            @warn "Override for $T at path $(path_to_string(ctx.path)) threw an error. Falling back to default." exception=(err, catch_backtrace())
+            if ctx.verbose
+                @warn "Override for $T at path $(path_to_string(ctx.path)) threw an error. Falling back to default." exception=(err, catch_backtrace())
+            end
         end
     end
 

@@ -431,7 +431,9 @@ end
     complex_schema = comp_def(defs, ComplexUnion)
     value_anyof = resolve_anyof(complex_schema["properties"]["value"], defs)
     @test length(value_anyof) == 5
-    @test Set(entry["\$ref"] for entry in value_anyof) == Set([
-        comp_ref(String), comp_ref(Int), comp_ref(Float64), comp_ref(Bool), comp_ref(Nothing)
-    ])
+    @test Set(entry["\$ref"] for entry in value_anyof) == Set(
+        [
+            comp_ref(String), comp_ref(Int), comp_ref(Float64), comp_ref(Bool), comp_ref(Nothing),
+        ]
+    )
 end

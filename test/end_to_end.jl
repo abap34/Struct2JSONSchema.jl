@@ -181,7 +181,7 @@ end
         "invoice_id" => "INV-001",
         "items" => [
             Dict("sku" => "ITEM1", "quantity" => 3),
-            Dict("sku" => "ITEM2", "quantity" => 1)
+            Dict("sku" => "ITEM2", "quantity" => 1),
         ],
         "total" => 99.99
     )

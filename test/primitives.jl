@@ -16,6 +16,7 @@ struct PrimitiveRecord
     schedule::Time
     pattern::Regex
     fraction::Rational{Int}
+    version::VersionNumber
 end
 
 struct NullAndAnyRecord
@@ -69,6 +70,7 @@ end
     @test props["schedule"]["\$ref"] == ref_for(Time)
     @test props["pattern"]["\$ref"] == ref_for(Regex)
     @test props["fraction"]["\$ref"] == ref_for(Rational{Int})
+    @test props["version"]["\$ref"] == ref_for(VersionNumber)
 
     @test def_for(defs, Bool) == Dict("type" => "boolean")
 
@@ -110,6 +112,10 @@ end
 
     regex_def = def_for(defs, Regex)
     @test regex_def == Dict("type" => "string", "format" => "regex")
+
+    version_def = def_for(defs, VersionNumber)
+    @test version_def["type"] == "string"
+    @test haskey(version_def, "pattern")
 
     rational_def = def_for(defs, Rational{Int})
     @test rational_def == Dict("type" => "number")

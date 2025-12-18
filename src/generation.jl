@@ -7,7 +7,6 @@ function normalize_type(T::Type, ctx::SchemaContext)::Type
     elseif T isa Union
         types = Base.uniontypes(T)
         if isempty(types)
-            record_unknown!(ctx, T; message = "Union{} encountered. Rejecting all values")
             return Union{}
         elseif length(types) == 1
             return normalize_type(types[1], ctx)
@@ -267,7 +266,11 @@ function is_union_with_missing(T::Type)::Bool
 end
 
 function primitive_schema(T::Type, _::SchemaContext)
-    if T isa Union
+    if T === Union{}
+        return Dict("not" => Dict{String, Any}())
+    elseif T === Tuple{}
+        return Dict("type" => "array", "maxItems" => 0)
+    elseif T isa Union
         return nothing
     elseif T === Bool
         return Dict("type" => "boolean")
@@ -299,6 +302,8 @@ function primitive_schema(T::Type, _::SchemaContext)
         return string_schema(format = "time")
     elseif T === Regex
         return string_schema(format = "regex")
+    elseif T === VersionNumber
+        return Dict("type" => "string", "pattern" => "^\\d+\\.\\d+\\.\\d+.*\$")
     elseif T === Nothing || T === Missing
         return Dict("type" => "null")
     elseif T === Any

@@ -210,3 +210,234 @@ end
 
     @test schema["description"] == "Custom schema"
 end
+
+struct ApiRequest
+    method::String
+    url::String
+    headers::Dict{String, String}
+    body::String
+end
+
+@testset "field overrides - multiple fields with format" begin
+    ctx = SchemaContext()
+
+    register_field_override!(ctx, ApiRequest, :url) do ctx
+        Dict(
+            "type" => "string",
+            "format" => "uri",
+            "pattern" => "^https?://"
+        )
+    end
+
+    register_field_override!(ctx, ApiRequest, :method) do ctx
+        Dict(
+            "type" => "string",
+            "enum" => ["GET", "POST", "PUT", "DELETE", "PATCH"]
+        )
+    end
+
+    result = generate_schema(ApiRequest; ctx = ctx)
+    defs = result.doc["\$defs"]
+    schema = defs[field_override_key(ApiRequest)]
+
+    @test schema["properties"]["url"]["format"] == "uri"
+    @test haskey(schema["properties"]["url"], "pattern")
+    @test schema["properties"]["method"]["enum"] == ["GET", "POST", "PUT", "DELETE", "PATCH"]
+end
+
+struct Coordinates
+    latitude::Float64
+    longitude::Float64
+end
+
+@testset "field overrides - range constraints" begin
+    ctx = SchemaContext()
+
+    register_field_override!(ctx, Coordinates, :latitude) do ctx
+        Dict(
+            "type" => "number",
+            "minimum" => -90,
+            "maximum" => 90
+        )
+    end
+
+    register_field_override!(ctx, Coordinates, :longitude) do ctx
+        Dict(
+            "type" => "number",
+            "minimum" => -180,
+            "maximum" => 180
+        )
+    end
+
+    result = generate_schema(Coordinates; ctx = ctx)
+    defs = result.doc["\$defs"]
+    schema = defs[field_override_key(Coordinates)]
+
+    @test schema["properties"]["latitude"]["minimum"] == -90
+    @test schema["properties"]["latitude"]["maximum"] == 90
+    @test schema["properties"]["longitude"]["minimum"] == -180
+    @test schema["properties"]["longitude"]["maximum"] == 180
+end
+
+struct StringValidation
+    username::String
+    password::String
+    zipcode::String
+end
+
+@testset "field overrides - string length constraints" begin
+    ctx = SchemaContext()
+
+    register_field_override!(ctx, StringValidation, :username) do ctx
+        Dict(
+            "type" => "string",
+            "minLength" => 3,
+            "maxLength" => 20
+        )
+    end
+
+    register_field_override!(ctx, StringValidation, :password) do ctx
+        Dict(
+            "type" => "string",
+            "minLength" => 8
+        )
+    end
+
+    register_field_override!(ctx, StringValidation, :zipcode) do ctx
+        Dict(
+            "type" => "string",
+            "pattern" => "^\\d{5}(-\\d{4})?\$"
+        )
+    end
+
+    result = generate_schema(StringValidation; ctx = ctx)
+    defs = result.doc["\$defs"]
+    schema = defs[field_override_key(StringValidation)]
+
+    @test schema["properties"]["username"]["minLength"] == 3
+    @test schema["properties"]["username"]["maxLength"] == 20
+    @test schema["properties"]["password"]["minLength"] == 8
+    @test haskey(schema["properties"]["zipcode"], "pattern")
+end
+
+struct Pagination
+    page::Int
+    page_size::Int
+    total::Int
+end
+
+@testset "field overrides - integer constraints" begin
+    ctx = SchemaContext()
+
+    register_field_override!(ctx, Pagination, :page) do ctx
+        Dict(
+            "type" => "integer",
+            "minimum" => 1
+        )
+    end
+
+    register_field_override!(ctx, Pagination, :page_size) do ctx
+        Dict(
+            "type" => "integer",
+            "minimum" => 1,
+            "maximum" => 100
+        )
+    end
+
+    result = generate_schema(Pagination; ctx = ctx)
+    defs = result.doc["\$defs"]
+    schema = defs[field_override_key(Pagination)]
+
+    @test schema["properties"]["page"]["minimum"] == 1
+    @test schema["properties"]["page_size"]["minimum"] == 1
+    @test schema["properties"]["page_size"]["maximum"] == 100
+end
+
+struct MediaFile
+    filename::String
+    content_type::String
+    size_bytes::Int
+end
+
+@testset "field overrides - MIME type validation" begin
+    ctx = SchemaContext()
+
+    register_field_override!(ctx, MediaFile, :content_type) do ctx
+        Dict(
+            "type" => "string",
+            "pattern" => "^[a-z]+/[a-z0-9\\-\\+\\.]+\$",
+            "examples" => ["image/png", "video/mp4", "application/json"]
+        )
+    end
+
+    result = generate_schema(MediaFile; ctx = ctx)
+    defs = result.doc["\$defs"]
+    schema = defs[field_override_key(MediaFile)]
+
+    @test haskey(schema["properties"]["content_type"], "pattern")
+    @test haskey(schema["properties"]["content_type"], "examples")
+end
+
+struct AccountInfo
+    account_id::String
+    balance::Float64
+    currency::String
+end
+
+@testset "field overrides - currency and UUID" begin
+    ctx = SchemaContext()
+
+    register_field_override!(ctx, AccountInfo, :account_id) do ctx
+        Dict(
+            "type" => "string",
+            "format" => "uuid"
+        )
+    end
+
+    register_field_override!(ctx, AccountInfo, :currency) do ctx
+        Dict(
+            "type" => "string",
+            "enum" => ["USD", "EUR", "GBP", "JPY"]
+        )
+    end
+
+    result = generate_schema(AccountInfo; ctx = ctx)
+    defs = result.doc["\$defs"]
+    schema = defs[field_override_key(AccountInfo)]
+
+    @test schema["properties"]["account_id"]["format"] == "uuid"
+    @test schema["properties"]["currency"]["enum"] == ["USD", "EUR", "GBP", "JPY"]
+end
+
+struct ReviewData
+    rating::Int
+    comment::String
+    created_at::String
+end
+
+@testset "field overrides - rating and timestamp" begin
+    ctx = SchemaContext()
+
+    register_field_override!(ctx, ReviewData, :rating) do ctx
+        Dict(
+            "type" => "integer",
+            "minimum" => 1,
+            "maximum" => 5
+        )
+    end
+
+    register_field_override!(ctx, ReviewData, :created_at) do ctx
+        Dict(
+            "type" => "string",
+            "format" => "date-time"
+        )
+    end
+
+    result = generate_schema(ReviewData; ctx = ctx)
+    defs = result.doc["\$defs"]
+    schema = defs[field_override_key(ReviewData)]
+
+    @test schema["properties"]["rating"]["minimum"] == 1
+    @test schema["properties"]["rating"]["maximum"] == 5
+    @test schema["properties"]["created_at"]["format"] == "date-time"
+end

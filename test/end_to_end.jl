@@ -88,3 +88,151 @@ end
     extra_customer_field["customer"]["vip"] = true
     @test !validate_payload(doc, extra_customer_field)
 end
+
+struct ContactInfo
+    email::String
+    phone::String
+end
+
+struct UserAccount
+    username::String
+    contact::ContactInfo
+    age::Int
+end
+
+@testset "end-to-end validation - user account" begin
+    ctx = SchemaContext()
+    result = generate_schema(UserAccount; ctx = ctx)
+    doc = result.doc
+
+    valid = Dict(
+        "username" => "john_doe",
+        "contact" => Dict(
+            "email" => "john@example.com",
+            "phone" => "+1234567890"
+        ),
+        "age" => 30
+    )
+    @test validate_payload(doc, valid)
+
+    missing_email = deepcopy(valid)
+    delete!(missing_email["contact"], "email")
+    @test !validate_payload(doc, missing_email)
+
+    invalid_age = deepcopy(valid)
+    invalid_age["age"] = "thirty"
+    @test !validate_payload(doc, invalid_age)
+
+    extra_field = deepcopy(valid)
+    extra_field["premium"] = true
+    @test !validate_payload(doc, extra_field)
+end
+
+struct Location
+    latitude::Float64
+    longitude::Float64
+end
+
+struct Store
+    name::String
+    location::Location
+end
+
+@testset "end-to-end validation - store location" begin
+    ctx = SchemaContext()
+    result = generate_schema(Store; ctx = ctx)
+    doc = result.doc
+
+    valid = Dict{String, Any}(
+        "name" => "Main Store",
+        "location" => Dict{String, Any}(
+            "latitude" => 37.7749,
+            "longitude" => -122.4194
+        )
+    )
+    @test validate_payload(doc, valid)
+
+    missing_lat = deepcopy(valid)
+    delete!(missing_lat["location"], "latitude")
+    @test !validate_payload(doc, missing_lat)
+
+    invalid_lon = deepcopy(valid)
+    invalid_lon["location"]["longitude"] = "west"
+    @test !validate_payload(doc, invalid_lon)
+end
+
+struct Item
+    sku::String
+    quantity::Int
+end
+
+struct Invoice
+    invoice_id::String
+    items::Vector{Item}
+    total::Float64
+end
+
+@testset "end-to-end validation - invoice" begin
+    ctx = SchemaContext()
+    result = generate_schema(Invoice; ctx = ctx)
+    doc = result.doc
+
+    valid = Dict(
+        "invoice_id" => "INV-001",
+        "items" => [
+            Dict("sku" => "ITEM1", "quantity" => 3),
+            Dict("sku" => "ITEM2", "quantity" => 1)
+        ],
+        "total" => 99.99
+    )
+    @test validate_payload(doc, valid)
+
+    empty_items = deepcopy(valid)
+    empty_items["items"] = []
+    @test validate_payload(doc, empty_items)
+
+    missing_sku = deepcopy(valid)
+    delete!(missing_sku["items"][1], "sku")
+    @test !validate_payload(doc, missing_sku)
+
+    invalid_total = deepcopy(valid)
+    invalid_total["total"] = "ninety-nine"
+    @test !validate_payload(doc, invalid_total)
+end
+
+@enum TaskStatus begin
+    todo
+    in_progress
+    done
+end
+
+struct Project
+    name::String
+    status::TaskStatus
+    priority::Int
+end
+
+@testset "end-to-end validation - project with enum" begin
+    ctx = SchemaContext()
+    result = generate_schema(Project; ctx = ctx)
+    doc = result.doc
+
+    valid = Dict(
+        "name" => "Build Feature",
+        "status" => "todo",
+        "priority" => 1
+    )
+    @test validate_payload(doc, valid)
+
+    with_done = deepcopy(valid)
+    with_done["status"] = "done"
+    @test validate_payload(doc, with_done)
+
+    invalid_status = deepcopy(valid)
+    invalid_status["status"] = "unknown"
+    @test !validate_payload(doc, invalid_status)
+
+    missing_name = deepcopy(valid)
+    delete!(missing_name, "name")
+    @test !validate_payload(doc, missing_name)
+end

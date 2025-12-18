@@ -131,3 +131,200 @@ end
     @test ctx3.auto_optional_union_nothing == true
     @test ctx3.auto_optional_union_missing == true
 end
+
+struct ExtendedUser
+    id::Int
+    username::String
+    email::Union{String, Nothing}
+    phone::Union{String, Nothing}
+    bio::Union{String, Nothing}
+end
+
+@testset "optional fields - multiple Nothing unions" begin
+    ctx = SchemaContext()
+    treat_union_nothing_as_optional!(ctx)
+    result = generate_schema(ExtendedUser; ctx = ctx)
+    defs = result.doc["\$defs"]
+    schema = defs[optional_key(ExtendedUser)]
+
+    @test Set(schema["required"]) == Set(["id", "username"])
+    @test "email" ∉ schema["required"]
+    @test "phone" ∉ schema["required"]
+    @test "bio" ∉ schema["required"]
+    @test haskey(schema["properties"], "email")
+    @test haskey(schema["properties"], "phone")
+    @test haskey(schema["properties"], "bio")
+end
+
+struct SensorData
+    timestamp::Int
+    temperature::Union{Float64, Missing}
+    humidity::Union{Float64, Missing}
+    pressure::Union{Float64, Missing}
+end
+
+@testset "optional fields - multiple Missing unions" begin
+    ctx = SchemaContext()
+    treat_union_missing_as_optional!(ctx)
+    result = generate_schema(SensorData; ctx = ctx)
+    defs = result.doc["\$defs"]
+    schema = defs[optional_key(SensorData)]
+
+    @test Set(schema["required"]) == Set(["timestamp"])
+    @test "temperature" ∉ schema["required"]
+    @test "humidity" ∉ schema["required"]
+    @test "pressure" ∉ schema["required"]
+end
+
+struct MixedOptional
+    id::Int
+    field1::Union{String, Nothing}
+    field2::Union{Int, Nothing}
+    field3::Union{Float64, Nothing}
+    field4::Union{Bool, Nothing}
+end
+
+@testset "optional fields - various types with Nothing" begin
+    ctx = SchemaContext()
+    treat_union_nothing_as_optional!(ctx)
+    result = generate_schema(MixedOptional; ctx = ctx)
+    defs = result.doc["\$defs"]
+    schema = defs[optional_key(MixedOptional)]
+
+    @test Set(schema["required"]) == Set(["id"])
+    @test "field1" ∉ schema["required"]
+    @test "field2" ∉ schema["required"]
+    @test "field3" ∉ schema["required"]
+    @test "field4" ∉ schema["required"]
+end
+
+struct Department
+    name::String
+    manager::Union{String, Nothing}
+    budget::Union{Float64, Nothing}
+end
+
+struct Company
+    name::String
+    departments::Vector{Department}
+    ceo::Union{String, Nothing}
+end
+
+@testset "optional fields - deeply nested with optionals" begin
+    ctx = SchemaContext()
+    treat_union_nothing_as_optional!(ctx)
+    result = generate_schema(Company; ctx = ctx)
+    defs = result.doc["\$defs"]
+
+    company_schema = defs[optional_key(Company)]
+    @test Set(company_schema["required"]) == Set(["name", "departments"])
+    @test "ceo" ∉ company_schema["required"]
+
+    dept_schema = defs[optional_key(Department)]
+    @test Set(dept_schema["required"]) == Set(["name"])
+    @test "manager" ∉ dept_schema["required"]
+    @test "budget" ∉ dept_schema["required"]
+end
+
+struct BlogPost
+    title::String
+    content::String
+    author::Union{String, Nothing}
+    tags::Union{Vector{String}, Nothing}
+    published_at::Union{String, Nothing}
+end
+
+@testset "optional fields - complex types as optional" begin
+    ctx = SchemaContext()
+    treat_union_nothing_as_optional!(ctx)
+    result = generate_schema(BlogPost; ctx = ctx)
+    defs = result.doc["\$defs"]
+    schema = defs[optional_key(BlogPost)]
+
+    @test Set(schema["required"]) == Set(["title", "content"])
+    @test "author" ∉ schema["required"]
+    @test "tags" ∉ schema["required"]
+    @test "published_at" ∉ schema["required"]
+end
+
+struct Config
+    host::String
+    port::Int
+    username::Union{String, Nothing}
+    password::Union{String, Nothing}
+    ssl_enabled::Union{Bool, Nothing}
+    timeout::Union{Int, Nothing}
+end
+
+@testset "optional fields - configuration schema" begin
+    ctx = SchemaContext()
+    treat_union_nothing_as_optional!(ctx)
+    result = generate_schema(Config; ctx = ctx)
+    defs = result.doc["\$defs"]
+    schema = defs[optional_key(Config)]
+
+    @test Set(schema["required"]) == Set(["host", "port"])
+    @test "username" ∉ schema["required"]
+    @test "password" ∉ schema["required"]
+    @test "ssl_enabled" ∉ schema["required"]
+    @test "timeout" ∉ schema["required"]
+end
+
+struct OptionalWithMissing
+    id::Int
+    data1::Union{String, Missing}
+    data2::Union{Int, Missing}
+    data3::Union{Bool, Missing}
+end
+
+@testset "optional fields - Missing with various types" begin
+    ctx = SchemaContext()
+    treat_union_missing_as_optional!(ctx)
+    result = generate_schema(OptionalWithMissing; ctx = ctx)
+    defs = result.doc["\$defs"]
+    schema = defs[optional_key(OptionalWithMissing)]
+
+    @test Set(schema["required"]) == Set(["id"])
+    @test "data1" ∉ schema["required"]
+    @test "data2" ∉ schema["required"]
+    @test "data3" ∉ schema["required"]
+end
+
+struct AllOptional
+    maybe1::Union{String, Nothing}
+    maybe2::Union{Int, Nothing}
+    maybe3::Union{Float64, Nothing}
+end
+
+@testset "optional fields - all fields optional" begin
+    ctx = SchemaContext()
+    treat_union_nothing_as_optional!(ctx)
+    result = generate_schema(AllOptional; ctx = ctx)
+    defs = result.doc["\$defs"]
+    schema = defs[optional_key(AllOptional)]
+
+    @test isempty(schema["required"])
+    @test haskey(schema["properties"], "maybe1")
+    @test haskey(schema["properties"], "maybe2")
+    @test haskey(schema["properties"], "maybe3")
+end
+
+struct MixedNullTypes
+    id::Int
+    field_nothing::Union{String, Nothing}
+    field_missing::Union{Int, Missing}
+    field_both::Union{Float64, Nothing, Missing}
+end
+
+@testset "optional fields - mix of Nothing and Missing" begin
+    ctx = SchemaContext()
+    treat_null_as_optional!(ctx)
+    result = generate_schema(MixedNullTypes; ctx = ctx)
+    defs = result.doc["\$defs"]
+    schema = defs[optional_key(MixedNullTypes)]
+
+    @test Set(schema["required"]) == Set(["id", "field_both"])
+    @test "field_nothing" ∉ schema["required"]
+    @test "field_missing" ∉ schema["required"]
+    @test "field_both" ∈ schema["required"]
+end

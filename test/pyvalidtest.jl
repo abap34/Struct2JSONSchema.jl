@@ -166,3 +166,145 @@ end
 @testset "Python validator - union_types" begin
     run_validation_tests("union_types", FlexibleValue, () -> generate_schema(FlexibleValue))
 end
+
+struct Coordinates
+    point::NTuple{3, Float64}
+end
+
+@testset "Python validator - ntuple_fixed_length" begin
+    run_validation_tests("ntuple_fixed_length", Coordinates, () -> generate_schema(Coordinates))
+end
+
+struct TaggedPost
+    tags::Set{String}
+    title::String
+end
+
+@testset "Python validator - set_unique_items" begin
+    run_validation_tests("set_unique_items", TaggedPost, () -> generate_schema(TaggedPost))
+end
+
+struct Company
+    name::String
+    employees::Vector{BasicPerson}
+end
+
+@testset "Python validator - nested_array_objects" begin
+    run_validation_tests("nested_array_objects", Company, () -> generate_schema(Company))
+end
+
+struct DeepNested
+    level1::Address
+    level2::PersonWithAddress
+end
+
+@testset "Python validator - deep_nesting" begin
+    run_validation_tests("deep_nesting", DeepNested, () -> generate_schema(DeepNested))
+end
+
+struct MultiUnion
+    value::Union{String, Int, Float64, Bool}
+end
+
+@testset "Python validator - complex_union" begin
+    run_validation_tests("complex_union", MultiUnion, () -> generate_schema(MultiUnion))
+end
+
+struct RangeConstraint
+    id::Int
+    score::Int32
+end
+
+@testset "Python validator - range_validation" begin
+    run_validation_tests(
+        "range_validation", RangeConstraint, () -> begin
+            ctx = SchemaContext()
+            register_field_override!(ctx, RangeConstraint, :score) do ctx
+                Dict(
+                    "type" => "integer",
+                    "minimum" => 0,
+                    "maximum" => 100
+                )
+            end
+            generate_schema(RangeConstraint; ctx = ctx)
+        end
+    )
+end
+
+struct EmailRecord
+    id::Int
+    email::String
+end
+
+@testset "Python validator - email_format" begin
+    run_validation_tests(
+        "email_format", EmailRecord, () -> begin
+            ctx = SchemaContext()
+            register_field_override!(ctx, EmailRecord, :email) do ctx
+                Dict(
+                    "type" => "string",
+                    "format" => "email"
+                )
+            end
+            generate_schema(EmailRecord; ctx = ctx)
+        end
+    )
+end
+
+struct URLRecord
+    id::Int
+    website::String
+end
+
+@testset "Python validator - url_format" begin
+    run_validation_tests(
+        "url_format", URLRecord, () -> begin
+            ctx = SchemaContext()
+            register_field_override!(ctx, URLRecord, :website) do ctx
+                Dict(
+                    "type" => "string",
+                    "format" => "uri"
+                )
+            end
+            generate_schema(URLRecord; ctx = ctx)
+        end
+    )
+end
+
+struct NamedTupleRecord
+    point::NamedTuple{(:x, :y), Tuple{Float64, Float64}}
+end
+
+@testset "Python validator - named_tuple" begin
+    run_validation_tests("named_tuple", NamedTupleRecord, () -> generate_schema(NamedTupleRecord))
+end
+
+struct DictRecord
+    metadata::Dict{String, String}
+end
+
+@testset "Python validator - dict_properties" begin
+    run_validation_tests("dict_properties", DictRecord, () -> generate_schema(DictRecord))
+end
+
+struct BooleanRecord
+    id::Int
+    active::Bool
+    verified::Bool
+end
+
+@testset "Python validator - boolean_fields" begin
+    run_validation_tests("boolean_fields", BooleanRecord, () -> generate_schema(BooleanRecord))
+end
+
+struct MixedTypes
+    id::Int
+    name::String
+    score::Float64
+    active::Bool
+    tags::Vector{String}
+end
+
+@testset "Python validator - mixed_types" begin
+    run_validation_tests("mixed_types", MixedTypes, () -> generate_schema(MixedTypes))
+end

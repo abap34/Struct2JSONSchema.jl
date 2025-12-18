@@ -1,0 +1,23 @@
+[
+  {
+    "name": "Invalid Employees",
+    "employees": "not an array"
+  },
+  {
+    "name": "Missing Age",
+    "employees": [
+      {"name": "Alice"}
+    ]
+  },
+  {
+    "name": "Invalid Age Type",
+    "employees": [
+      {"name": "Bob", "age": "twenty-five"}
+    ]
+  },
+  {
+    "employees": [
+      {"name": "Charlie", "age": 40}
+    ]
+  }
+]

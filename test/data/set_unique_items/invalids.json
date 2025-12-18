@@ -1,0 +1,13 @@
+[
+  {
+    "tags": "not an array",
+    "title": "Invalid tags"
+  },
+  {
+    "tags": [1, 2, 3],
+    "title": "Numeric tags"
+  },
+  {
+    "title": "Missing tags"
+  }
+]

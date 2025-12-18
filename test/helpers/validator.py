@@ -2,6 +2,7 @@ import json
 import sys
 from datetime import datetime
 from jsonschema import Draft202012Validator
+from urllib.parse import urlparse
 
 format_checker = Draft202012Validator.FORMAT_CHECKER
 
@@ -26,6 +27,17 @@ def validate_rfc3339_datetime(instance: object) -> bool:
 
 schema_path = sys.argv[1]
 instance_path = sys.argv[2]
+
+@format_checker.checks("uri", raises=ValueError)
+def validate_uri(instance: object) -> bool:
+    if not isinstance(instance, str):
+        return True
+
+    result = urlparse(instance)
+    if not all([result.scheme, result.netloc]):
+        raise ValueError("invalid URI")
+    return True
+
 
 with open(schema_path) as f:
     schema = json.load(f)

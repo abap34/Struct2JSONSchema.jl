@@ -1,0 +1,23 @@
+[
+  {
+    "id": 1,
+    "name": "Alice",
+    "score": 95.5,
+    "active": true,
+    "tags": ["developer", "team-lead"]
+  },
+  {
+    "id": 2,
+    "name": "Bob",
+    "score": 87.3,
+    "active": false,
+    "tags": []
+  },
+  {
+    "id": 3,
+    "name": "Charlie",
+    "score": 0.0,
+    "active": true,
+    "tags": ["intern"]
+  }
+]

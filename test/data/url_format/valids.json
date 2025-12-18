@@ -1,0 +1,14 @@
+[
+  {
+    "id": 1,
+    "website": "https://example.com"
+  },
+  {
+    "id": 2,
+    "website": "https://www.example.com/path/to/page"
+  },
+  {
+    "id": 3,
+    "website": "https://example.com:8080/api"
+  }
+]

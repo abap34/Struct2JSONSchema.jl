@@ -39,10 +39,12 @@ end
     include("field_overrides.jl")
 end
 
-if success(`python3 --version`)
+py_exec = Sys.which("python3") !== nothing ? "python3" : Sys.which("python") !== nothing ? "python" : nothing
+
+if py_exec !== nothing
     @testset "python validator" begin
         include("pyvalidtest.jl")
     end
 else
-    @warn "python3 not found, skipping Python validator tests"
+    @warn "Python executable not found; skipping python validator tests"
 end

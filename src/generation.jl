@@ -60,7 +60,11 @@ function build_def_safe(T::Type, ctx::SchemaContext)
     return default_generate(T, ctx)
 end
 
-string_schema(; format=nothing, min_length=nothing, max_length=nothing) = begin
+function string_schema(;
+    format::Union{Nothing,String}=nothing,
+    min_length::Union{Nothing,Int}=nothing,
+    max_length::Union{Nothing,Int}=nothing
+)::Dict{String,Any}
     schema = Dict{String,Any}("type" => "string")
     if format !== nothing
         schema["format"] = format
@@ -71,10 +75,13 @@ string_schema(; format=nothing, min_length=nothing, max_length=nothing) = begin
     if max_length !== nothing
         schema["maxLength"] = max_length
     end
-    schema
+    return schema
 end
 
-number_schema(; minimum=nothing, maximum=nothing) = begin
+function number_schema(;
+    minimum::Union{Nothing,Real}=nothing,
+    maximum::Union{Nothing,Real}=nothing
+)::Dict{String,Any}
     schema = Dict{String,Any}("type" => "number")
     if minimum !== nothing
         schema["minimum"] = minimum
@@ -82,7 +89,7 @@ number_schema(; minimum=nothing, maximum=nothing) = begin
     if maximum !== nothing
         schema["maximum"] = maximum
     end
-    schema
+    return schema
 end
 
 function schema_for_array(elem_type::Type, ctx::SchemaContext; unique::Bool=false)
@@ -97,22 +104,23 @@ function schema_for_array(elem_type::Type, ctx::SchemaContext; unique::Bool=fals
     if unique
         schema["uniqueItems"] = true
     end
-    schema
+    return schema
 end
 
 function fixed_tuple_schema(params_raw, ctx::SchemaContext)
-    items = Vector{Dict{String,Any}}()
+    n = length(params_raw)
+    items = Vector{Dict{String,Any}}(undef, n)
     for (idx, elem_type) in enumerate(params_raw)
-        push!(items, with_path(ctx, Symbol("<tuple[$idx]>")) do
+        items[idx] = with_path(ctx, Symbol("<tuple[$idx]>")) do
             normalized = define!(elem_type, ctx)
             reference(normalized, ctx)
-        end)
+        end
     end
-    Dict(
+    return Dict(
         "type" => "array",
         "prefixItems" => items,
-        "minItems" => length(items),
-        "maxItems" => length(items)
+        "minItems" => n,
+        "maxItems" => n
     )
 end
 
@@ -121,7 +129,7 @@ function vararg_tuple_schema(elem_type::Type, ctx::SchemaContext)
         normalized = define!(elem_type, ctx)
         reference(normalized, ctx)
     end
-    Dict("type" => "array", "items" => items_schema)
+    return Dict("type" => "array", "items" => items_schema)
 end
 
 function dict_schema(T::Type, ctx::SchemaContext)
@@ -130,14 +138,14 @@ function dict_schema(T::Type, ctx::SchemaContext)
         normalized = define!(val_type, ctx)
         reference(normalized, ctx)
     end
-    Dict("type" => "object", "additionalProperties" => values_schema)
+    return Dict("type" => "object", "additionalProperties" => values_schema)
 end
 
 function namedtuple_schema(T::Type, ctx::SchemaContext)
-    names = T.parameters[1]
-    types = T.parameters[2]
+    names, types = T.parameters
+    n = length(names)
     properties = Dict{String,Any}()
-    required = String[]
+    required = Vector{String}(undef, n)
     for (i, name) in enumerate(names)
         prop = with_path(ctx, name) do
             field_type = types.parameters[i]
@@ -145,9 +153,9 @@ function namedtuple_schema(T::Type, ctx::SchemaContext)
             reference(normalized, ctx)
         end
         properties[string(name)] = prop
-        push!(required, string(name))
+        required[i] = string(name)
     end
-    Dict(
+    return Dict(
         "type" => "object",
         "properties" => properties,
         "required" => required,
@@ -160,19 +168,20 @@ function union_schema(T::Type, ctx::SchemaContext)
     if isempty(types)
         return Dict("not" => Dict{String,Any}())
     end
-    schemas = Vector{Dict{String,Any}}()
+    n = length(types)
+    schemas = Vector{Dict{String,Any}}(undef, n)
     for (i, U) in enumerate(types)
-        push!(schemas, with_path(ctx, Symbol("<union[$i]>")) do
+        schemas[i] = with_path(ctx, Symbol("<union[$i]>")) do
             normalized = define!(U, ctx)
             reference(normalized, ctx)
-        end)
+        end
     end
-    Dict("anyOf" => schemas)
+    return Dict("anyOf" => schemas)
 end
 
 function enum_schema(T::Type)
     values = [string(instance) for instance in instances(T)]
-    Dict("enum" => values)
+    return Dict("enum" => values)
 end
 
 function struct_schema(T::Type, ctx::SchemaContext)
@@ -201,7 +210,7 @@ function struct_schema(T::Type, ctx::SchemaContext)
             push!(required, string(name))
         end
     end
-    Dict(
+    return Dict(
         "type" => "object",
         "properties" => properties,
         "required" => required,
@@ -210,7 +219,7 @@ function struct_schema(T::Type, ctx::SchemaContext)
 end
 
 function should_be_optional(T::DataType, field::Symbol, field_type::Type, ctx::SchemaContext)::Bool
-    # 1. Explicit registration (future implementation)
+    # 1. Explicit registration via ctx.optional_fields
     if haskey(ctx.optional_fields, T) && field in ctx.optional_fields[T]
         return true
     end
@@ -334,8 +343,9 @@ end
 
 function generate_abstract_schema(T::DataType, ctx::SchemaContext)
     spec = ctx.abstract_specs[T]
-    options = Vector{Dict{String,Any}}()
-    for variant in spec.variants
+    n = length(spec.variants)
+    options = Vector{Dict{String,Any}}(undef, n)
+    for (idx, variant) in enumerate(spec.variants)
         normalized = define!(variant, ctx)
         base_ref = reference(normalized, ctx)
         discr_schema = Dict(
@@ -345,7 +355,7 @@ function generate_abstract_schema(T::DataType, ctx::SchemaContext)
         if spec.require_discr
             discr_schema["required"] = [spec.discr_key]
         end
-        push!(options, Dict("allOf" => [base_ref, discr_schema]))
+        options[idx] = Dict("allOf" => [base_ref, discr_schema])
     end
-    Dict("anyOf" => options)
+    return Dict("anyOf" => options)
 end

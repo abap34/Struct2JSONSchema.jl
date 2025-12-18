@@ -35,7 +35,7 @@ ref_for(T) = "#/\$defs/$(schema_key(T))"
 
 def_for(defs, T) = defs[schema_key(T)]
 
-function resolve_reference(entry::AbstractDict{String,<:Any}, defs::AbstractDict{String,<:Any})
+function resolve_reference(entry::AbstractDict{String, <:Any}, defs::AbstractDict{String, <:Any})
     if haskey(entry, "\$ref")
         key = split(entry["\$ref"], '/')[end]
         return defs[key]
@@ -45,7 +45,7 @@ end
 
 @testset "Primitive schema generation" begin
     ctx = SchemaContext()
-    result = generate_schema(PrimitiveRecord; ctx=ctx)
+    result = generate_schema(PrimitiveRecord; ctx = ctx)
     doc = result.doc
     defs = doc["\$defs"]
     schema = def_for(defs, PrimitiveRecord)
@@ -117,7 +117,7 @@ end
 
 @testset "Null-likes and Any" begin
     ctx = SchemaContext()
-    result = generate_schema(NullAndAnyRecord; ctx=ctx)
+    result = generate_schema(NullAndAnyRecord; ctx = ctx)
     defs = result.doc["\$defs"]
     schema = def_for(defs, NullAndAnyRecord)
     props = schema["properties"]
@@ -143,7 +143,7 @@ end
 
 @testset "UnionAll recording" begin
     ctx = SchemaContext()
-    result = generate_schema(RawVectorWrapper; ctx=ctx)
+    result = generate_schema(RawVectorWrapper; ctx = ctx)
     defs = result.doc["\$defs"]
     schema = def_for(defs, RawVectorWrapper)
     value_schema = schema["properties"]["values"]

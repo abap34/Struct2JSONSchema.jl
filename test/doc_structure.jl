@@ -17,7 +17,7 @@ end
 
 @testset "Document structure" begin
     ctx = SchemaContext()
-    result = generate_schema(DocStructSample; ctx=ctx)
+    result = generate_schema(DocStructSample; ctx = ctx)
     doc = result.doc
 
     @test doc["\$schema"] == "https://json-schema.org/draft/2020-12/schema"
@@ -41,7 +41,7 @@ end
 
 @testset "generate_schema! produces independent defs copy" begin
     ctx = SchemaContext()
-    result = generate_schema!(DocStructSample; ctx=ctx)
+    result = generate_schema!(DocStructSample; ctx = ctx)
     doc_defs = result.doc["\$defs"]
     root_key = k(DocStructSample, ctx)
 

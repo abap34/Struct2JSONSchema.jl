@@ -12,7 +12,7 @@ optional_key(T) = k(T, _OPTIONAL_KEY_CTX)
     end
 
     ctx_default = SchemaContext()
-    result_default = generate_schema(UserWithNullableEmail; ctx=ctx_default)
+    result_default = generate_schema(UserWithNullableEmail; ctx = ctx_default)
     defs_default = result_default.doc["\$defs"]
     schema_default = defs_default[optional_key(UserWithNullableEmail)]
 
@@ -20,7 +20,7 @@ optional_key(T) = k(T, _OPTIONAL_KEY_CTX)
 
     ctx_optional = SchemaContext()
     treat_union_nothing_as_optional!(ctx_optional)
-    result_optional = generate_schema(UserWithNullableEmail; ctx=ctx_optional)
+    result_optional = generate_schema(UserWithNullableEmail; ctx = ctx_optional)
     defs_optional = result_optional.doc["\$defs"]
     schema_optional = defs_optional[optional_key(UserWithNullableEmail)]
 
@@ -36,7 +36,7 @@ end
     end
 
     ctx_default = SchemaContext()
-    result_default = generate_schema(DataRowWithMissingValue; ctx=ctx_default)
+    result_default = generate_schema(DataRowWithMissingValue; ctx = ctx_default)
     defs_default = result_default.doc["\$defs"]
     schema_default = defs_default[optional_key(DataRowWithMissingValue)]
 
@@ -44,7 +44,7 @@ end
 
     ctx_optional = SchemaContext()
     treat_union_missing_as_optional!(ctx_optional)
-    result_optional = generate_schema(DataRowWithMissingValue; ctx=ctx_optional)
+    result_optional = generate_schema(DataRowWithMissingValue; ctx = ctx_optional)
     defs_optional = result_optional.doc["\$defs"]
     schema_optional = defs_optional[optional_key(DataRowWithMissingValue)]
 
@@ -63,7 +63,7 @@ end
 
     ctx = SchemaContext()
     treat_null_as_optional!(ctx)
-    result = generate_schema(RecordWithBoth; ctx=ctx)
+    result = generate_schema(RecordWithBoth; ctx = ctx)
     defs = result.doc["\$defs"]
     schema = defs[optional_key(RecordWithBoth)]
 
@@ -82,7 +82,7 @@ end
 
     ctx = SchemaContext()
     treat_union_nothing_as_optional!(ctx)
-    result = generate_schema(FlexibleField; ctx=ctx)
+    result = generate_schema(FlexibleField; ctx = ctx)
     defs = result.doc["\$defs"]
     schema = defs[optional_key(FlexibleField)]
 
@@ -104,7 +104,7 @@ end
 
     ctx = SchemaContext()
     treat_union_nothing_as_optional!(ctx)
-    result = generate_schema(PersonWithAddress; ctx=ctx)
+    result = generate_schema(PersonWithAddress; ctx = ctx)
     defs = result.doc["\$defs"]
 
     person_schema = defs[optional_key(PersonWithAddress)]
@@ -116,17 +116,17 @@ end
 end
 
 @testset "Optional fields - constructor parameters" begin
-    ctx1 = SchemaContext(auto_optional_union_nothing=true)
+    ctx1 = SchemaContext(auto_optional_union_nothing = true)
     @test ctx1.auto_optional_union_nothing == true
     @test ctx1.auto_optional_union_missing == false
 
-    ctx2 = SchemaContext(auto_optional_union_missing=true)
+    ctx2 = SchemaContext(auto_optional_union_missing = true)
     @test ctx2.auto_optional_union_nothing == false
     @test ctx2.auto_optional_union_missing == true
 
     ctx3 = SchemaContext(
-        auto_optional_union_nothing=true,
-        auto_optional_union_missing=true
+        auto_optional_union_nothing = true,
+        auto_optional_union_missing = true
     )
     @test ctx3.auto_optional_union_nothing == true
     @test ctx3.auto_optional_union_missing == true

@@ -23,7 +23,7 @@ c_def(defs, T) = defs[c_schema_key(T)]
 
 @testset "Collection schema generation" begin
     ctx = SchemaContext()
-    result = generate_schema(CollectionRecord; ctx=ctx)
+    result = generate_schema(CollectionRecord; ctx = ctx)
     defs = result.doc["\$defs"]
     schema = c_def(defs, CollectionRecord)
     props = schema["properties"]
@@ -69,7 +69,7 @@ end
 
 @testset "Empty tuple schema" begin
     ctx = SchemaContext()
-    result = generate_schema(EmptyTupleRecord; ctx=ctx)
+    result = generate_schema(EmptyTupleRecord; ctx = ctx)
     defs = result.doc["\$defs"]
     tuple_def = c_def(defs, Tuple{})
 

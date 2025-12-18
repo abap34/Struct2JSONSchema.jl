@@ -20,7 +20,7 @@ field_override_key(T) = k(T, _FIELD_OVERRIDE_KEY_CTX)
         )
     end
 
-    result = generate_schema(EventWithTimestamp; ctx=ctx)
+    result = generate_schema(EventWithTimestamp; ctx = ctx)
     defs = result.doc["\$defs"]
     schema = defs[field_override_key(EventWithTimestamp)]
 
@@ -46,7 +46,7 @@ end
         )
     end
 
-    result = generate_schema(UserWithEmail; ctx=ctx)
+    result = generate_schema(UserWithEmail; ctx = ctx)
     defs = result.doc["\$defs"]
     schema = defs[field_override_key(UserWithEmail)]
 
@@ -74,7 +74,7 @@ end
         end
     end
 
-    result = generate_schema(Article; ctx=ctx)
+    result = generate_schema(Article; ctx = ctx)
     defs = result.doc["\$defs"]
     schema = defs[field_override_key(Article)]
 
@@ -105,7 +105,7 @@ end
         )
     end
 
-    result = generate_schema(Product; ctx=ctx)
+    result = generate_schema(Product; ctx = ctx)
     defs = result.doc["\$defs"]
 
     float_schema = defs[field_override_key(Float64)]
@@ -139,7 +139,7 @@ end
         )
     end
 
-    result = generate_schema(Document; ctx=ctx)
+    result = generate_schema(Document; ctx = ctx)
     defs = result.doc["\$defs"]
     schema = defs[field_override_key(Document)]
 
@@ -158,7 +158,7 @@ end
     timeout_gen = ctx -> Dict("type" => "integer", "minimum" => 1, "maximum" => 3600)
     register_field_override!(timeout_gen, ctx, Config, :timeout)
 
-    result = generate_schema(Config; ctx=ctx)
+    result = generate_schema(Config; ctx = ctx)
     defs = result.doc["\$defs"]
     schema = defs[field_override_key(Config)]
 
@@ -180,12 +180,12 @@ end
         Dict(
             "anyOf" => [
                 Dict("type" => "string", "format" => "date-time"),
-                Dict("type" => "null")
+                Dict("type" => "null"),
             ]
         )
     end
 
-    result = generate_schema(OptionalTimestampRecord; ctx=ctx)
+    result = generate_schema(OptionalTimestampRecord; ctx = ctx)
     defs = result.doc["\$defs"]
     schema = defs[field_override_key(OptionalTimestampRecord)]
 
@@ -204,7 +204,7 @@ end
     custom_gen = ctx -> Dict("type" => "object", "description" => "Custom schema")
     register_override!(custom_gen, ctx, MyCustomType)
 
-    result = generate_schema(MyCustomType; ctx=ctx)
+    result = generate_schema(MyCustomType; ctx = ctx)
     defs = result.doc["\$defs"]
     schema = defs[field_override_key(MyCustomType)]
 

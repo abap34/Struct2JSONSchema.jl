@@ -53,7 +53,7 @@ end
 
 function validate_object(schema::AbstractDict, data, doc)
     isa(data, AbstractDict) || return false
-    properties = haskey(schema, "properties") ? schema["properties"] : Dict{String,Any}()
+    properties = haskey(schema, "properties") ? schema["properties"] : Dict{String, Any}()
 
     for (name, subschema) in properties
         if haskey(data, name)

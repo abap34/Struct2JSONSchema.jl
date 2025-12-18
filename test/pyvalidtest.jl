@@ -6,7 +6,7 @@ using Dates
 function validate_py(schema_path::String, data_path::String)
     base_cmd = `python3 $(joinpath(@__DIR__, "helpers", "validator.py")) $schema_path $data_path`
     output = IOBuffer()
-    cmd = pipeline(base_cmd; stdout=output, stderr=output)
+    cmd = pipeline(base_cmd; stdout = output, stderr = output)
     success = true
     try
         run(cmd)
@@ -32,7 +32,7 @@ function run_validation_tests(test_name::String, struct_type::Type, schema_gener
         return
     end
 
-    mktempdir() do tmp
+    return mktempdir() do tmp
         schema_path = joinpath(tmp, "schema.json")
         data_path = joinpath(tmp, "data.json")
 
@@ -48,7 +48,7 @@ function run_validation_tests(test_name::String, struct_type::Type, schema_gener
             end
             success, log_output = validate_py(schema_path, data_path)
             if !success
-                @error "Python validation failed for valid data" test_name=test_name index=idx data=valid_data reason=format_reason(log_output)
+                @error "Python validation failed for valid data" test_name = test_name index = idx data = valid_data reason = format_reason(log_output)
             end
             @test success
         end
@@ -60,7 +60,7 @@ function run_validation_tests(test_name::String, struct_type::Type, schema_gener
             end
             success, log_output = validate_py(schema_path, data_path)
             if success
-                @error "Python validation unexpectedly accepted invalid data" test_name=test_name index=idx data=invalid_data reason=format_reason(log_output)
+                @error "Python validation unexpectedly accepted invalid data" test_name = test_name index = idx data = invalid_data reason = format_reason(log_output)
             end
             @test !success
         end
@@ -123,11 +123,13 @@ end
 end
 
 @testset "Python validator - optional_email" begin
-    run_validation_tests("optional_email", PersonWithOptionalEmail, () -> begin
-        ctx = SchemaContext()
-        treat_union_nothing_as_optional!(ctx)
-        generate_schema(PersonWithOptionalEmail; ctx=ctx)
-    end)
+    run_validation_tests(
+        "optional_email", PersonWithOptionalEmail, () -> begin
+            ctx = SchemaContext()
+            treat_union_nothing_as_optional!(ctx)
+            generate_schema(PersonWithOptionalEmail; ctx = ctx)
+        end
+    )
 end
 
 @testset "Python validator - nested_address" begin
@@ -143,16 +145,18 @@ end
 end
 
 @testset "Python validator - field_override_datetime" begin
-    run_validation_tests("field_override_datetime", Event, () -> begin
-        ctx = SchemaContext()
-        register_field_override!(ctx, Event, :timestamp) do ctx
-            Dict(
-                "type" => "string",
-                "format" => "date-time"
-            )
+    run_validation_tests(
+        "field_override_datetime", Event, () -> begin
+            ctx = SchemaContext()
+            register_field_override!(ctx, Event, :timestamp) do ctx
+                Dict(
+                    "type" => "string",
+                    "format" => "date-time"
+                )
+            end
+            generate_schema(Event; ctx = ctx)
         end
-        generate_schema(Event; ctx=ctx)
-    end)
+    )
 end
 
 @testset "Python validator - numeric_constraints" begin

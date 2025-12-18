@@ -1,8 +1,10 @@
-function register_abstract!(ctx::SchemaContext, A::DataType;
+function register_abstract!(
+        ctx::SchemaContext, A::DataType;
         variants::Vector{DataType},
         discr_key::String,
         tag_value,
-        require_discr::Bool=true)
+        require_discr::Bool = true
+    )
     if !(tag_value isa AbstractDict)
         throw(ArgumentError("tag_value must be a dictionary of variant => discriminator"))
     end
@@ -60,7 +62,7 @@ treat_union_missing_as_optional!(ctx::SchemaContext) = (ctx.auto_optional_union_
 function treat_null_as_optional!(ctx::SchemaContext)
     ctx.auto_optional_union_nothing = true
     ctx.auto_optional_union_missing = true
-    nothing
+    return nothing
 end
 
 function generate_schema!(T::Type; ctx::SchemaContext = SchemaContext())
@@ -73,10 +75,10 @@ function generate_schema!(T::Type; ctx::SchemaContext = SchemaContext())
         "\$ref" => "#/\$defs/$key",
         "\$defs" => deepcopy(ctx.defs)
     )
-    (doc=doc, unknowns=setdiff(ctx.unknowns, unknowns_before))
+    return (doc = doc, unknowns = setdiff(ctx.unknowns, unknowns_before))
 end
 
 function generate_schema(T::Type; ctx::SchemaContext = SchemaContext())
     ctx_clone = clone_context(ctx)
-    generate_schema!(T; ctx=ctx_clone)
+    return generate_schema!(T; ctx = ctx_clone)
 end

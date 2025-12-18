@@ -34,12 +34,12 @@ struct PurchaseOrderE2E
     customer::CustomerProfileE2E
     lines::Vector{OrderLineE2E}
     status::OrderStatusE2E
-    notes::Union{Nothing,String}
+    notes::Union{Nothing, String}
 end
 
 @testset "End-to-end schema validation" begin
     ctx = SchemaContext()
-    result = generate_schema(PurchaseOrderE2E; ctx=ctx)
+    result = generate_schema(PurchaseOrderE2E; ctx = ctx)
     doc = result.doc
     @test isempty(result.unknowns)
 
@@ -56,7 +56,7 @@ end
         ),
         "lines" => [
             Dict("sku" => "SKU-BOOK", "quantity" => 2, "price" => 19.99),
-            Dict("sku" => "SKU-PEN", "quantity" => 5, "price" => 1.25)
+            Dict("sku" => "SKU-PEN", "quantity" => 5, "price" => 1.25),
         ],
         "status" => "pending",
         "notes" => nothing

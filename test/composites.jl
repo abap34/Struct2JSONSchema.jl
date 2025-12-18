@@ -70,20 +70,20 @@ end
 
 @testset "Union handling" begin
     ctx = SchemaContext()
-    profile = generate_schema(OptionalProfile; ctx=ctx)
+    profile = generate_schema(OptionalProfile; ctx = ctx)
     defs = profile.doc["\$defs"]
     profile_schema = comp_def(defs, OptionalProfile)
     nickname = resolve_anyof(profile_schema["properties"]["nickname"], defs)
     @test length(nickname) == 2
     @test Set(entry["\$ref"] for entry in nickname) == Set([comp_ref(Nothing), comp_ref(String)])
 
-    union = generate_schema(FlexibleUnion; ctx=SchemaContext())
+    union = generate_schema(FlexibleUnion; ctx = SchemaContext())
     union_defs = union.doc["\$defs"]
     union_schema = comp_def(union_defs, FlexibleUnion)
     value_anyof = resolve_anyof(union_schema["properties"]["value"], union_defs)
     @test length(value_anyof) == 3
     @test Set(entry["\$ref"] for entry in value_anyof) == Set([comp_ref(String), comp_ref(Int64), comp_ref(Float64)])
-    api = generate_schema(ApiResponse; ctx=SchemaContext())
+    api = generate_schema(ApiResponse; ctx = SchemaContext())
     api_defs = api.doc["\$defs"]
     api_schema = comp_def(api_defs, ApiResponse)
     payloads = resolve_anyof(api_schema["properties"]["result"], api_defs)
@@ -92,25 +92,27 @@ end
 
 @testset "Recursive and enum schemas" begin
     ctx = SchemaContext()
-    node_result = generate_schema(RecursiveNode; ctx=ctx)
+    node_result = generate_schema(RecursiveNode; ctx = ctx)
     defs = node_result.doc["\$defs"]
     node_schema = comp_def(defs, RecursiveNode)
     next_anyof = resolve_anyof(node_schema["properties"]["next"], defs)
     @test Set(entry["\$ref"] for entry in next_anyof) == Set([comp_ref(Nothing), comp_ref(RecursiveNode)])
 
-    workflow = generate_schema(Workflow; ctx=SchemaContext())
+    workflow = generate_schema(Workflow; ctx = SchemaContext())
     enum_def = comp_def(workflow.doc["\$defs"], WorkflowState)
     @test enum_def["enum"] == ["awaiting", "running", "done"]
 end
 
 @testset "Abstract discriminator" begin
     ctx = SchemaContext()
-    register_abstract!(ctx, AnimalKind;
+    register_abstract!(
+        ctx, AnimalKind;
         variants = [DogKind, CatKind],
         discr_key = "kind",
         tag_value = Dict(DogKind => "dog", CatKind => "cat"),
-        require_discr = true)
-    shelter = generate_schema(Shelter; ctx=ctx)
+        require_discr = true
+    )
+    shelter = generate_schema(Shelter; ctx = ctx)
     defs = shelter.doc["\$defs"]
     shelter_schema = comp_def(defs, Shelter)
     @test shelter_schema["properties"]["resident"]["\$ref"] == comp_ref(AnimalKind)
@@ -134,7 +136,7 @@ end
 
 @testset "Function fields" begin
     ctx = SchemaContext()
-    result = generate_schema(Handler; ctx=ctx)
+    result = generate_schema(Handler; ctx = ctx)
     defs = result.doc["\$defs"]
     handler_schema = comp_def(defs, Handler)
 

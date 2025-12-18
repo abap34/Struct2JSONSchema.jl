@@ -2,12 +2,12 @@ include("context.jl")
 
 function normalize_type(T::Type, ctx::SchemaContext)::Type
     if T isa UnionAll
-        record_unknown!(ctx, T; message="UnionAll type $T encountered. Using Any")
+        record_unknown!(ctx, T; message = "UnionAll type $T encountered. Using Any")
         return Any
     elseif T isa Union
         types = Base.uniontypes(T)
         if isempty(types)
-            record_unknown!(ctx, T; message="Union{} encountered. Rejecting all values")
+            record_unknown!(ctx, T; message = "Union{} encountered. Rejecting all values")
             return Union{}
         elseif length(types) == 1
             return normalize_type(types[1], ctx)
@@ -25,15 +25,15 @@ function define!(T::Type, ctx::SchemaContext)
         return Tn
     end
 
-    ctx.defs[key] = Dict{String,Any}()
+    ctx.defs[key] = Dict{String, Any}()
     push!(ctx.visited, Tn)
     try
         ctx.defs[key] = build_def_safe(Tn, ctx)
     catch err
-        ctx.defs[key] = Dict{String,Any}()
-        record_unknown!(ctx, Tn; message="Unexpected error generating schema for $Tn ($err)")
+        ctx.defs[key] = Dict{String, Any}()
+        record_unknown!(ctx, Tn; message = "Unexpected error generating schema for $Tn ($err)")
         if ctx.verbose
-            @warn "Unexpected error generating schema for $Tn at path $(path_to_string(ctx.path))" exception=(err, catch_backtrace())
+            @warn "Unexpected error generating schema for $Tn at path $(path_to_string(ctx.path))" exception = (err, catch_backtrace())
         end
     finally
         delete!(ctx.visited, Tn)
@@ -47,7 +47,7 @@ function build_def_safe(T::Type, ctx::SchemaContext)
             return ctx.overrides[T](ctx)
         catch err
             if ctx.verbose
-                @warn "Override for $T at path $(path_to_string(ctx.path)) threw an error. Falling back to default." exception=(err, catch_backtrace())
+                @warn "Override for $T at path $(path_to_string(ctx.path)) threw an error. Falling back to default." exception = (err, catch_backtrace())
             end
         end
     end
@@ -56,8 +56,8 @@ function build_def_safe(T::Type, ctx::SchemaContext)
         if haskey(ctx.abstract_specs, T)
             return generate_abstract_schema(T, ctx)
         else
-            record_unknown!(ctx, T; message="Abstract type $T has no registered discriminator. Using empty schema")
-            return Dict{String,Any}()
+            record_unknown!(ctx, T; message = "Abstract type $T has no registered discriminator. Using empty schema")
+            return Dict{String, Any}()
         end
     end
 
@@ -65,11 +65,11 @@ function build_def_safe(T::Type, ctx::SchemaContext)
 end
 
 function string_schema(;
-    format::Union{Nothing,String}=nothing,
-    min_length::Union{Nothing,Int}=nothing,
-    max_length::Union{Nothing,Int}=nothing
-)::Dict{String,Any}
-    schema = Dict{String,Any}("type" => "string")
+        format::Union{Nothing, String} = nothing,
+        min_length::Union{Nothing, Int} = nothing,
+        max_length::Union{Nothing, Int} = nothing
+    )::Dict{String, Any}
+    schema = Dict{String, Any}("type" => "string")
     if format !== nothing
         schema["format"] = format
     end
@@ -83,10 +83,10 @@ function string_schema(;
 end
 
 function number_schema(;
-    minimum::Union{Nothing,Real}=nothing,
-    maximum::Union{Nothing,Real}=nothing
-)::Dict{String,Any}
-    schema = Dict{String,Any}("type" => "number")
+        minimum::Union{Nothing, Real} = nothing,
+        maximum::Union{Nothing, Real} = nothing
+    )::Dict{String, Any}
+    schema = Dict{String, Any}("type" => "number")
     if minimum !== nothing
         schema["minimum"] = minimum
     end
@@ -96,7 +96,7 @@ function number_schema(;
     return schema
 end
 
-function schema_for_array(elem_type::Type, ctx::SchemaContext; unique::Bool=false)
+function schema_for_array(elem_type::Type, ctx::SchemaContext; unique::Bool = false)
     items_schema = with_path(ctx, Symbol("<items>")) do
         normalized = define!(elem_type, ctx)
         reference(normalized, ctx)
@@ -113,7 +113,7 @@ end
 
 function fixed_tuple_schema(params_raw, ctx::SchemaContext)
     n = length(params_raw)
-    items = Vector{Dict{String,Any}}(undef, n)
+    items = Vector{Dict{String, Any}}(undef, n)
     for (idx, elem_type) in enumerate(params_raw)
         items[idx] = with_path(ctx, Symbol("<tuple[$idx]>")) do
             normalized = define!(elem_type, ctx)
@@ -148,7 +148,7 @@ end
 function namedtuple_schema(T::Type, ctx::SchemaContext)
     names, types = T.parameters
     n = length(names)
-    properties = Dict{String,Any}()
+    properties = Dict{String, Any}()
     required = Vector{String}(undef, n)
     for (i, name) in enumerate(names)
         prop = with_path(ctx, name) do
@@ -170,10 +170,10 @@ end
 function union_schema(T::Type, ctx::SchemaContext)
     types = Base.uniontypes(T)
     if isempty(types)
-        return Dict("not" => Dict{String,Any}())
+        return Dict("not" => Dict{String, Any}())
     end
     n = length(types)
-    schemas = Vector{Dict{String,Any}}(undef, n)
+    schemas = Vector{Dict{String, Any}}(undef, n)
     for (i, U) in enumerate(types)
         schemas[i] = with_path(ctx, Symbol("<union[$i]>")) do
             normalized = define!(U, ctx)
@@ -189,7 +189,7 @@ function enum_schema(T::Type)
 end
 
 function struct_schema(T::Type, ctx::SchemaContext)
-    properties = Dict{String,Any}()
+    properties = Dict{String, Any}()
     required = String[]
     names = fieldnames(T)
     for (idx, name) in enumerate(names)
@@ -273,21 +273,21 @@ function primitive_schema(T::Type, _::SchemaContext)
     elseif T <: AbstractString
         return string_schema()
     elseif T === Char
-        return string_schema(min_length=1, max_length=1)
+        return string_schema(min_length = 1, max_length = 1)
     elseif T === Symbol
         return string_schema()
     elseif T === Date
-        return string_schema(format="date")
+        return string_schema(format = "date")
     elseif T === DateTime
-        return string_schema(format="date-time")
+        return string_schema(format = "date-time")
     elseif T === Time
-        return string_schema(format="time")
+        return string_schema(format = "time")
     elseif T === Regex
-        return string_schema(format="regex")
+        return string_schema(format = "regex")
     elseif T === Nothing || T === Missing
         return Dict("type" => "null")
     elseif T === Any
-        return Dict{String,Any}()
+        return Dict{String, Any}()
     end
     return nothing
 end
@@ -296,7 +296,7 @@ function collection_schema(T::Type, ctx::SchemaContext)
     if T <: AbstractArray && !(T isa UnionAll)
         return schema_for_array(eltype(T), ctx)
     elseif T <: AbstractSet && !(T isa UnionAll)
-        return schema_for_array(eltype(T), ctx; unique=true)
+        return schema_for_array(eltype(T), ctx; unique = true)
     elseif T <: Tuple && !(T isa UnionAll)
         params = T.parameters
         if isempty(params)
@@ -331,7 +331,7 @@ function composite_schema(T::Type, ctx::SchemaContext)
     return nothing
 end
 
-function default_generate(T::Type, ctx::SchemaContext)::Dict{String,Any}
+function default_generate(T::Type, ctx::SchemaContext)::Dict{String, Any}
     schema = primitive_schema(T, ctx)
     schema !== nothing && return schema
 
@@ -341,14 +341,14 @@ function default_generate(T::Type, ctx::SchemaContext)::Dict{String,Any}
     schema = composite_schema(T, ctx)
     schema !== nothing && return schema
 
-    record_unknown!(ctx, T; message="Type $T cannot be represented. Using empty schema")
-    return Dict{String,Any}()
+    record_unknown!(ctx, T; message = "Type $T cannot be represented. Using empty schema")
+    return Dict{String, Any}()
 end
 
 function generate_abstract_schema(T::DataType, ctx::SchemaContext)
     spec = ctx.abstract_specs[T]
     n = length(spec.variants)
-    options = Vector{Dict{String,Any}}(undef, n)
+    options = Vector{Dict{String, Any}}(undef, n)
     for (idx, variant) in enumerate(spec.variants)
         normalized = define!(variant, ctx)
         base_ref = reference(normalized, ctx)

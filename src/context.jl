@@ -1,26 +1,20 @@
 const JSONScalar = Union{String, Int, Float64, Bool, Nothing}
 const SymbolPath = Tuple{Vararg{Symbol}}
 
-struct AbstractSpec
-    variants::Vector{DataType}
-    discr_key::String
-    tag_value::Dict{DataType, JSONScalar}
-    require_discr::Bool
-end
-
 mutable struct SchemaContext
     defs::Dict{String, Dict{String, Any}}
     key_of::IdDict{Any, String}
     visited::Set{Any}
-    abstract_specs::IdDict{DataType, AbstractSpec}
-    overrides::IdDict{DataType, Function}
-    field_overrides::IdDict{Tuple{DataType, Symbol}, Function}
     optional_fields::IdDict{DataType, Set{Symbol}}
     path::Vector{Symbol}
     unknowns::Set{Tuple{Any, SymbolPath}}
     auto_optional_union_nothing::Bool
     auto_optional_union_missing::Bool
     verbose::Bool
+    current_type::Union{Nothing, Type}
+    current_parent::Union{Nothing, Type}
+    current_field::Union{Nothing, Symbol}
+    overrides::Vector{Function}
 end
 
 function SchemaContext(;
@@ -32,15 +26,16 @@ function SchemaContext(;
         Dict{String, Dict{String, Any}}(),
         IdDict{Any, String}(),
         Set{Any}(),
-        IdDict{DataType, AbstractSpec}(),
-        IdDict{DataType, Function}(),
-        IdDict{Tuple{DataType, Symbol}, Function}(),
         IdDict{DataType, Set{Symbol}}(),
         Symbol[],
         Set{Tuple{Any, SymbolPath}}(),
         auto_optional_union_nothing,
         auto_optional_union_missing,
-        verbose
+        verbose,
+        nothing,
+        nothing,
+        nothing,
+        Function[]
     )
 end
 
@@ -49,15 +44,16 @@ function clone_context(ctx::SchemaContext)
         Dict{String, Dict{String, Any}}(),
         ctx.key_of,
         Set{Any}(),
-        ctx.abstract_specs,
-        ctx.overrides,
-        ctx.field_overrides,
         ctx.optional_fields,
         Symbol[],
         Set{Tuple{Any, SymbolPath}}(),
         ctx.auto_optional_union_nothing,
         ctx.auto_optional_union_missing,
-        ctx.verbose
+        ctx.verbose,
+        nothing,
+        nothing,
+        nothing,
+        ctx.overrides
     )
 end
 

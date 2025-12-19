@@ -67,6 +67,42 @@ function run_validation_tests(test_name::String, struct_type::Type, schema_gener
     end
 end
 
+@testset "Python validator smoke test" begin
+    mktempdir() do tmp
+        schema_path = joinpath(tmp, "schema.json")
+        data_path = joinpath(tmp, "data.json")
+
+        schema_doc = Dict(
+            "\$schema" => "https://json-schema.org/draft/2020-12/schema",
+            "type" => "object",
+            "properties" => Dict("name" => Dict("type" => "string")),
+            "required" => ["name"],
+            "additionalProperties" => false
+        )
+        open(schema_path, "w") do io
+            JSON3.write(io, schema_doc)
+        end
+
+        open(data_path, "w") do io
+            JSON3.write(io, Dict("name" => "Alice"))
+        end
+        success_valid, log_valid = validate_py(schema_path, data_path)
+        if !success_valid
+            @error "Python validator rejected valid smoke-test payload" reason = format_reason(log_valid)
+        end
+        @test success_valid
+
+        open(data_path, "w") do io
+            JSON3.write(io, Dict("name" => 123))
+        end
+        success_invalid, log_invalid = validate_py(schema_path, data_path)
+        if success_invalid
+            @error "Python validator accepted invalid smoke-test payload" reason = format_reason(log_invalid)
+        end
+        @test !success_invalid
+    end
+end
+
 struct BasicPerson
     name::String
     age::Int

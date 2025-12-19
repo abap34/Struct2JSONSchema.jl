@@ -18,6 +18,7 @@ SchemaContext
 ```@docs
 register_abstract!
 register_override!
+register_type_override!
 register_field_override!
 ```
 

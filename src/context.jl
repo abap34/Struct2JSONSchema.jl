@@ -8,6 +8,12 @@ struct AbstractSpec
     require_discr::Bool
 end
 
+"""
+    SchemaContext
+
+Mutable container that tracks schema definitions, overrides, and diagnostic
+state while generating JSON Schemas.
+"""
 mutable struct SchemaContext
     defs::Dict{String, Dict{String, Any}}
     key_of::IdDict{Any, String}
@@ -23,6 +29,20 @@ mutable struct SchemaContext
     verbose::Bool
 end
 
+"""
+    SchemaContext(; auto_optional_union_nothing=false,
+                   auto_optional_union_missing=false,
+                   verbose=false)
+
+Create a new schema generation context. Contexts are safe to reuse across
+multiple calls to `generate_schema!` and hold globally registered overrides and
+discriminator metadata.
+
+# Keyword Arguments
+- `auto_optional_union_nothing`: treat `Union{T, Nothing}` fields as optional.
+- `auto_optional_union_missing`: treat `Union{T, Missing}` fields as optional.
+- `verbose`: emit informational logs for unknown types or override failures.
+"""
 function SchemaContext(;
         auto_optional_union_nothing::Bool = false,
         auto_optional_union_missing::Bool = false,
@@ -44,6 +64,7 @@ function SchemaContext(;
     )
 end
 
+# Clone `ctx`, preserving overrides but clearing definitions and diagnostics.
 function clone_context(ctx::SchemaContext)
     return SchemaContext(
         Dict{String, Dict{String, Any}}(),
@@ -63,6 +84,7 @@ end
 
 path_to_string(path::Union{Vector{Symbol}, SymbolPath}) = isempty(path) ? "<root>" : join(string.(path), ".")
 
+# Track that `T` could not be represented under the current path, optionally logging.
 function record_unknown!(ctx::SchemaContext, T; message::Union{Nothing, String} = nothing)
     if T === Any
         return
@@ -84,6 +106,7 @@ end
 
 reference(T::Type, ctx::SchemaContext) = Dict("\$ref" => "#/\$defs/$(k(T, ctx))")
 
+# Temporarily push `sym` onto the path stack while evaluating `f`.
 function with_path(f::Function, ctx::SchemaContext, sym::Symbol)
     push!(ctx.path, sym)
     try

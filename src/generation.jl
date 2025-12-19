@@ -1,5 +1,6 @@
 include("context.jl")
 
+# Normalize unions/unionalls so later stages can safely emit references.
 function normalize_type(T::Type, ctx::SchemaContext)::Type
     if T isa UnionAll
         record_unknown!(ctx, T; message = "UnionAll type $T encountered. Using Any")
@@ -17,6 +18,7 @@ function normalize_type(T::Type, ctx::SchemaContext)::Type
     return T
 end
 
+# Define `T` once per context, caching the resulting schema under its key.
 function define!(T::Type, ctx::SchemaContext)
     Tn = normalize_type(T, ctx)
     key = k(Tn, ctx)
@@ -40,6 +42,7 @@ function define!(T::Type, ctx::SchemaContext)
     return Tn
 end
 
+# Build the schema for `T`, respecting overrides and handling errors defensively.
 function build_def_safe(T::Type, ctx::SchemaContext)
     if T isa DataType && haskey(ctx.overrides, T)
         try
@@ -234,6 +237,7 @@ function struct_schema(T::Type, ctx::SchemaContext)
     )
 end
 
+# Check explicit optional registration and configured heuristics for a field.
 function should_be_optional(T::DataType, field::Symbol, field_type::Type, ctx::SchemaContext)::Bool
     # 1. Explicit registration via ctx.optional_fields
     if haskey(ctx.optional_fields, T) && field in ctx.optional_fields[T]
@@ -253,12 +257,14 @@ function should_be_optional(T::DataType, field::Symbol, field_type::Type, ctx::S
     return false
 end
 
+# Detect `Union{S, Nothing}` used by optional-field logic.
 function is_union_with_nothing(T::Type)::Bool
     T isa Union || return false
     types = Base.uniontypes(T)
     return Nothing in types && length(types) == 2
 end
 
+# Detect `Union{S, Missing}` used by optional-field logic.
 function is_union_with_missing(T::Type)::Bool
     T isa Union || return false
     types = Base.uniontypes(T)
@@ -352,6 +358,7 @@ function composite_schema(T::Type, ctx::SchemaContext)
     return nothing
 end
 
+# Fallback pipeline that tries primitive/collection/composite handlers for `T`.
 function default_generate(T::Type, ctx::SchemaContext)::Dict{String, Any}
     schema = primitive_schema(T, ctx)
     schema !== nothing && return schema
@@ -366,6 +373,7 @@ function default_generate(T::Type, ctx::SchemaContext)::Dict{String, Any}
     return Dict{String, Any}()
 end
 
+# Compose `anyOf` entries for each abstract variant and discriminator rule.
 function generate_abstract_schema(T::DataType, ctx::SchemaContext)
     spec = ctx.abstract_specs[T]
     n = length(spec.variants)

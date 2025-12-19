@@ -1,5 +1,5 @@
 using Test
-using Struct2JSONSchema: SchemaContext, generate_schema, generate_schema!, register_abstract!, register_override!, register_field_override!, k, define!
+using Struct2JSONSchema: SchemaContext, generate_schema, generate_schema!, register_abstract!, register_override!, register_type_override!, register_field_override!, k, define!
 using Dates
 import Logging
 
@@ -53,7 +53,7 @@ end
 @testset "Overrides customize definitions" begin
     ctx = SchemaContext()
 
-    register_override!(ctx, DateTime) do ctx
+    register_type_override!(ctx, DateTime) do ctx
         Dict(
             "type" => "string",
             "format" => "date-time",
@@ -61,7 +61,7 @@ end
         )
     end
 
-    register_override!(ctx, OverrideDemo) do ctx
+    register_type_override!(ctx, OverrideDemo) do ctx
         push!(ctx.path, :amount)
         define!(Int64, ctx)
         pop!(ctx.path)
@@ -151,11 +151,11 @@ end
 @testset "override tests" begin
     ctx = SchemaContext()
 
-    register_override!(ctx, OverrideTarget1) do ctx
+    register_type_override!(ctx, OverrideTarget1) do ctx
         Dict("type" => "object", "description" => "Override 1")
     end
 
-    register_override!(ctx, OverrideTarget2) do ctx
+    register_type_override!(ctx, OverrideTarget2) do ctx
         Dict("type" => "object", "description" => "Override 2")
     end
 
@@ -179,11 +179,11 @@ end
 @testset "primitive type override tests" begin
     ctx = SchemaContext()
 
-    register_override!(ctx, Int32) do ctx
+    register_type_override!(ctx, Int32) do ctx
         Dict("type" => "integer", "description" => "Custom Int32")
     end
 
-    register_override!(ctx, Int64) do ctx
+    register_type_override!(ctx, Int64) do ctx
         Dict("type" => "integer", "description" => "Custom Int64")
     end
 
@@ -336,7 +336,7 @@ end
 @testset "type override - DateTime custom format" begin
     ctx = SchemaContext()
 
-    register_override!(ctx, DateTime) do ctx
+    register_type_override!(ctx, DateTime) do ctx
         Dict(
             "type" => "string",
             "format" => "date-time",
@@ -359,7 +359,7 @@ end
 @testset "type override - Float64 custom representation" begin
     ctx = SchemaContext()
 
-    register_override!(ctx, Float64) do ctx
+    register_type_override!(ctx, Float64) do ctx
         Dict(
             "type" => "number",
             "description" => "Custom float representation"
@@ -381,7 +381,7 @@ end
 @testset "type override - String custom constraints" begin
     ctx = SchemaContext()
 
-    register_override!(ctx, String) do ctx
+    register_type_override!(ctx, String) do ctx
         Dict(
             "type" => "string",
             "minLength" => 1,
@@ -438,7 +438,7 @@ end
 @testset "type override - multiple integer types" begin
     ctx = SchemaContext()
 
-    register_override!(ctx, Int8) do ctx
+    register_type_override!(ctx, Int8) do ctx
         Dict(
             "type" => "integer",
             "minimum" => -128,
@@ -447,7 +447,7 @@ end
         )
     end
 
-    register_override!(ctx, Int32) do ctx
+    register_type_override!(ctx, Int32) do ctx
         Dict(
             "type" => "integer",
             "description" => "32-bit integer"
@@ -509,6 +509,229 @@ end
 struct PatternRecord
     phone::String
     zipcode::String
+end
+
+@testset "override contexts - field override" begin
+    struct UnifiedFieldTarget
+        value::Int
+        label::String
+    end
+
+    ctx = SchemaContext()
+
+    register_override!(ctx) do ctx
+        if ctx.current_parent === UnifiedFieldTarget && ctx.current_field === :value
+            return Dict("type" => "integer", "minimum" => 0)
+        end
+        return nothing
+    end
+
+    result = generate_schema(UnifiedFieldTarget; ctx = ctx)
+    schema = result.doc["\$defs"][ctx_key(UnifiedFieldTarget)]
+
+    @test schema["properties"]["value"]["minimum"] == 0
+    @test haskey(schema["properties"]["label"], "\$ref")
+end
+
+@testset "override contexts - type override" begin
+    struct UnifiedTypeTarget
+        data::String
+    end
+
+    ctx = SchemaContext()
+
+    register_override!(ctx) do ctx
+        if ctx.current_type === UnifiedTypeTarget && ctx.current_field === nothing
+            return Dict("type" => "object", "description" => "custom type override")
+        end
+        return nothing
+    end
+
+    result = generate_schema(UnifiedTypeTarget; ctx = ctx)
+    schema = result.doc["\$defs"][ctx_key(UnifiedTypeTarget)]
+
+    @test schema["description"] == "custom type override"
+    @test schema["type"] == "object"
+end
+
+@testset "override contexts - path aware" begin
+    struct ServiceConfig
+        endpoint::String
+        retries::Int
+    end
+
+    struct ConfigWrapper
+        config::ServiceConfig
+        label::String
+    end
+
+    ctx = SchemaContext()
+
+    register_override!(ctx) do ctx
+        if ctx.current_type === String && :config in ctx.path
+            return Dict("type" => "string", "minLength" => 1)
+        end
+        return nothing
+    end
+
+    result = generate_schema(ConfigWrapper; ctx = ctx)
+    defs = result.doc["\$defs"]
+
+    config_schema = defs[ctx_key(ServiceConfig)]
+    @test config_schema["properties"]["endpoint"]["minLength"] == 1
+
+    wrapper_schema = defs[ctx_key(ConfigWrapper)]
+    @test !haskey(wrapper_schema["properties"]["label"], "minLength")
+end
+
+@testset "override contexts - helper APIs" begin
+    struct TypeOverrideHolder
+        price::Float64
+    end
+
+    ctx = SchemaContext()
+
+    register_type_override!(ctx, Float64) do ctx
+        Dict("type" => "number", "minimum" => 0)
+    end
+
+    result = generate_schema(TypeOverrideHolder; ctx = ctx)
+    float_def = result.doc["\$defs"][ctx_key(Float64)]
+
+    @test float_def["minimum"] == 0
+    @test float_def["type"] == "number"
+end
+
+@testset "override contexts - field helper" begin
+    struct FieldOverrideHolder
+        email::String
+        name::String
+    end
+
+    ctx = SchemaContext()
+
+    register_field_override!(ctx, FieldOverrideHolder, :email) do ctx
+        Dict("type" => "string", "format" => "email")
+    end
+
+    result = generate_schema(FieldOverrideHolder; ctx = ctx)
+    schema = result.doc["\$defs"][ctx_key(FieldOverrideHolder)]
+
+    @test schema["properties"]["email"]["format"] == "email"
+    @test haskey(schema["properties"]["name"], "\$ref")
+end
+
+@testset "override contexts - register_abstract!" begin
+    abstract type UnifiedAnimal end
+
+    struct UnifiedCat <: UnifiedAnimal
+        kind::String
+        name::String
+    end
+
+    struct UnifiedDog <: UnifiedAnimal
+        kind::String
+        name::String
+    end
+
+    ctx = SchemaContext()
+
+    register_abstract!(ctx, UnifiedAnimal;
+        variants = [UnifiedCat, UnifiedDog],
+        discr_key = "kind",
+        tag_value = Dict(UnifiedCat => "cat", UnifiedDog => "dog")
+    )
+
+    result = generate_schema(UnifiedAnimal; ctx = ctx)
+    schema = result.doc["\$defs"][ctx_key(UnifiedAnimal)]
+
+    @test haskey(schema, "anyOf")
+    @test length(schema["anyOf"]) == 2
+    for variant_schema in schema["anyOf"]
+        @test haskey(variant_schema, "allOf")
+        discr = only(filter(s -> haskey(s, "properties"), variant_schema["allOf"]))
+        @test haskey(discr["properties"], "kind")
+    end
+end
+
+@testset "override contexts - precedence and failures" begin
+    struct PrecedenceHolder
+        value::Int
+    end
+
+    ctx = SchemaContext()
+
+    register_type_override!(ctx, Int) do _
+        Dict("type" => "integer", "minimum" => 5)
+    end
+
+    register_field_override!(ctx, PrecedenceHolder, :value) do _
+        Dict("type" => "integer", "minimum" => 0, "maximum" => 10)
+    end
+
+    result = generate_schema(PrecedenceHolder; ctx = ctx)
+    defs = result.doc["\$defs"]
+    holder_schema = defs[ctx_key(PrecedenceHolder)]
+    @test holder_schema["properties"]["value"]["minimum"] == 0
+    @test holder_schema["properties"]["value"]["maximum"] == 10
+
+    int_result = generate_schema(Int; ctx = ctx)
+    int_schema = int_result.doc["\$defs"][ctx_key(Int)]
+    @test int_schema["minimum"] == 5
+
+    struct BrokenOverride
+        data::Int
+    end
+
+    verbose_ctx = SchemaContext(verbose = true)
+    register_override!(verbose_ctx) do ctx
+        if ctx.current_type === BrokenOverride
+            error("boom")
+        end
+        return nothing
+    end
+
+    @test_logs (:warn, r"Override threw an error at type BrokenOverride") begin
+        result = generate_schema(BrokenOverride; ctx = verbose_ctx)
+        schema = result.doc["\$defs"][ctx_key(BrokenOverride)]
+        @test haskey(schema["properties"], "data")
+    end
+end
+
+@testset "override contexts - ordering" begin
+    struct OrderingTarget
+        x::Int
+    end
+
+    ctx = SchemaContext()
+    first_hit = Ref(false)
+    register_override!(ctx) do ctx
+        if ctx.current_type === OrderingTarget
+            first_hit[] = true
+            return Dict(
+                "type" => "object",
+                "properties" => Dict("x" => Dict("type" => "integer")),
+                "required" => ["x"],
+                "additionalProperties" => false
+            )
+        end
+        return nothing
+    end
+
+    second_hit = Ref(false)
+    register_override!(ctx) do ctx
+        if ctx.current_type === OrderingTarget
+            second_hit[] = true
+            return Dict("type" => "object")
+        end
+        return nothing
+    end
+
+    result = generate_schema(OrderingTarget; ctx = ctx)
+    schema = result.doc["\$defs"][ctx_key(OrderingTarget)]
+    @test schema["required"] == ["x"]
+    @test first_hit[]
+    @test !second_hit[]
 end
 
 @testset "field override - regex patterns" begin

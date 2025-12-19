@@ -40,27 +40,41 @@ function define!(T::Type, ctx::SchemaContext)
     return Tn
 end
 
-function build_def_safe(T::Type, ctx::SchemaContext)
-    if T isa DataType && haskey(ctx.overrides, T)
+function apply_overrides(ctx::SchemaContext; location::Union{Nothing, String} = nothing)
+    for override_fn in ctx.overrides
         try
-            return ctx.overrides[T](ctx)
+            result = override_fn(ctx)
+            if result !== nothing
+                return result
+            end
         catch err
             if ctx.verbose
-                @warn "Override for $T at path $(path_to_string(ctx.path)) threw an error. Falling back to default." exception = (err, catch_backtrace())
+                loc = location === nothing ? path_to_string(ctx.path) : location
+                @warn "Override threw an error at $loc. Falling back to default." exception = (err, catch_backtrace())
             end
         end
     end
+    return nothing
+end
 
-    if isabstracttype(T)
-        if haskey(ctx.abstract_specs, T)
-            return generate_abstract_schema(T, ctx)
-        else
+function build_def_safe(T::Type, ctx::SchemaContext)
+    old_type = ctx.current_type
+    ctx.current_type = T
+    try
+        override = apply_overrides(ctx; location = "type $(repr(T))")
+        if override !== nothing
+            return override
+        end
+
+        if isabstracttype(T)
             record_unknown!(ctx, T; message = "Abstract type $T has no registered discriminator. Using empty schema")
             return Dict{String, Any}()
         end
-    end
 
-    return default_generate(T, ctx)
+        return default_generate(T, ctx)
+    finally
+        ctx.current_type = old_type
+    end
 end
 
 function string_schema(;
@@ -206,24 +220,40 @@ function struct_schema(T::Type, ctx::SchemaContext)
     names = fieldnames(T)
     for (idx, name) in enumerate(names)
         field_type = fieldtype(T, idx)
-
-        # Check for field-level override
-        if haskey(ctx.field_overrides, (T, name))
+        old_parent = ctx.current_parent
+        old_field = ctx.current_field
+        old_type = ctx.current_type
+        ctx.current_parent = T
+        ctx.current_field = name
+        ctx.current_type = field_type
+        try
             prop = with_path(ctx, name) do
-                ctx.field_overrides[(T, name)](ctx)
+                override = apply_overrides(ctx; location = "$(repr(T)).$(name)")
+                if override !== nothing
+                    return override
+                end
+                saved_parent = ctx.current_parent
+                saved_field = ctx.current_field
+                ctx.current_parent = nothing
+                ctx.current_field = nothing
+                try
+                    normalized = define!(field_type, ctx)
+                    reference(normalized, ctx)
+                finally
+                    ctx.current_parent = saved_parent
+                    ctx.current_field = saved_field
+                end
             end
-        else
-            prop = with_path(ctx, name) do
-                normalized = define!(field_type, ctx)
-                reference(normalized, ctx)
+
+            properties[string(name)] = prop
+
+            if !should_be_optional(T, name, field_type, ctx)
+                push!(required, string(name))
             end
-        end
-
-        properties[string(name)] = prop
-
-        # Check if field should be optional
-        if !should_be_optional(T, name, field_type, ctx)
-            push!(required, string(name))
+        finally
+            ctx.current_parent = old_parent
+            ctx.current_field = old_field
+            ctx.current_type = old_type
         end
     end
     return Dict(
@@ -366,19 +396,24 @@ function default_generate(T::Type, ctx::SchemaContext)::Dict{String, Any}
     return Dict{String, Any}()
 end
 
-function generate_abstract_schema(T::DataType, ctx::SchemaContext)
-    spec = ctx.abstract_specs[T]
-    n = length(spec.variants)
+function generate_abstract_schema(
+        variants::Vector{DataType},
+        discr_key::String,
+        tag_value::Dict{DataType, JSONScalar},
+        require_discr::Bool,
+        ctx::SchemaContext
+    )
+    n = length(variants)
     options = Vector{Dict{String, Any}}(undef, n)
-    for (idx, variant) in enumerate(spec.variants)
+    for (idx, variant) in enumerate(variants)
         normalized = define!(variant, ctx)
         base_ref = reference(normalized, ctx)
         discr_schema = Dict(
             "type" => "object",
-            "properties" => Dict(spec.discr_key => Dict("const" => spec.tag_value[variant]))
+            "properties" => Dict(discr_key => Dict("const" => tag_value[variant]))
         )
-        if spec.require_discr
-            discr_schema["required"] = [spec.discr_key]
+        if require_discr
+            discr_schema["required"] = [discr_key]
         end
         options[idx] = Dict("allOf" => [base_ref, discr_schema])
     end

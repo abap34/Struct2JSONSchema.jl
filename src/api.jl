@@ -41,18 +41,45 @@ function register_abstract!(
         throw(ArgumentError("tag_value contains duplicate discriminator values"))
     end
 
-    ctx.abstract_specs[A] = AbstractSpec(copy(variants), discr_key, Dict(tag_value), require_discr)
+    tags = Dict{DataType, JSONScalar}(tag_value)
+    variants_copy = copy(variants)
+
+    register_override!(ctx) do ctx
+        if ctx.current_type === A && ctx.current_field === nothing
+            return generate_abstract_schema(variants_copy, discr_key, tags, require_discr, ctx)
+        end
+        return nothing
+    end
     return nothing
 end
 
-register_override!(ctx::SchemaContext, T::DataType, generator::Function) = (ctx.overrides[T] = generator; nothing)
+function register_override!(generator::Function, ctx::SchemaContext)
+    push!(ctx.overrides, generator)
+    return nothing
+end
+register_override!(ctx::SchemaContext, generator::Function) = register_override!(generator, ctx)
 
-register_override!(generator::Function, ctx::SchemaContext, T::DataType) = register_override!(ctx, T, generator)
+function register_type_override!(generator::Function, ctx::SchemaContext, T::DataType)
+    register_override!(ctx) do ctx
+        if ctx.current_type === T && ctx.current_field === nothing
+            return generator(ctx)
+        end
+        return nothing
+    end
+    return nothing
+end
+register_type_override!(ctx::SchemaContext, T::DataType, generator::Function) = register_type_override!(generator, ctx, T)
 
-# Field-level overrides
-register_field_override!(ctx::SchemaContext, T::DataType, field::Symbol, generator::Function) = (ctx.field_overrides[(T, field)] = generator; nothing)
-
-register_field_override!(generator::Function, ctx::SchemaContext, T::DataType, field::Symbol) = register_field_override!(ctx, T, field, generator)
+function register_field_override!(generator::Function, ctx::SchemaContext, T::DataType, field::Symbol)
+    register_override!(ctx) do ctx
+        if ctx.current_parent === T && ctx.current_field === field
+            return generator(ctx)
+        end
+        return nothing
+    end
+    return nothing
+end
+register_field_override!(ctx::SchemaContext, T::DataType, field::Symbol, generator::Function) = register_field_override!(generator, ctx, T, field)
 
 # Optional field helpers
 treat_union_nothing_as_optional!(ctx::SchemaContext) = (ctx.auto_optional_union_nothing = true; nothing)

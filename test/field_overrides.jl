@@ -1,5 +1,5 @@
 using Test
-using Struct2JSONSchema: SchemaContext, generate_schema, register_field_override!, register_override!, treat_union_nothing_as_optional!, k
+using Struct2JSONSchema: SchemaContext, generate_schema, register_field_override!, register_type_override!, treat_union_nothing_as_optional!, k
 using Dates
 
 const _FIELD_OVERRIDE_KEY_CTX = SchemaContext()
@@ -92,7 +92,7 @@ end
 
     ctx = SchemaContext()
 
-    register_override!(ctx, Float64) do ctx
+    register_type_override!(ctx, Float64) do ctx
         Dict("type" => "number", "minimum" => 0)
     end
 
@@ -202,7 +202,7 @@ end
     ctx = SchemaContext()
 
     custom_gen = ctx -> Dict("type" => "object", "description" => "Custom schema")
-    register_override!(custom_gen, ctx, MyCustomType)
+    register_type_override!(custom_gen, ctx, MyCustomType)
 
     result = generate_schema(MyCustomType; ctx = ctx)
     defs = result.doc["\$defs"]

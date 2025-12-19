@@ -1,5 +1,5 @@
 using Test
-using Struct2JSONSchema: SchemaContext, generate_schema, generate_schema!, register_override!, k
+using Struct2JSONSchema: SchemaContext, generate_schema, generate_schema!, register_type_override!, k
 import Struct2JSONSchema: clone_context
 
 struct VerboseCheck
@@ -29,7 +29,7 @@ end
     @test haskey(safe_result.doc["\$defs"], root_key)
 
     ctx_override = SchemaContext()
-    register_override!(ctx_override, OverrideTarget) do ctx
+    register_type_override!(ctx_override, OverrideTarget) do ctx
         Dict(
             "type" => "object",
             "properties" => Dict("field" => Dict("type" => "string")),
@@ -119,11 +119,11 @@ end
 @testset "API behavior tests - multiple overrides" begin
     ctx = SchemaContext()
 
-    register_override!(ctx, CustomOverride1) do ctx
+    register_type_override!(ctx, CustomOverride1) do ctx
         Dict("type" => "object", "description" => "Custom 1")
     end
 
-    register_override!(ctx, CustomOverride2) do ctx
+    register_type_override!(ctx, CustomOverride2) do ctx
         Dict("type" => "object", "description" => "Custom 2")
     end
 

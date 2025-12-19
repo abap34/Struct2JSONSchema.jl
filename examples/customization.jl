@@ -23,7 +23,7 @@ end
 
 ctx = SchemaContext()
 
-register_override!(ctx, UUID) do _
+register_type_override!(ctx, UUID) do _
     Dict("type" => "string", "format" => "uuid")
 end
 

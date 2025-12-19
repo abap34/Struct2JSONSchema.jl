@@ -1,5 +1,6 @@
 include("context.jl")
 
+# Normalize unions and `UnionAll` types before looking up schema definitions.
 function normalize_type(T::Type, ctx::SchemaContext)::Type
     if T isa UnionAll
         record_unknown!(ctx, T; message = "UnionAll type $T encountered. Using Any")
@@ -17,6 +18,7 @@ function normalize_type(T::Type, ctx::SchemaContext)::Type
     return T
 end
 
+# Define `T` if it has not been seen yet, wiring recursion guards along the way.
 function define!(T::Type, ctx::SchemaContext)
     Tn = normalize_type(T, ctx)
     key = k(Tn, ctx)
@@ -40,6 +42,7 @@ function define!(T::Type, ctx::SchemaContext)
     return Tn
 end
 
+# Try every registered override until one returns a schema `Dict`.
 function apply_overrides(ctx::SchemaContext; location::Union{Nothing, String} = nothing)
     for override_fn in ctx.overrides
         try
@@ -57,6 +60,7 @@ function apply_overrides(ctx::SchemaContext; location::Union{Nothing, String} = 
     return nothing
 end
 
+# Build the definition for `T`, honoring overrides and falling back to defaults.
 function build_def_safe(T::Type, ctx::SchemaContext)
     old_type = ctx.current_type
     ctx.current_type = T
@@ -214,6 +218,7 @@ function enum_schema(T::Type)
     return Dict("enum" => values)
 end
 
+# Generate an object schema for `T`, evaluating overrides per field as needed.
 function struct_schema(T::Type, ctx::SchemaContext)
     properties = Dict{String, Any}()
     required = String[]

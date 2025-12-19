@@ -255,13 +255,19 @@ end
 @testset "field override - same override for multiple fields" begin
     ctx = SchemaContext()
 
-    email_override = ctx -> Dict(
-        "type" => "string",
-        "format" => "email"
-    )
+    register_field_override!(ctx, EmailContainer, :primary) do ctx
+        Dict(
+            "type" => "string",
+            "format" => "email"
+        )
+    end
 
-    register_field_override!(ctx, EmailContainer, :primary, email_override)
-    register_field_override!(ctx, EmailContainer, :secondary, email_override)
+    register_field_override!(ctx, EmailContainer, :secondary) do ctx
+        Dict(
+            "type" => "string",
+            "format" => "email"
+        )
+    end
 
     result = generate_schema(EmailContainer; ctx = ctx)
     schema = result.doc["\$defs"][ctx_key(EmailContainer)]

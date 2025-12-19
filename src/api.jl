@@ -1,3 +1,11 @@
+"""
+    register_abstract!(ctx, A; variants, discr_key, tag_value, require_discr=true)
+
+Register a discriminator schema for the abstract type `A`. `variants`
+must be a vector of concrete subtypes, `discr_key` the discriminator field
+name, and `tag_value` a `Dict` mapping each variant to a JSON scalar tag.
+When `require_discr` is true the discriminator field is marked as required.
+"""
 function register_abstract!(
         ctx::SchemaContext, A::DataType;
         variants::Vector{DataType},
@@ -53,12 +61,27 @@ function register_abstract!(
     return nothing
 end
 
+"""
+    register_override!(ctx, generator)
+
+Append a generic override function. `generator` receives the live
+`SchemaContext` and must return a replacement schema `Dict` or
+`nothing` to allow later overrides/default generation to run. Exceptions
+are caught; when `ctx.verbose` is true a warning is logged before
+falling back to the next candidate.
+"""
 function register_override!(generator::Function, ctx::SchemaContext)
     push!(ctx.overrides, generator)
     return nothing
 end
-register_override!(ctx::SchemaContext, generator::Function) = register_override!(generator, ctx)
 
+"""
+    register_type_override!(ctx, T, generator)
+
+Convenience wrapper over [`register_override!`](@ref) that only fires
+when the currently generated type is exactly `T`. The supplied `generator`
+should return the full replacement schema for that type.
+"""
 function register_type_override!(generator::Function, ctx::SchemaContext, T::DataType)
     register_override!(ctx) do ctx
         if ctx.current_type === T && ctx.current_field === nothing
@@ -68,8 +91,15 @@ function register_type_override!(generator::Function, ctx::SchemaContext, T::Dat
     end
     return nothing
 end
-register_type_override!(ctx::SchemaContext, T::DataType, generator::Function) = register_type_override!(generator, ctx, T)
 
+"""
+    register_field_override!(ctx, T, field, generator)
+
+Register a context-aware override for the field `field` on struct `T`.
+The override runs while the field is visited and may return any schema
+`Dict`. Returning `nothing` falls back to downstream overrides or the
+default `\$ref`.
+"""
 function register_field_override!(generator::Function, ctx::SchemaContext, T::DataType, field::Symbol)
     register_override!(ctx) do ctx
         if ctx.current_parent === T && ctx.current_field === field
@@ -79,19 +109,33 @@ function register_field_override!(generator::Function, ctx::SchemaContext, T::Da
     end
     return nothing
 end
-register_field_override!(ctx::SchemaContext, T::DataType, field::Symbol, generator::Function) = register_field_override!(generator, ctx, T, field)
 
-# Optional field helpers
+"""Enable automatic `Union{T,Nothing}` → optional field detection."""
 treat_union_nothing_as_optional!(ctx::SchemaContext) = (ctx.auto_optional_union_nothing = true; nothing)
 
+"""Enable automatic `Union{T,Missing}` → optional field detection."""
 treat_union_missing_as_optional!(ctx::SchemaContext) = (ctx.auto_optional_union_missing = true; nothing)
 
+"""
+    treat_null_as_optional!(ctx)
+
+Helper that enables both `Union{T,Nothing}` and `Union{T,Missing}`
+detection in one call.
+"""
 function treat_null_as_optional!(ctx::SchemaContext)
     ctx.auto_optional_union_nothing = true
     ctx.auto_optional_union_missing = true
     return nothing
 end
 
+"""
+    generate_schema!(T; ctx=SchemaContext())
+
+Materialize a schema for `T` using the provided mutable context.
+`ctx` is updated in-place and the function returns a named tuple
+with `doc` (the JSON schema document) and `unknowns`
+(newly encountered unsupported types).
+"""
 function generate_schema!(T::Type; ctx::SchemaContext = SchemaContext())
     unknowns_before = copy(ctx.unknowns)
     Tn = normalize_type(T, ctx)
@@ -105,6 +149,12 @@ function generate_schema!(T::Type; ctx::SchemaContext = SchemaContext())
     return (doc = doc, unknowns = setdiff(ctx.unknowns, unknowns_before))
 end
 
+"""
+    generate_schema(T; ctx=SchemaContext())
+
+Variant of [`generate_schema!`](@ref) that clones the
+provided context before generation. The original `ctx` is unaffected.
+"""
 function generate_schema(T::Type; ctx::SchemaContext = SchemaContext())
     ctx_clone = clone_context(ctx)
     return generate_schema!(T; ctx = ctx_clone)

@@ -6,14 +6,7 @@ function normalize_type(T::Type, ctx::SchemaContext)::Type
         record_unknown!(ctx, T; message = "UnionAll type $T encountered. Using Any")
         return Any
     elseif T isa Union
-        types = Base.uniontypes(T)
-        if isempty(types)
-            return Union{}
-        elseif length(types) == 1
-            return normalize_type(types[1], ctx)
-        else
-            return T
-        end
+        return T
     end
     return T
 end
@@ -145,14 +138,6 @@ function fixed_tuple_schema(params_raw, ctx::SchemaContext)
     )
 end
 
-function vararg_tuple_schema(elem_type::Type, ctx::SchemaContext)
-    items_schema = with_path(ctx, Symbol("<items>")) do
-        normalized = define!(elem_type, ctx)
-        reference(normalized, ctx)
-    end
-    return Dict("type" => "array", "items" => items_schema)
-end
-
 function ntuple_schema(N::Int, elem_type::Type, ctx::SchemaContext)
     items_schema = with_path(ctx, Symbol("<items>")) do
         normalized = define!(elem_type, ctx)
@@ -199,9 +184,6 @@ end
 
 function union_schema(T::Type, ctx::SchemaContext)
     types = Base.uniontypes(T)
-    if isempty(types)
-        return Dict("not" => Dict{String, Any}())
-    end
     n = length(types)
     schemas = Vector{Dict{String, Any}}(undef, n)
     for (i, U) in enumerate(types)
@@ -356,11 +338,6 @@ function collection_schema(T::Type, ctx::SchemaContext)
         params = T.parameters
         if isempty(params)
             return Dict("type" => "array", "minItems" => 0, "maxItems" => 0)
-        elseif any(Base.isvarargtype, params)
-            vararg_param = params[end]
-            base = Base.unwrap_unionall(vararg_param)
-            elem_type = base.parameters[1]
-            return vararg_tuple_schema(elem_type, ctx)
         elseif T <: NTuple && length(params) >= 1 && allequal(params)
             N = length(params)
             elem_type = params[1]

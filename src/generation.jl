@@ -16,6 +16,9 @@ function define!(T::Type, ctx::SchemaContext)
     Tn = normalize_type(T, ctx)
     key = k(Tn, ctx)
     if haskey(ctx.defs, key)
+        if Tn in ctx.unknown_types
+            record_unknown!(ctx, Tn)
+        end
         return Tn
     end
 

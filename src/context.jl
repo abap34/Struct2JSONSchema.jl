@@ -17,6 +17,7 @@ mutable struct SchemaContext
     optional_fields::IdDict{DataType, Set{Symbol}}   # explicit optional field hints
     path::Vector{Symbol}                             # current traversal path
     unknowns::Set{Tuple{Any, SymbolPath}}            # unsupported type traces
+    unknown_types::Set{Any}                          # cache of types that yielded empty schemas
     auto_optional_union_nothing::Bool                # auto Union{T,Nothing}? flag
     auto_optional_union_missing::Bool                # auto Union{T,Missing}? flag
     verbose::Bool                                    # emit @info/@warn logs?
@@ -49,6 +50,7 @@ function SchemaContext(;
         IdDict{DataType, Set{Symbol}}(),
         Symbol[],
         Set{Tuple{Any, SymbolPath}}(),
+        Set{Any}(),
         auto_optional_union_nothing,
         auto_optional_union_missing,
         verbose,
@@ -67,6 +69,7 @@ function clone_context(ctx::SchemaContext)
         ctx.optional_fields,
         Symbol[],
         Set{Tuple{Any, SymbolPath}}(),
+        Set{Any}(),
         ctx.auto_optional_union_nothing,
         ctx.auto_optional_union_missing,
         ctx.verbose,
@@ -84,6 +87,7 @@ function record_unknown!(ctx::SchemaContext, T; message::Union{Nothing, String} 
         return
     end
     push!(ctx.unknowns, (T, Tuple(ctx.path)))
+    push!(ctx.unknown_types, T)
     return if message !== nothing && ctx.verbose
         msg = "$(message) at path $(path_to_string(ctx.path))"
         @info msg

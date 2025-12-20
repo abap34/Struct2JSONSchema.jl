@@ -235,6 +235,7 @@ However, many users want fields of the following types to be treated as optional
 
 For this purpose, the following helper functions are provided:
 
+* [`register_optional_fields!`](@ref) — explicitly mark fields as optional regardless of their type
 * [`treat_union_nothing_as_optional!`](@ref) — treat `Union{T, Nothing}` fields as optional
 * [`treat_union_missing_as_optional!`](@ref) — treat `Union{T, Missing}` fields as optional
 * [`treat_null_as_optional!`](@ref) — treat both `Union{T, Nothing}` and `Union{T, Missing}` fields as optional
@@ -244,14 +245,16 @@ struct User
     id::Int
     name::String
     birthdate::Union{Date, Nothing}
+    nickname::String
 end
 
 ctx = SchemaContext()
+register_optional_fields!(ctx, User, :nickname)
 treat_union_nothing_as_optional!(ctx)
 generate_schema(User; ctx=ctx)
 ```
 
-With this configuration, the `birthdate` field is treated as optional.
+With this configuration, both `birthdate` and `nickname` are treated as optional.
 
 ## Default Type Mappings
 

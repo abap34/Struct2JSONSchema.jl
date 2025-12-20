@@ -1,5 +1,5 @@
 using Test
-using Struct2JSONSchema: SchemaContext, generate_schema, register_field_override!, treat_union_nothing_as_optional!
+using Struct2JSONSchema: SchemaContext, generate_schema, register_field_override!, register_optional_fields!, treat_union_nothing_as_optional!
 using JSON3
 using Dates
 
@@ -154,6 +154,13 @@ struct FlexibleValue
     value::Union{String, Int}
 end
 
+struct SupportTicket
+    id::Int
+    summary::String
+    assignee::String
+    internal_notes::String
+    followup::Union{String, Nothing}
+end
 @testset "Python validator - basic_person" begin
     run_validation_tests("basic_person", BasicPerson, () -> generate_schema(BasicPerson))
 end
@@ -197,6 +204,19 @@ end
 
 @testset "Python validator - numeric_constraints" begin
     run_validation_tests("numeric_constraints", Product, () -> generate_schema(Product))
+end
+
+@testset "Python validator - optional_registry" begin
+    run_validation_tests(
+        "optional_registry",
+        SupportTicket,
+        () -> begin
+            ctx = SchemaContext()
+            register_optional_fields!(ctx, SupportTicket, :internal_notes)
+            treat_union_nothing_as_optional!(ctx)
+            generate_schema(SupportTicket; ctx = ctx)
+        end
+    )
 end
 
 @testset "Python validator - union_types" begin

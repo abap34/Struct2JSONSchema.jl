@@ -1,8 +1,53 @@
 using Test
-using Struct2JSONSchema: SchemaContext, generate_schema, treat_union_nothing_as_optional!, treat_union_missing_as_optional!, treat_null_as_optional!, k
+using Struct2JSONSchema: SchemaContext, generate_schema, treat_union_nothing_as_optional!, treat_union_missing_as_optional!, treat_null_as_optional!, register_optional_fields!, k
 
 const _OPTIONAL_KEY_CTX = SchemaContext()
 optional_key(T) = k(T, _OPTIONAL_KEY_CTX)
+
+struct ExplicitOptionalRecord
+    id::Int
+    name::String
+    notes::String
+end
+
+struct ExplicitOptionalMerge
+    id::Int
+    title::String
+    description::String
+    alias::String
+end
+
+@testset "Optional fields - explicit registration API" begin
+    ctx_vector = SchemaContext()
+    register_optional_fields!(ctx_vector, ExplicitOptionalRecord, :notes)
+    result_vector = generate_schema(ExplicitOptionalRecord; ctx = ctx_vector)
+    defs_vector = result_vector.doc["\$defs"]
+    schema_vector = defs_vector[optional_key(ExplicitOptionalRecord)]
+    @test Set(schema_vector["required"]) == Set(["id", "name"])
+    @test "notes" ∉ schema_vector["required"]
+    @test haskey(schema_vector["properties"], "notes")
+
+    ctx_varargs = SchemaContext()
+    register_optional_fields!(ctx_varargs, ExplicitOptionalMerge, :description, :alias)
+    result_varargs = generate_schema(ExplicitOptionalMerge; ctx = ctx_varargs)
+    defs_varargs = result_varargs.doc["\$defs"]
+    schema_varargs = defs_varargs[optional_key(ExplicitOptionalMerge)]
+    @test Set(schema_varargs["required"]) == Set(["id", "title"])
+    @test "description" ∉ schema_varargs["required"]
+    @test "alias" ∉ schema_varargs["required"]
+
+    ctx_union = SchemaContext()
+    register_optional_fields!(ctx_union, ExplicitOptionalMerge, :description)
+    register_optional_fields!(ctx_union, ExplicitOptionalMerge, :alias)
+    result_union = generate_schema(ExplicitOptionalMerge; ctx = ctx_union)
+    defs_union = result_union.doc["\$defs"]
+    schema_union = defs_union[optional_key(ExplicitOptionalMerge)]
+    @test Set(schema_union["required"]) == Set(["id", "title"])
+
+    ctx_error = SchemaContext()
+    @test_throws ArgumentError register_optional_fields!(ctx_error, ExplicitOptionalRecord, :unknown)
+    @test_throws ArgumentError register_optional_fields!(ctx_error, Union{String, Nothing}, :notes)
+end
 
 @testset "Optional fields - Union{T, Nothing}" begin
     struct UserWithNullableEmail

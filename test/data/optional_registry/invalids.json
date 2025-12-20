@@ -1,0 +1,19 @@
+[
+  {
+    "id": 10,
+    "assignee": "ops",
+    "internal_notes": "missing summary"
+  },
+  {
+    "id": 11,
+    "summary": "Bad followup",
+    "assignee": "qa",
+    "followup": 123
+  },
+  {
+    "id": 12,
+    "summary": "Bad notes type",
+    "assignee": "sec",
+    "internal_notes": true
+  }
+]

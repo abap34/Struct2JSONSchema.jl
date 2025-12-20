@@ -44,6 +44,10 @@ end
     include("field_overrides.jl")
 end
 
+@testset "error handling" begin
+    include("error_handling.jl")
+end
+
 py_exec = Sys.which("python3") !== nothing ? "python3" : Sys.which("python") !== nothing ? "python" : nothing
 
 if py_exec !== nothing

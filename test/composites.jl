@@ -402,7 +402,7 @@ end
     @test handler_schema["properties"]["on_click"]["\$ref"] == comp_ref(Function)
     @test handler_schema["properties"]["on_hover"]["\$ref"] == comp_ref(Function)
     @test isempty(comp_def(defs, Function))
-    @test result.unknowns == Set([(Function, (:on_click,))])
+    @test result.unknowns == Set([(Function, (:on_click,)), (Function, (:on_hover,))])
 end
 
 struct Processor

@@ -20,6 +20,7 @@ register_abstract!
 register_override!
 register_type_override!
 register_field_override!
+register_optional_fields!
 ```
 
 ## Optional Fields

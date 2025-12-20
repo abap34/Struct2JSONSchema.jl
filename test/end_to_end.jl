@@ -1,5 +1,5 @@
 using Test
-using Struct2JSONSchema: SchemaContext, generate_schema
+using Struct2JSONSchema: SchemaContext, generate_schema, register_optional_fields!, treat_union_nothing_as_optional!
 
 include("./helpers/validator.jl")
 
@@ -198,6 +198,51 @@ end
     invalid_total = deepcopy(valid)
     invalid_total["total"] = "ninety-nine"
     @test !validate_payload(doc, invalid_total)
+end
+
+struct NotificationPreferencesE2E
+    user_id::String
+    email::Union{String, Nothing}
+    sms::Union{String, Nothing}
+    push_enabled::Bool
+    remarks::String
+end
+
+@testset "end-to-end validation - optional preferences" begin
+    ctx = SchemaContext()
+    register_optional_fields!(ctx, NotificationPreferencesE2E, :remarks)
+    treat_union_nothing_as_optional!(ctx)
+    result = generate_schema(NotificationPreferencesE2E; ctx = ctx)
+    doc = result.doc
+
+    valid = Dict(
+        "user_id" => "user-1",
+        "push_enabled" => true,
+        "email" => "alerts@example.com",
+        "sms" => nothing
+    )
+    @test validate_payload(doc, valid)
+
+    missing_optional = deepcopy(valid)
+    delete!(missing_optional, "email")
+    delete!(missing_optional, "sms")
+    @test validate_payload(doc, missing_optional)
+
+    with_remarks = deepcopy(valid)
+    with_remarks["remarks"] = "Do not send overnight"
+    @test validate_payload(doc, with_remarks)
+
+    missing_required = deepcopy(valid)
+    delete!(missing_required, "push_enabled")
+    @test !validate_payload(doc, missing_required)
+
+    wrong_email_type = deepcopy(valid)
+    wrong_email_type["email"] = 12345
+    @test !validate_payload(doc, wrong_email_type)
+
+    wrong_remarks_type = deepcopy(valid)
+    wrong_remarks_type["remarks"] = 7
+    @test !validate_payload(doc, wrong_remarks_type)
 end
 
 @enum TaskStatus begin

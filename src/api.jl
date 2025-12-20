@@ -110,6 +110,35 @@ function register_field_override!(generator::Function, ctx::SchemaContext, T::Da
     return nothing
 end
 
+"""
+    register_optional_fields!(ctx, T, fields)
+
+Mark specific fields on `T` as optional regardless of their declared types.
+`fields` may be supplied as a collection of `Symbol`s or as varargs.
+"""
+function register_optional_fields!(ctx::SchemaContext, T::Type, fields::Symbol...)
+    isempty(fields) && return nothing
+    _register_optional_fields!(ctx, T, fields)
+    return nothing
+end
+
+function _register_optional_fields!(ctx::SchemaContext, T::Type, fields)
+    if !(T isa DataType) || !isstructtype(T) || isabstracttype(T)
+        throw(ArgumentError("Type $T must be a concrete struct when registering optional fields"))
+    end
+    allowed = Set(fieldnames(T))
+    entry = get!(ctx.optional_fields, T) do
+        Set{Symbol}()
+    end
+    for field in fields
+        if !(field in allowed)
+            throw(ArgumentError("Type $T has no field $field"))
+        end
+        push!(entry, field)
+    end
+    return nothing
+end
+
 """Enable automatic `Union{T,Nothing}` → optional field detection."""
 treat_union_nothing_as_optional!(ctx::SchemaContext) = (ctx.auto_optional_union_nothing = true; nothing)
 

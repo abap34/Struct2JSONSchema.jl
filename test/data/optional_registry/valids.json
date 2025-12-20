@@ -1,0 +1,20 @@
+[
+  {
+    "id": 1,
+    "summary": "Login issue",
+    "assignee": "alice",
+    "internal_notes": "check logs",
+    "followup": "email"
+  },
+  {
+    "id": 2,
+    "summary": "Bug report",
+    "assignee": "bob"
+  },
+  {
+    "id": 3,
+    "summary": "Question",
+    "assignee": "carol",
+    "followup": null
+  }
+]

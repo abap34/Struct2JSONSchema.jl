@@ -92,18 +92,8 @@ function string_schema(;
     return schema
 end
 
-function number_schema(;
-        minimum::Union{Nothing, Real} = nothing,
-        maximum::Union{Nothing, Real} = nothing
-    )::Dict{String, Any}
-    schema = Dict{String, Any}("type" => "number")
-    if minimum !== nothing
-        schema["minimum"] = minimum
-    end
-    if maximum !== nothing
-        schema["maximum"] = maximum
-    end
-    return schema
+function number_schema()::Dict{String, Any}
+    return Dict{String, Any}("type" => "number")
 end
 
 function schema_for_array(elem_type::Type, ctx::SchemaContext; unique::Bool = false)
@@ -300,11 +290,11 @@ function primitive_schema(T::Type, _::SchemaContext)
     elseif T === BigInt || T === Integer
         return Dict("type" => "integer")
     elseif T <: AbstractFloat && !(T isa UnionAll)
-        return Dict("type" => "number")
+        return number_schema()
     elseif T <: Rational
-        return Dict("type" => "number")
+        return number_schema()
     elseif T <: Irrational
-        return Dict("type" => "number")
+        return number_schema()
     elseif T <: AbstractString
         return string_schema()
     elseif T === Char
@@ -336,9 +326,8 @@ function collection_schema(T::Type, ctx::SchemaContext)
         return schema_for_array(eltype(T), ctx; unique = true)
     elseif T <: Tuple && !(T isa UnionAll)
         params = T.parameters
-        if isempty(params)
-            return Dict("type" => "array", "minItems" => 0, "maxItems" => 0)
-        elseif T <: NTuple && length(params) >= 1 && allequal(params)
+        @assert length(params) >= 1 # Tuple{} is handled above
+        if T <: NTuple && allequal(params)
             N = length(params)
             elem_type = params[1]
             return ntuple_schema(N, elem_type, ctx)

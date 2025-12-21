@@ -219,7 +219,7 @@ end
         "user_id" => "user-1",
         "push_enabled" => true,
         "email" => "alerts@example.com",
-        "sms" => nothing
+        "sms" => "+1-555-1234"
     )
     @test validate_payload(doc, valid)
 
@@ -231,6 +231,14 @@ end
     with_remarks = deepcopy(valid)
     with_remarks["remarks"] = "Do not send overnight"
     @test validate_payload(doc, with_remarks)
+
+    # Optional fields should not accept null when treat_union_nothing_as_optional is enabled
+    with_null_sms = Dict(
+        "user_id" => "user-1",
+        "push_enabled" => true,
+        "sms" => nothing
+    )
+    @test !validate_payload(doc, with_null_sms)
 
     missing_required = deepcopy(valid)
     delete!(missing_required, "push_enabled")

@@ -56,13 +56,22 @@ end
         email::Union{String, Nothing}
     end
 
+    # Test default behavior (nullable, required)
     ctx_default = SchemaContext()
     result_default = generate_schema(UserWithNullableEmail; ctx = ctx_default)
     defs_default = result_default.doc["\$defs"]
     schema_default = defs_default[optional_key(UserWithNullableEmail)]
 
     @test Set(schema_default["required"]) == Set(["id", "name", "email"])
+    # email should reference Union{String, Nothing} with anyOf
+    email_schema_ref = schema_default["properties"]["email"]
+    @test haskey(email_schema_ref, "\$ref")
+    union_key = email_schema_ref["\$ref"][9:end]  # Remove "#/$defs/" prefix
+    union_schema = defs_default[union_key]
+    @test haskey(union_schema, "anyOf")
+    @test length(union_schema["anyOf"]) == 2
 
+    # Test with treat_union_nothing_as_optional (optional, not nullable)
     ctx_optional = SchemaContext()
     treat_union_nothing_as_optional!(ctx_optional)
     result_optional = generate_schema(UserWithNullableEmail; ctx = ctx_optional)
@@ -72,6 +81,15 @@ end
     @test Set(schema_optional["required"]) == Set(["id", "name"])
     @test "email" ∉ schema_optional["required"]
     @test haskey(schema_optional["properties"], "email")
+
+    # email should reference String directly, NOT Union{String, Nothing}
+    email_schema_ref_opt = schema_optional["properties"]["email"]
+    @test haskey(email_schema_ref_opt, "\$ref")
+    string_key = email_schema_ref_opt["\$ref"][9:end]  # Remove "#/$defs/" prefix
+    string_schema = defs_optional[string_key]
+    # Should be a simple string schema, not anyOf
+    @test !haskey(string_schema, "anyOf")
+    @test string_schema["type"] == "string"
 end
 
 @testset "Optional fields - Union{T, Missing}" begin
@@ -80,13 +98,22 @@ end
         value::Union{Float64, Missing}
     end
 
+    # Test default behavior (nullable with Missing, required)
     ctx_default = SchemaContext()
     result_default = generate_schema(DataRowWithMissingValue; ctx = ctx_default)
     defs_default = result_default.doc["\$defs"]
     schema_default = defs_default[optional_key(DataRowWithMissingValue)]
 
     @test Set(schema_default["required"]) == Set(["id", "value"])
+    # value should reference Union{Float64, Missing} with anyOf
+    value_schema_ref = schema_default["properties"]["value"]
+    @test haskey(value_schema_ref, "\$ref")
+    union_key = value_schema_ref["\$ref"][9:end]
+    union_schema = defs_default[union_key]
+    @test haskey(union_schema, "anyOf")
+    @test length(union_schema["anyOf"]) == 2
 
+    # Test with treat_union_missing_as_optional (optional, not nullable)
     ctx_optional = SchemaContext()
     treat_union_missing_as_optional!(ctx_optional)
     result_optional = generate_schema(DataRowWithMissingValue; ctx = ctx_optional)
@@ -96,6 +123,15 @@ end
     @test Set(schema_optional["required"]) == Set(["id"])
     @test "value" ∉ schema_optional["required"]
     @test haskey(schema_optional["properties"], "value")
+
+    # value should reference Float64 directly, NOT Union{Float64, Missing}
+    value_schema_ref_opt = schema_optional["properties"]["value"]
+    @test haskey(value_schema_ref_opt, "\$ref")
+    float_key = value_schema_ref_opt["\$ref"][9:end]
+    float_schema = defs_optional[float_key]
+    # Should be a simple number schema, not anyOf
+    @test !haskey(float_schema, "anyOf")
+    @test float_schema["type"] == "number"
 end
 
 @testset "Optional fields - treat_null_as_optional!" begin

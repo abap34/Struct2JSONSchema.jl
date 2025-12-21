@@ -256,6 +256,59 @@ generate_schema(User; ctx=ctx)
 
 With this configuration, both `birthdate` and `nickname` are treated as optional.
 
+### Understanding Optional vs Nullable
+
+There is an important distinction between **optional fields** and **nullable fields**:
+
+**Without `treat_union_nothing_as_optional!`** (default behavior):
+```julia
+struct User
+    name::String
+    email::Union{String, Nothing}
+end
+
+result = generate_schema(User)
+```
+
+Generated schema:
+- `email` is **required** (in `required` array)
+- `email` accepts **both `String` and `null`** (via `anyOf`)
+
+Valid JSON:
+```json
+{"name": "Alice", "email": "alice@example.com"}
+{"name": "Bob", "email": null}
+```
+
+Invalid JSON:
+```json
+{"name": "Charlie"}  // email is missing
+```
+
+**With `treat_union_nothing_as_optional!`**:
+```julia
+ctx = SchemaContext()
+treat_union_nothing_as_optional!(ctx)
+result = generate_schema(User; ctx=ctx)
+```
+
+Generated schema:
+- `email` is **not required** (not in `required` array)
+- `email` accepts **only `String`** (no `null`, no `anyOf`)
+
+Valid JSON:
+```json
+{"name": "Alice", "email": "alice@example.com"}
+{"name": "Bob"}  // email can be omitted
+```
+
+Invalid JSON:
+```json
+{"name": "Charlie", "email": null}  // null is not allowed when field is present
+```
+
+In other words, when using `treat_union_nothing_as_optional!`, the `Nothing` in `Union{T, Nothing}` is treated as a marker for optionality in Julia, not as a nullable value in JSON.
+
 ## Default Type Mappings
 
 Currently, the following types are mapped to JSON Schema.

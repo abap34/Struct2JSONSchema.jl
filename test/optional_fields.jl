@@ -20,7 +20,7 @@ end
 @testset "Optional fields - explicit registration API" begin
     ctx_vector = SchemaContext()
     register_optional_fields!(ctx_vector, ExplicitOptionalRecord, :notes)
-    result_vector = generate_schema(ExplicitOptionalRecord; ctx = ctx_vector)
+    result_vector = generate_schema(ExplicitOptionalRecord; ctx = ctx_vector, simplify = false)
     defs_vector = result_vector.doc["\$defs"]
     schema_vector = defs_vector[optional_key(ExplicitOptionalRecord)]
     @test Set(schema_vector["required"]) == Set(["id", "name"])
@@ -29,7 +29,7 @@ end
 
     ctx_varargs = SchemaContext()
     register_optional_fields!(ctx_varargs, ExplicitOptionalMerge, :description, :alias)
-    result_varargs = generate_schema(ExplicitOptionalMerge; ctx = ctx_varargs)
+    result_varargs = generate_schema(ExplicitOptionalMerge; ctx = ctx_varargs, simplify = false)
     defs_varargs = result_varargs.doc["\$defs"]
     schema_varargs = defs_varargs[optional_key(ExplicitOptionalMerge)]
     @test Set(schema_varargs["required"]) == Set(["id", "title"])
@@ -39,7 +39,7 @@ end
     ctx_union = SchemaContext()
     register_optional_fields!(ctx_union, ExplicitOptionalMerge, :description)
     register_optional_fields!(ctx_union, ExplicitOptionalMerge, :alias)
-    result_union = generate_schema(ExplicitOptionalMerge; ctx = ctx_union)
+    result_union = generate_schema(ExplicitOptionalMerge; ctx = ctx_union, simplify = false)
     defs_union = result_union.doc["\$defs"]
     schema_union = defs_union[optional_key(ExplicitOptionalMerge)]
     @test Set(schema_union["required"]) == Set(["id", "title"])
@@ -58,7 +58,7 @@ end
 
     # Test default behavior (nullable, required)
     ctx_default = SchemaContext()
-    result_default = generate_schema(UserWithNullableEmail; ctx = ctx_default)
+    result_default = generate_schema(UserWithNullableEmail; ctx = ctx_default, simplify = false)
     defs_default = result_default.doc["\$defs"]
     schema_default = defs_default[optional_key(UserWithNullableEmail)]
 
@@ -74,7 +74,7 @@ end
     # Test with treat_union_nothing_as_optional (optional, not nullable)
     ctx_optional = SchemaContext()
     treat_union_nothing_as_optional!(ctx_optional)
-    result_optional = generate_schema(UserWithNullableEmail; ctx = ctx_optional)
+    result_optional = generate_schema(UserWithNullableEmail; ctx = ctx_optional, simplify = false)
     defs_optional = result_optional.doc["\$defs"]
     schema_optional = defs_optional[optional_key(UserWithNullableEmail)]
 
@@ -100,7 +100,7 @@ end
 
     # Test default behavior (nullable with Missing, required)
     ctx_default = SchemaContext()
-    result_default = generate_schema(DataRowWithMissingValue; ctx = ctx_default)
+    result_default = generate_schema(DataRowWithMissingValue; ctx = ctx_default, simplify = false)
     defs_default = result_default.doc["\$defs"]
     schema_default = defs_default[optional_key(DataRowWithMissingValue)]
 
@@ -116,7 +116,7 @@ end
     # Test with treat_union_missing_as_optional (optional, not nullable)
     ctx_optional = SchemaContext()
     treat_union_missing_as_optional!(ctx_optional)
-    result_optional = generate_schema(DataRowWithMissingValue; ctx = ctx_optional)
+    result_optional = generate_schema(DataRowWithMissingValue; ctx = ctx_optional, simplify = false)
     defs_optional = result_optional.doc["\$defs"]
     schema_optional = defs_optional[optional_key(DataRowWithMissingValue)]
 
@@ -144,7 +144,7 @@ end
 
     ctx = SchemaContext()
     treat_null_as_optional!(ctx)
-    result = generate_schema(RecordWithBoth; ctx = ctx)
+    result = generate_schema(RecordWithBoth; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = defs[optional_key(RecordWithBoth)]
 
@@ -163,7 +163,7 @@ end
 
     ctx = SchemaContext()
     treat_union_nothing_as_optional!(ctx)
-    result = generate_schema(FlexibleField; ctx = ctx)
+    result = generate_schema(FlexibleField; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = defs[optional_key(FlexibleField)]
 
@@ -185,7 +185,7 @@ end
 
     ctx = SchemaContext()
     treat_union_nothing_as_optional!(ctx)
-    result = generate_schema(PersonWithAddress; ctx = ctx)
+    result = generate_schema(PersonWithAddress; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
 
     person_schema = defs[optional_key(PersonWithAddress)]
@@ -224,7 +224,7 @@ end
 @testset "optional fields - multiple Nothing unions" begin
     ctx = SchemaContext()
     treat_union_nothing_as_optional!(ctx)
-    result = generate_schema(ExtendedUser; ctx = ctx)
+    result = generate_schema(ExtendedUser; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = defs[optional_key(ExtendedUser)]
 
@@ -247,7 +247,7 @@ end
 @testset "optional fields - multiple Missing unions" begin
     ctx = SchemaContext()
     treat_union_missing_as_optional!(ctx)
-    result = generate_schema(SensorData; ctx = ctx)
+    result = generate_schema(SensorData; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = defs[optional_key(SensorData)]
 
@@ -268,7 +268,7 @@ end
 @testset "optional fields - various types with Nothing" begin
     ctx = SchemaContext()
     treat_union_nothing_as_optional!(ctx)
-    result = generate_schema(MixedOptional; ctx = ctx)
+    result = generate_schema(MixedOptional; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = defs[optional_key(MixedOptional)]
 
@@ -294,7 +294,7 @@ end
 @testset "optional fields - deeply nested with optionals" begin
     ctx = SchemaContext()
     treat_union_nothing_as_optional!(ctx)
-    result = generate_schema(Company; ctx = ctx)
+    result = generate_schema(Company; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
 
     company_schema = defs[optional_key(Company)]
@@ -318,7 +318,7 @@ end
 @testset "optional fields - complex types as optional" begin
     ctx = SchemaContext()
     treat_union_nothing_as_optional!(ctx)
-    result = generate_schema(BlogPost; ctx = ctx)
+    result = generate_schema(BlogPost; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = defs[optional_key(BlogPost)]
 
@@ -340,7 +340,7 @@ end
 @testset "optional fields - configuration schema" begin
     ctx = SchemaContext()
     treat_union_nothing_as_optional!(ctx)
-    result = generate_schema(Config; ctx = ctx)
+    result = generate_schema(Config; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = defs[optional_key(Config)]
 
@@ -361,7 +361,7 @@ end
 @testset "optional fields - Missing with various types" begin
     ctx = SchemaContext()
     treat_union_missing_as_optional!(ctx)
-    result = generate_schema(OptionalWithMissing; ctx = ctx)
+    result = generate_schema(OptionalWithMissing; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = defs[optional_key(OptionalWithMissing)]
 
@@ -380,7 +380,7 @@ end
 @testset "optional fields - all fields optional" begin
     ctx = SchemaContext()
     treat_union_nothing_as_optional!(ctx)
-    result = generate_schema(AllOptional; ctx = ctx)
+    result = generate_schema(AllOptional; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = defs[optional_key(AllOptional)]
 
@@ -400,7 +400,7 @@ end
 @testset "optional fields - mix of Nothing and Missing" begin
     ctx = SchemaContext()
     treat_null_as_optional!(ctx)
-    result = generate_schema(MixedNullTypes; ctx = ctx)
+    result = generate_schema(MixedNullTypes; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = defs[optional_key(MixedNullTypes)]
 

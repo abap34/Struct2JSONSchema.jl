@@ -158,14 +158,17 @@ function treat_null_as_optional!(ctx::SchemaContext)
 end
 
 """
-    generate_schema!(T; ctx=SchemaContext())
+    generate_schema!(T; ctx=SchemaContext(), simplify=true)
 
 Materialize a schema for `T` using the provided mutable context.
 `ctx` is updated in-place and the function returns a named tuple
 with `doc` (the JSON schema document) and `unknowns`
 (newly encountered unsupported types).
+
+If `simplify=true` (default), the schema is simplified by removing unused definitions,
+inlining single-use references, and sorting definitions.
 """
-function generate_schema!(T::Type; ctx::SchemaContext = SchemaContext())
+function generate_schema!(T::Type; ctx::SchemaContext = SchemaContext(), simplify::Bool = true)
     unknowns_before = copy(ctx.unknowns)
     Tn = normalize_type(T, ctx)
     define!(Tn, ctx)
@@ -175,16 +178,22 @@ function generate_schema!(T::Type; ctx::SchemaContext = SchemaContext())
         "\$ref" => "#/\$defs/$key",
         "\$defs" => deepcopy(ctx.defs)
     )
+    if simplify
+        doc = simplify_schema(doc)
+    end
     return (doc = doc, unknowns = setdiff(ctx.unknowns, unknowns_before))
 end
 
 """
-    generate_schema(T; ctx=SchemaContext())
+    generate_schema(T; ctx=SchemaContext(), simplify=true)
 
 Variant of [`generate_schema!`](@ref) that clones the
 provided context before generation. The original `ctx` is unaffected.
+
+If `simplify=true` (default), the schema is simplified by removing unused definitions,
+inlining single-use references, and sorting definitions.
 """
-function generate_schema(T::Type; ctx::SchemaContext = SchemaContext())
+function generate_schema(T::Type; ctx::SchemaContext = SchemaContext(), simplify::Bool = true)
     ctx_clone = clone_context(ctx)
-    return generate_schema!(T; ctx = ctx_clone)
+    return generate_schema!(T; ctx = ctx_clone, simplify = simplify)
 end

@@ -20,7 +20,7 @@ field_override_key(T) = k(T, _FIELD_OVERRIDE_KEY_CTX)
         )
     end
 
-    result = generate_schema(EventWithTimestamp; ctx = ctx)
+    result = generate_schema(EventWithTimestamp; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = defs[field_override_key(EventWithTimestamp)]
 
@@ -46,7 +46,7 @@ end
         )
     end
 
-    result = generate_schema(UserWithEmail; ctx = ctx)
+    result = generate_schema(UserWithEmail; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = defs[field_override_key(UserWithEmail)]
 
@@ -74,7 +74,7 @@ end
         end
     end
 
-    result = generate_schema(Article; ctx = ctx)
+    result = generate_schema(Article; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = defs[field_override_key(Article)]
 
@@ -105,7 +105,7 @@ end
         )
     end
 
-    result = generate_schema(Product; ctx = ctx)
+    result = generate_schema(Product; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
 
     float_schema = defs[field_override_key(Float64)]
@@ -139,7 +139,7 @@ end
         )
     end
 
-    result = generate_schema(Document; ctx = ctx)
+    result = generate_schema(Document; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = defs[field_override_key(Document)]
 
@@ -158,7 +158,7 @@ end
     timeout_gen = ctx -> Dict("type" => "integer", "minimum" => 1, "maximum" => 3600)
     register_field_override!(timeout_gen, ctx, Config, :timeout)
 
-    result = generate_schema(Config; ctx = ctx)
+    result = generate_schema(Config; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = defs[field_override_key(Config)]
 
@@ -185,7 +185,7 @@ end
         )
     end
 
-    result = generate_schema(OptionalTimestampRecord; ctx = ctx)
+    result = generate_schema(OptionalTimestampRecord; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = defs[field_override_key(OptionalTimestampRecord)]
 
@@ -204,7 +204,7 @@ end
     custom_gen = ctx -> Dict("type" => "object", "description" => "Custom schema")
     register_type_override!(custom_gen, ctx, MyCustomType)
 
-    result = generate_schema(MyCustomType; ctx = ctx)
+    result = generate_schema(MyCustomType; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = defs[field_override_key(MyCustomType)]
 
@@ -236,7 +236,7 @@ end
         )
     end
 
-    result = generate_schema(ApiRequest; ctx = ctx)
+    result = generate_schema(ApiRequest; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = defs[field_override_key(ApiRequest)]
 
@@ -269,7 +269,7 @@ end
         )
     end
 
-    result = generate_schema(Coordinates; ctx = ctx)
+    result = generate_schema(Coordinates; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = defs[field_override_key(Coordinates)]
 
@@ -310,7 +310,7 @@ end
         )
     end
 
-    result = generate_schema(StringValidation; ctx = ctx)
+    result = generate_schema(StringValidation; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = defs[field_override_key(StringValidation)]
 
@@ -344,7 +344,7 @@ end
         )
     end
 
-    result = generate_schema(Pagination; ctx = ctx)
+    result = generate_schema(Pagination; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = defs[field_override_key(Pagination)]
 
@@ -370,7 +370,7 @@ end
         )
     end
 
-    result = generate_schema(MediaFile; ctx = ctx)
+    result = generate_schema(MediaFile; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = defs[field_override_key(MediaFile)]
 
@@ -401,7 +401,7 @@ end
         )
     end
 
-    result = generate_schema(AccountInfo; ctx = ctx)
+    result = generate_schema(AccountInfo; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = defs[field_override_key(AccountInfo)]
 
@@ -433,7 +433,7 @@ end
         )
     end
 
-    result = generate_schema(ReviewData; ctx = ctx)
+    result = generate_schema(ReviewData; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = defs[field_override_key(ReviewData)]
 

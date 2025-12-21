@@ -39,7 +39,7 @@ end
 
 @testset "End-to-end schema validation" begin
     ctx = SchemaContext()
-    result = generate_schema(PurchaseOrderE2E; ctx = ctx)
+    result = generate_schema(PurchaseOrderE2E; ctx = ctx, simplify = false)
     doc = result.doc
     @test isempty(result.unknowns)
 
@@ -102,7 +102,7 @@ end
 
 @testset "end-to-end validation - user account" begin
     ctx = SchemaContext()
-    result = generate_schema(UserAccount; ctx = ctx)
+    result = generate_schema(UserAccount; ctx = ctx, simplify = false)
     doc = result.doc
 
     valid = Dict(
@@ -140,7 +140,7 @@ end
 
 @testset "end-to-end validation - store location" begin
     ctx = SchemaContext()
-    result = generate_schema(Store; ctx = ctx)
+    result = generate_schema(Store; ctx = ctx, simplify = false)
     doc = result.doc
 
     valid = Dict{String, Any}(
@@ -174,7 +174,7 @@ end
 
 @testset "end-to-end validation - invoice" begin
     ctx = SchemaContext()
-    result = generate_schema(Invoice; ctx = ctx)
+    result = generate_schema(Invoice; ctx = ctx, simplify = false)
     doc = result.doc
 
     valid = Dict(
@@ -212,7 +212,7 @@ end
     ctx = SchemaContext()
     register_optional_fields!(ctx, NotificationPreferencesE2E, :remarks)
     treat_union_nothing_as_optional!(ctx)
-    result = generate_schema(NotificationPreferencesE2E; ctx = ctx)
+    result = generate_schema(NotificationPreferencesE2E; ctx = ctx, simplify = false)
     doc = result.doc
 
     valid = Dict(
@@ -267,7 +267,7 @@ end
 
 @testset "end-to-end validation - project with enum" begin
     ctx = SchemaContext()
-    result = generate_schema(Project; ctx = ctx)
+    result = generate_schema(Project; ctx = ctx, simplify = false)
     doc = result.doc
 
     valid = Dict(

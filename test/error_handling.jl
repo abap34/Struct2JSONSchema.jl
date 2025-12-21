@@ -130,7 +130,7 @@ end
 
 @testset "self-referencing type" begin
     ctx = SchemaContext()
-    result = generate_schema(SelfReferencing; ctx = ctx)
+    result = generate_schema(SelfReferencing; ctx = ctx, simplify = false)
     @test haskey(result.doc, "\$defs")
     @test !isempty(result.doc["\$defs"])
 end
@@ -159,7 +159,7 @@ end
         require_discr = true
     ) === nothing
 
-    result = generate_schema(AnimalBase; ctx = ctx)
+    result = generate_schema(AnimalBase; ctx = ctx, simplify = false)
     @test haskey(result.doc, "\$defs")
 end
 
@@ -202,7 +202,7 @@ end
 
 @testset "unsupported field type generates unknowns" begin
     ctx = SchemaContext()
-    result = generate_schema(TypeWithUnsupportedField; ctx = ctx)
+    result = generate_schema(TypeWithUnsupportedField; ctx = ctx, simplify = false)
     @test !isempty(result.unknowns)
     @test (Function, (:func,)) in result.unknowns
 end
@@ -215,7 +215,7 @@ end
 
 @testset "multiple unsupported fields" begin
     ctx = SchemaContext()
-    result = generate_schema(TypeWithMultipleUnsupported; ctx = ctx)
+    result = generate_schema(TypeWithMultipleUnsupported; ctx = ctx, simplify = false)
     @test length(result.unknowns) == 2 # Ensure both are recorded
     @test (Function, (:func1,)) in result.unknowns
     @test (Function, (:func2,)) in result.unknowns
@@ -227,7 +227,7 @@ end
 
 @testset "UnionAll type generates unknowns" begin
     ctx = SchemaContext()
-    result = generate_schema(TypeWithUnionAll; ctx = ctx)
+    result = generate_schema(TypeWithUnionAll; ctx = ctx, simplify = false)
     @test !isempty(result.unknowns)
     @test (Vector, (:data,)) in result.unknowns
 end

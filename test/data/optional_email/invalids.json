@@ -23,5 +23,10 @@
     "name": "David",
     "age": 30,
     "extra": "not allowed"
+  },
+  {
+    "name": "Eve",
+    "age": 35,
+    "email": null
   }
 ]

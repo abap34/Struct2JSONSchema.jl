@@ -217,7 +217,13 @@ function struct_schema(T::Type, ctx::SchemaContext)
                 ctx.current_parent = nothing
                 ctx.current_field = nothing
                 try
-                    normalized = define!(field_type, ctx)
+                    # If field is optional and is Union{T, Nothing/Missing},
+                    # generate schema for T only, not the full Union
+                    schema_type = field_type
+                    if should_be_optional(T, name, field_type, ctx)
+                        schema_type = unwrap_optional_union(field_type)
+                    end
+                    normalized = define!(schema_type, ctx)
                     reference(normalized, ctx)
                 finally
                     ctx.current_parent = saved_parent
@@ -273,6 +279,21 @@ function is_union_with_missing(T::Type)::Bool
     T isa Union || return false
     types = Base.uniontypes(T)
     return Missing in types && length(types) == 2
+end
+
+function unwrap_optional_union(T::Type)::Type
+    # Extract T from Union{T, Nothing} or Union{T, Missing}
+    T isa Union || return T
+    types = Base.uniontypes(T)
+    length(types) == 2 || return T
+
+    if Nothing in types
+        return types[types .!== Nothing][1]
+    elseif Missing in types
+        return types[types .!== Missing][1]
+    end
+
+    return T
 end
 
 function primitive_schema(T::Type, _::SchemaContext)

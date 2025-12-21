@@ -15,5 +15,11 @@
     "summary": "Bad notes type",
     "assignee": "sec",
     "internal_notes": true
+  },
+  {
+    "id": 13,
+    "summary": "Null followup",
+    "assignee": "dev",
+    "followup": null
   }
 ]

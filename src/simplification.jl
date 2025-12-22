@@ -211,9 +211,6 @@ function check_refs_for_key(schema::Any, target_key::String, defs::AbstractDict,
                 if ref_key == target_key
                     return true
                 end
-                if is_recursive(ref_key, defs, copy(visiting))
-                    return true
-                end
             else
                 if check_refs_for_key(v, target_key, defs, visiting)
                     return true
@@ -396,12 +393,6 @@ function topological_sort_keys(keys::Vector{String}, defs::AbstractDict)::Vector
         end
         sort!(next_level)
         append!(queue, next_level)
-    end
-
-    for key in keys
-        if !(key in result)
-            push!(result, key)
-        end
     end
 
     return result

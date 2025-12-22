@@ -448,3 +448,66 @@ end
 
     @test !haskey(result["\$defs"], "Inner")
 end
+
+@testset "inline_single_use_refs - all defs inlined" begin
+    doc = Dict(
+        "\$ref" => "#/\$defs/Root",
+        "\$defs" => Dict(
+            "Root" => Dict(
+                "type" => "object",
+                "properties" => Dict(
+                    "field" => Dict("\$ref" => "#/\$defs/Inline")
+                )
+            ),
+            "Inline" => Dict("type" => "string", "minLength" => 1)
+        )
+    )
+
+    result = inline_single_use_refs(doc)
+
+    @test !haskey(result, "\$defs") || !haskey(result["\$defs"], "Inline")
+end
+
+@testset "is_recursive - anyOf with recursive ref" begin
+    # Test recursive detection in anyOf combinator
+    doc = Dict(
+        "\$ref" => "#/\$defs/Node",
+        "\$defs" => Dict(
+            "Node" => Dict(
+                "anyOf" => [
+                    Dict("type" => "null"),
+                    Dict(
+                        "type" => "object",
+                        "properties" => Dict(
+                            "next" => Dict("\$ref" => "#/\$defs/Node")
+                        )
+                    )
+                ]
+            )
+        )
+    )
+
+    result = inline_single_use_refs(doc)
+
+    # Node is recursive so should not be inlined
+    @test haskey(result["\$defs"], "Node")
+end
+
+@testset "sort_defs - array without items" begin
+    doc = Dict(
+        "\$defs" => Dict(
+            "Object" => Dict(
+                "type" => "object",
+                "properties" => Dict("arr" => Dict("\$ref" => "#/\$defs/Array"))
+            ),
+            "Array" => Dict("type" => "array")
+        )
+    )
+
+    result = sort_defs(doc)
+    keys_list = collect(keys(result["\$defs"]))
+
+    array_idx = findfirst(k -> k == "Array", keys_list)
+    object_idx = findfirst(k -> k == "Object", keys_list)
+    @test array_idx < object_idx
+end

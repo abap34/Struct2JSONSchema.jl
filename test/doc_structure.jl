@@ -17,7 +17,7 @@ end
 
 @testset "Document structure" begin
     ctx = SchemaContext()
-    result = generate_schema(DocStructSample; ctx = ctx)
+    result = generate_schema(DocStructSample; ctx = ctx, simplify = false)
     doc = result.doc
 
     @test doc["\$schema"] == "https://json-schema.org/draft/2020-12/schema"
@@ -41,7 +41,7 @@ end
 
 @testset "generate_schema! produces independent defs copy" begin
     ctx = SchemaContext()
-    result = generate_schema!(DocStructSample; ctx = ctx)
+    result = generate_schema!(DocStructSample; ctx = ctx, simplify = false)
     doc_defs = result.doc["\$defs"]
     root_key = k(DocStructSample, ctx)
 
@@ -61,7 +61,7 @@ end
 
 @testset "document structure tests - nested types" begin
     ctx = SchemaContext()
-    result = generate_schema(DocTest2; ctx = ctx)
+    result = generate_schema(DocTest2; ctx = ctx, simplify = false)
     doc = result.doc
 
     @test doc["\$schema"] == "https://json-schema.org/draft/2020-12/schema"
@@ -88,7 +88,7 @@ end
 @testset "document structure tests - multiple simple types" begin
     for T in [SimpleDoc1, SimpleDoc2, SimpleDoc3]
         ctx = SchemaContext()
-        result = generate_schema(T; ctx = ctx)
+        result = generate_schema(T; ctx = ctx, simplify = false)
         doc = result.doc
 
         @test doc["\$schema"] == "https://json-schema.org/draft/2020-12/schema"
@@ -119,7 +119,7 @@ end
 
 @testset "document structure tests - deeply nested" begin
     ctx = SchemaContext()
-    result = generate_schema(DeepNest3; ctx = ctx)
+    result = generate_schema(DeepNest3; ctx = ctx, simplify = false)
     doc = result.doc
     defs = doc["\$defs"]
 
@@ -142,14 +142,14 @@ end
 @testset "document structure tests - bang version independence" begin
     ctx = SchemaContext()
 
-    result1 = generate_schema!(BangTest1; ctx = ctx)
+    result1 = generate_schema!(BangTest1; ctx = ctx, simplify = false)
     doc_defs1 = result1.doc["\$defs"]
     root_key1 = k(BangTest1, ctx)
 
     doc_defs1[root_key1]["type"] = "modified"
     @test ctx.defs[root_key1]["type"] == "object"
 
-    result2 = generate_schema!(BangTest2; ctx = ctx)
+    result2 = generate_schema!(BangTest2; ctx = ctx, simplify = false)
     doc_defs2 = result2.doc["\$defs"]
     root_key2 = k(BangTest2, ctx)
 

@@ -70,20 +70,20 @@ end
 
 @testset "Union handling" begin
     ctx = SchemaContext()
-    profile = generate_schema(OptionalProfile; ctx = ctx)
+    profile = generate_schema(OptionalProfile; ctx = ctx, simplify = false)
     defs = profile.doc["\$defs"]
     profile_schema = comp_def(defs, OptionalProfile)
     nickname = resolve_anyof(profile_schema["properties"]["nickname"], defs)
     @test length(nickname) == 2
     @test Set(entry["\$ref"] for entry in nickname) == Set([comp_ref(Nothing), comp_ref(String)])
 
-    union = generate_schema(FlexibleUnion; ctx = SchemaContext())
+    union = generate_schema(FlexibleUnion; ctx = SchemaContext(), simplify = false)
     union_defs = union.doc["\$defs"]
     union_schema = comp_def(union_defs, FlexibleUnion)
     value_anyof = resolve_anyof(union_schema["properties"]["value"], union_defs)
     @test length(value_anyof) == 3
     @test Set(entry["\$ref"] for entry in value_anyof) == Set([comp_ref(String), comp_ref(Int64), comp_ref(Float64)])
-    api = generate_schema(ApiResponse; ctx = SchemaContext())
+    api = generate_schema(ApiResponse; ctx = SchemaContext(), simplify = false)
     api_defs = api.doc["\$defs"]
     api_schema = comp_def(api_defs, ApiResponse)
     payloads = resolve_anyof(api_schema["properties"]["result"], api_defs)
@@ -92,13 +92,13 @@ end
 
 @testset "Recursive and enum schemas" begin
     ctx = SchemaContext()
-    node_result = generate_schema(RecursiveNode; ctx = ctx)
+    node_result = generate_schema(RecursiveNode; ctx = ctx, simplify = false)
     defs = node_result.doc["\$defs"]
     node_schema = comp_def(defs, RecursiveNode)
     next_anyof = resolve_anyof(node_schema["properties"]["next"], defs)
     @test Set(entry["\$ref"] for entry in next_anyof) == Set([comp_ref(Nothing), comp_ref(RecursiveNode)])
 
-    workflow = generate_schema(Workflow; ctx = SchemaContext())
+    workflow = generate_schema(Workflow; ctx = SchemaContext(), simplify = false)
     enum_def = comp_def(workflow.doc["\$defs"], WorkflowState)
     @test enum_def["enum"] == ["awaiting", "running", "done"]
 end
@@ -112,7 +112,7 @@ end
         tag_value = Dict(DogKind => "dog", CatKind => "cat"),
         require_discr = true
     )
-    shelter = generate_schema(Shelter; ctx = ctx)
+    shelter = generate_schema(Shelter; ctx = ctx, simplify = false)
     defs = shelter.doc["\$defs"]
     shelter_schema = comp_def(defs, Shelter)
     @test shelter_schema["properties"]["resident"]["\$ref"] == comp_ref(AnimalKind)
@@ -136,7 +136,7 @@ end
 
 @testset "Function fields" begin
     ctx = SchemaContext()
-    result = generate_schema(Handler; ctx = ctx)
+    result = generate_schema(Handler; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     handler_schema = comp_def(defs, Handler)
 
@@ -153,7 +153,7 @@ end
 
 @testset "Union handling - multiple optional fields" begin
     ctx = SchemaContext()
-    profile = generate_schema(OptionalProfile2; ctx = ctx)
+    profile = generate_schema(OptionalProfile2; ctx = ctx, simplify = false)
     defs = profile.doc["\$defs"]
     profile_schema = comp_def(defs, OptionalProfile2)
 
@@ -171,7 +171,7 @@ struct FlexibleUnion2
 end
 
 @testset "Union handling - bool, string, float" begin
-    union = generate_schema(FlexibleUnion2; ctx = SchemaContext())
+    union = generate_schema(FlexibleUnion2; ctx = SchemaContext(), simplify = false)
     union_defs = union.doc["\$defs"]
     union_schema = comp_def(union_defs, FlexibleUnion2)
     value_anyof = resolve_anyof(union_schema["properties"]["value"], union_defs)
@@ -184,7 +184,7 @@ struct FlexibleUnion3
 end
 
 @testset "Union handling - multiple integer types" begin
-    union = generate_schema(FlexibleUnion3; ctx = SchemaContext())
+    union = generate_schema(FlexibleUnion3; ctx = SchemaContext(), simplify = false)
     union_defs = union.doc["\$defs"]
     union_schema = comp_def(union_defs, FlexibleUnion3)
     value_anyof = resolve_anyof(union_schema["properties"]["value"], union_defs)
@@ -205,7 +205,7 @@ struct LogEntry
 end
 
 @testset "Union handling - different payload types" begin
-    log = generate_schema(LogEntry; ctx = SchemaContext())
+    log = generate_schema(LogEntry; ctx = SchemaContext(), simplify = false)
     log_defs = log.doc["\$defs"]
     log_schema = comp_def(log_defs, LogEntry)
     payloads = resolve_anyof(log_schema["properties"]["entry"], log_defs)
@@ -220,7 +220,7 @@ end
 
 @testset "recursive schemas - binary tree" begin
     ctx = SchemaContext()
-    tree_result = generate_schema(TreeNode; ctx = ctx)
+    tree_result = generate_schema(TreeNode; ctx = ctx, simplify = false)
     defs = tree_result.doc["\$defs"]
     tree_schema = comp_def(defs, TreeNode)
 
@@ -238,7 +238,7 @@ end
 
 @testset "recursive schemas - linked list" begin
     ctx = SchemaContext()
-    list_result = generate_schema(LinkedListNode; ctx = ctx)
+    list_result = generate_schema(LinkedListNode; ctx = ctx, simplify = false)
     defs = list_result.doc["\$defs"]
     list_schema = comp_def(defs, LinkedListNode)
     next_anyof = resolve_anyof(list_schema["properties"]["next"], defs)
@@ -256,7 +256,7 @@ struct ColoredItem
 end
 
 @testset "enum schemas - Color" begin
-    item = generate_schema(ColoredItem; ctx = SchemaContext())
+    item = generate_schema(ColoredItem; ctx = SchemaContext(), simplify = false)
     enum_def = comp_def(item.doc["\$defs"], Color)
     @test enum_def["enum"] == ["red", "green", "blue"]
 end
@@ -273,7 +273,7 @@ struct Task
 end
 
 @testset "enum schemas - Priority" begin
-    task = generate_schema(Task; ctx = SchemaContext())
+    task = generate_schema(Task; ctx = SchemaContext(), simplify = false)
     enum_def = comp_def(task.doc["\$defs"], Priority)
     @test enum_def["enum"] == ["low", "medium", "high", "urgent"]
 end
@@ -290,7 +290,7 @@ struct Record
 end
 
 @testset "enum schemas - Status" begin
-    record = generate_schema(Record; ctx = SchemaContext())
+    record = generate_schema(Record; ctx = SchemaContext(), simplify = false)
     enum_def = comp_def(record.doc["\$defs"], RecordStatus)
     @test enum_def["enum"] == ["active", "inactive", "pending", "archived"]
 end
@@ -317,7 +317,7 @@ end
         tag_value = Dict(Car => "car", Motorcycle => "motorcycle"),
         require_discr = true
     )
-    garage = generate_schema(Garage; ctx = ctx)
+    garage = generate_schema(Garage; ctx = ctx, simplify = false)
     defs = garage.doc["\$defs"]
     garage_schema = comp_def(defs, Garage)
     @test garage_schema["properties"]["vehicle"]["\$ref"] == comp_ref(Vehicle)
@@ -366,7 +366,7 @@ end
         tag_value = Dict(Circle => "circle", Square => "square", Triangle => "triangle"),
         require_discr = true
     )
-    drawing = generate_schema(Drawing; ctx = ctx)
+    drawing = generate_schema(Drawing; ctx = ctx, simplify = false)
     defs = drawing.doc["\$defs"]
     drawing_schema = comp_def(defs, Drawing)
     @test drawing_schema["properties"]["shape"]["\$ref"] == comp_ref(Shape)
@@ -395,7 +395,7 @@ end
 
 @testset "Function fields - multiple handlers" begin
     ctx = SchemaContext()
-    result = generate_schema(EventHandler; ctx = ctx)
+    result = generate_schema(EventHandler; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     handler_schema = comp_def(defs, EventHandler)
 
@@ -411,7 +411,7 @@ end
 
 @testset "Function fields - processor" begin
     ctx = SchemaContext()
-    result = generate_schema(Processor; ctx = ctx)
+    result = generate_schema(Processor; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     processor_schema = comp_def(defs, Processor)
 
@@ -426,7 +426,7 @@ end
 
 @testset "Complex Union handling - five types" begin
     ctx = SchemaContext()
-    complex = generate_schema(ComplexUnion; ctx = ctx)
+    complex = generate_schema(ComplexUnion; ctx = ctx, simplify = false)
     defs = complex.doc["\$defs"]
     complex_schema = comp_def(defs, ComplexUnion)
     value_anyof = resolve_anyof(complex_schema["properties"]["value"], defs)

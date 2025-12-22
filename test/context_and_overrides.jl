@@ -26,16 +26,16 @@ ctx_key(T) = k(T, _CTX_KEY_CTX)
 
 @testset "generate_schema context isolation" begin
     ctx = SchemaContext()
-    safe_result = generate_schema(WithFunctionField; ctx = ctx)
+    safe_result = generate_schema(WithFunctionField; ctx = ctx, simplify = false)
     @test isempty(ctx.defs)
     @test isempty(ctx.unknowns)
 
     bang_ctx = SchemaContext()
-    result = generate_schema!(WithFunctionField; ctx = bang_ctx)
+    result = generate_schema!(WithFunctionField; ctx = bang_ctx, simplify = false)
     @test !isempty(bang_ctx.defs)
     @test result.unknowns == Set([(Function, (:handler,))])
 
-    second = generate_schema!(WithFunctionField; ctx = bang_ctx)
+    second = generate_schema!(WithFunctionField; ctx = bang_ctx, simplify = false)
     @test isempty(second.unknowns)
 end
 
@@ -78,12 +78,12 @@ end
         )
     end
 
-    timestamp = generate_schema(TimestampRecord; ctx = ctx)
+    timestamp = generate_schema(TimestampRecord; ctx = ctx, simplify = false)
     defs = timestamp.doc["\$defs"]
     datetime_def = defs[ctx_key(DateTime)]
     @test datetime_def["description"] == "custom date-time"
 
-    demo = generate_schema(OverrideDemo; ctx = ctx)
+    demo = generate_schema(OverrideDemo; ctx = ctx, simplify = false)
     demo_defs = demo.doc["\$defs"]
     schema = demo_defs[ctx_key(OverrideDemo)]
     @test schema["properties"]["amount"]["type"] == "number"
@@ -94,13 +94,13 @@ end
     # verbose=false (default): no logs should be emitted at any level
     ctx = SchemaContext()
     @test_logs min_level = Logging.Debug begin
-        generate_schema(VerboseVectorHolder; ctx = ctx)
+        generate_schema(VerboseVectorHolder; ctx = ctx, simplify = false)
     end
 
     # verbose=true: info logs should be emitted
     verbose_ctx = SchemaContext(verbose = true)
     @test_logs (:info, r"UnionAll type Vector encountered") min_level = Logging.Debug begin
-        generate_schema(VerboseVectorHolder; ctx = verbose_ctx)
+        generate_schema(VerboseVectorHolder; ctx = verbose_ctx, simplify = false)
     end
 end
 
@@ -114,11 +114,11 @@ end
 
 @testset "context isolation tests" begin
     ctx = SchemaContext()
-    result1 = generate_schema(SimpleStruct1; ctx = ctx)
+    result1 = generate_schema(SimpleStruct1; ctx = ctx, simplify = false)
     @test isempty(ctx.defs)
     @test isempty(ctx.unknowns)
 
-    result2 = generate_schema(SimpleStruct2; ctx = ctx)
+    result2 = generate_schema(SimpleStruct2; ctx = ctx, simplify = false)
     @test isempty(ctx.defs)
     @test isempty(ctx.unknowns)
 end
@@ -133,10 +133,10 @@ end
 
 @testset "generate_schema! tests" begin
     bang_ctx = SchemaContext()
-    result1 = generate_schema!(BangTestStruct1; ctx = bang_ctx)
+    result1 = generate_schema!(BangTestStruct1; ctx = bang_ctx, simplify = false)
     @test !isempty(bang_ctx.defs)
 
-    result2 = generate_schema!(BangTestStruct2; ctx = bang_ctx)
+    result2 = generate_schema!(BangTestStruct2; ctx = bang_ctx, simplify = false)
     @test length(bang_ctx.defs) > 1
 end
 
@@ -159,11 +159,11 @@ end
         Dict("type" => "object", "description" => "Override 2")
     end
 
-    result1 = generate_schema(OverrideTarget1; ctx = ctx)
+    result1 = generate_schema(OverrideTarget1; ctx = ctx, simplify = false)
     schema1 = result1.doc["\$defs"][ctx_key(OverrideTarget1)]
     @test schema1["description"] == "Override 1"
 
-    result2 = generate_schema(OverrideTarget2; ctx = ctx)
+    result2 = generate_schema(OverrideTarget2; ctx = ctx, simplify = false)
     schema2 = result2.doc["\$defs"][ctx_key(OverrideTarget2)]
     @test schema2["description"] == "Override 2"
 end
@@ -187,11 +187,11 @@ end
         Dict("type" => "integer", "description" => "Custom Int64")
     end
 
-    result32 = generate_schema(CustomInt32; ctx = ctx)
+    result32 = generate_schema(CustomInt32; ctx = ctx, simplify = false)
     int32_def = result32.doc["\$defs"][ctx_key(Int32)]
     @test int32_def["description"] == "Custom Int32"
 
-    result64 = generate_schema(CustomInt64; ctx = ctx)
+    result64 = generate_schema(CustomInt64; ctx = ctx, simplify = false)
     int64_def = result64.doc["\$defs"][ctx_key(Int64)]
     @test int64_def["description"] == "Custom Int64"
 end
@@ -207,10 +207,10 @@ end
 @testset "unknown type tracking tests" begin
     ctx = SchemaContext()
 
-    result1 = generate_schema(UnknownHolder1; ctx = ctx)
+    result1 = generate_schema(UnknownHolder1; ctx = ctx, simplify = false)
     @test result1.unknowns == Set([(Vector, (:data,))])
 
-    result2 = generate_schema(UnknownHolder2; ctx = ctx)
+    result2 = generate_schema(UnknownHolder2; ctx = ctx, simplify = false)
     @test result2.unknowns == Set([(Vector, (:items,))])
 end
 
@@ -238,7 +238,7 @@ end
         )
     end
 
-    result = generate_schema(URLContainer; ctx = ctx)
+    result = generate_schema(URLContainer; ctx = ctx, simplify = false)
     schema = result.doc["\$defs"][ctx_key(URLContainer)]
 
     @test schema["properties"]["homepage"]["format"] == "uri"
@@ -269,7 +269,7 @@ end
         )
     end
 
-    result = generate_schema(EmailContainer; ctx = ctx)
+    result = generate_schema(EmailContainer; ctx = ctx, simplify = false)
     schema = result.doc["\$defs"][ctx_key(EmailContainer)]
 
     @test schema["properties"]["primary"]["format"] == "email"
@@ -293,7 +293,7 @@ end
         )
     end
 
-    result = generate_schema(ScoreRecord; ctx = ctx)
+    result = generate_schema(ScoreRecord; ctx = ctx, simplify = false)
     schema = result.doc["\$defs"][ctx_key(ScoreRecord)]
 
     @test schema["properties"]["score"]["minimum"] == 0.0
@@ -325,7 +325,7 @@ end
         )
     end
 
-    result = generate_schema(StringLengthRecord; ctx = ctx)
+    result = generate_schema(StringLengthRecord; ctx = ctx, simplify = false)
     schema = result.doc["\$defs"][ctx_key(StringLengthRecord)]
 
     @test schema["properties"]["username"]["minLength"] == 3
@@ -350,7 +350,7 @@ end
         )
     end
 
-    result = generate_schema(DateTimeRecord; ctx = ctx)
+    result = generate_schema(DateTimeRecord; ctx = ctx, simplify = false)
     datetime_def = result.doc["\$defs"][ctx_key(DateTime)]
 
     @test datetime_def["format"] == "date-time"
@@ -372,7 +372,7 @@ end
         )
     end
 
-    result = generate_schema(FloatRecord; ctx = ctx)
+    result = generate_schema(FloatRecord; ctx = ctx, simplify = false)
     float_def = result.doc["\$defs"][ctx_key(Float64)]
 
     @test float_def["type"] == "number"
@@ -395,7 +395,7 @@ end
         )
     end
 
-    result = generate_schema(StringRecord; ctx = ctx)
+    result = generate_schema(StringRecord; ctx = ctx, simplify = false)
     string_def = result.doc["\$defs"][ctx_key(String)]
 
     @test string_def["minLength"] == 1
@@ -425,7 +425,7 @@ end
         )
     end
 
-    result = generate_schema(NestedOverride; ctx = ctx)
+    result = generate_schema(NestedOverride; ctx = ctx, simplify = false)
 
     nested_schema = result.doc["\$defs"][ctx_key(NestedOverride)]
     @test nested_schema["properties"]["name"]["minLength"] == 1
@@ -460,7 +460,7 @@ end
         )
     end
 
-    result = generate_schema(IntRangeRecord; ctx = ctx)
+    result = generate_schema(IntRangeRecord; ctx = ctx, simplify = false)
 
     int8_def = result.doc["\$defs"][ctx_key(Int8)]
     @test int8_def["description"] == "8-bit integer"
@@ -485,7 +485,7 @@ end
         )
     end
 
-    result = generate_schema(ArrayOverrideRecord; ctx = ctx)
+    result = generate_schema(ArrayOverrideRecord; ctx = ctx, simplify = false)
     schema = result.doc["\$defs"][ctx_key(ArrayOverrideRecord)]
 
     @test schema["properties"]["items"]["minItems"] == 1
@@ -506,7 +506,7 @@ end
         )
     end
 
-    result = generate_schema(EnumOverrideRecord; ctx = ctx)
+    result = generate_schema(EnumOverrideRecord; ctx = ctx, simplify = false)
     schema = result.doc["\$defs"][ctx_key(EnumOverrideRecord)]
 
     @test schema["properties"]["color"]["enum"] == ["red", "green", "blue"]
@@ -532,7 +532,7 @@ end
         return nothing
     end
 
-    result = generate_schema(UnifiedFieldTarget; ctx = ctx)
+    result = generate_schema(UnifiedFieldTarget; ctx = ctx, simplify = false)
     schema = result.doc["\$defs"][ctx_key(UnifiedFieldTarget)]
 
     @test schema["properties"]["value"]["minimum"] == 0
@@ -553,7 +553,7 @@ end
         return nothing
     end
 
-    result = generate_schema(UnifiedTypeTarget; ctx = ctx)
+    result = generate_schema(UnifiedTypeTarget; ctx = ctx, simplify = false)
     schema = result.doc["\$defs"][ctx_key(UnifiedTypeTarget)]
 
     @test schema["description"] == "custom type override"
@@ -580,7 +580,7 @@ end
         return nothing
     end
 
-    result = generate_schema(ConfigWrapper; ctx = ctx)
+    result = generate_schema(ConfigWrapper; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
 
     config_schema = defs[ctx_key(ServiceConfig)]
@@ -601,7 +601,7 @@ end
         Dict("type" => "number", "minimum" => 0)
     end
 
-    result = generate_schema(TypeOverrideHolder; ctx = ctx)
+    result = generate_schema(TypeOverrideHolder; ctx = ctx, simplify = false)
     float_def = result.doc["\$defs"][ctx_key(Float64)]
 
     @test float_def["minimum"] == 0
@@ -620,7 +620,7 @@ end
         Dict("type" => "string", "format" => "email")
     end
 
-    result = generate_schema(FieldOverrideHolder; ctx = ctx)
+    result = generate_schema(FieldOverrideHolder; ctx = ctx, simplify = false)
     schema = result.doc["\$defs"][ctx_key(FieldOverrideHolder)]
 
     @test schema["properties"]["email"]["format"] == "email"
@@ -642,13 +642,14 @@ end
 
     ctx = SchemaContext()
 
-    register_abstract!(ctx, UnifiedAnimal;
+    register_abstract!(
+        ctx, UnifiedAnimal;
         variants = [UnifiedCat, UnifiedDog],
         discr_key = "kind",
         tag_value = Dict(UnifiedCat => "cat", UnifiedDog => "dog")
     )
 
-    result = generate_schema(UnifiedAnimal; ctx = ctx)
+    result = generate_schema(UnifiedAnimal; ctx = ctx, simplify = false)
     schema = result.doc["\$defs"][ctx_key(UnifiedAnimal)]
 
     @test haskey(schema, "anyOf")
@@ -675,13 +676,13 @@ end
         Dict("type" => "integer", "minimum" => 0, "maximum" => 10)
     end
 
-    result = generate_schema(PrecedenceHolder; ctx = ctx)
+    result = generate_schema(PrecedenceHolder; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     holder_schema = defs[ctx_key(PrecedenceHolder)]
     @test holder_schema["properties"]["value"]["minimum"] == 0
     @test holder_schema["properties"]["value"]["maximum"] == 10
 
-    int_result = generate_schema(Int; ctx = ctx)
+    int_result = generate_schema(Int; ctx = ctx, simplify = false)
     int_schema = int_result.doc["\$defs"][ctx_key(Int)]
     @test int_schema["minimum"] == 5
 
@@ -698,7 +699,7 @@ end
     end
 
     @test_logs (:warn, r"Override threw an error at type BrokenOverride") begin
-        result = generate_schema(BrokenOverride; ctx = verbose_ctx)
+        result = generate_schema(BrokenOverride; ctx = verbose_ctx, simplify = false)
         schema = result.doc["\$defs"][ctx_key(BrokenOverride)]
         @test haskey(schema["properties"], "data")
     end
@@ -733,7 +734,7 @@ end
         return nothing
     end
 
-    result = generate_schema(OrderingTarget; ctx = ctx)
+    result = generate_schema(OrderingTarget; ctx = ctx, simplify = false)
     schema = result.doc["\$defs"][ctx_key(OrderingTarget)]
     @test schema["required"] == ["x"]
     @test first_hit[]
@@ -757,7 +758,7 @@ end
         )
     end
 
-    result = generate_schema(PatternRecord; ctx = ctx)
+    result = generate_schema(PatternRecord; ctx = ctx, simplify = false)
     schema = result.doc["\$defs"][ctx_key(PatternRecord)]
 
     @test schema["properties"]["phone"]["pattern"] == "^\\+?[1-9]\\d{1,14}\$"

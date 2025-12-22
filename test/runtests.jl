@@ -48,6 +48,10 @@ end
     include("error_handling.jl")
 end
 
+@testset "simplification" begin
+    include("simplification.jl")
+end
+
 py_exec = Sys.which("python3") !== nothing ? "python3" : Sys.which("python") !== nothing ? "python" : nothing
 
 if py_exec !== nothing

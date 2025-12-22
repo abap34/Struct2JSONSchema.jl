@@ -46,7 +46,7 @@ end
 
 @testset "Primitive schema generation" begin
     ctx = SchemaContext()
-    result = generate_schema(PrimitiveRecord; ctx = ctx)
+    result = generate_schema(PrimitiveRecord; ctx = ctx, simplify = false)
     doc = result.doc
     defs = doc["\$defs"]
     schema = def_for(defs, PrimitiveRecord)
@@ -123,7 +123,7 @@ end
 
 @testset "Null-likes and Any" begin
     ctx = SchemaContext()
-    result = generate_schema(NullAndAnyRecord; ctx = ctx)
+    result = generate_schema(NullAndAnyRecord; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = def_for(defs, NullAndAnyRecord)
     props = schema["properties"]
@@ -149,7 +149,7 @@ end
 
 @testset "UnionAll recording" begin
     ctx = SchemaContext()
-    result = generate_schema(RawVectorWrapper; ctx = ctx)
+    result = generate_schema(RawVectorWrapper; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = def_for(defs, RawVectorWrapper)
     value_schema = schema["properties"]["values"]
@@ -169,7 +169,7 @@ end
 
 @testset "integer types" begin
     ctx = SchemaContext()
-    result = generate_schema(PrimitiveRecord2; ctx = ctx)
+    result = generate_schema(PrimitiveRecord2; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = def_for(defs, PrimitiveRecord2)
     props = schema["properties"]
@@ -209,7 +209,7 @@ end
 
 @testset "More integer type variations" begin
     ctx = SchemaContext()
-    result = generate_schema(PrimitiveRecord3; ctx = ctx)
+    result = generate_schema(PrimitiveRecord3; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = def_for(defs, PrimitiveRecord3)
     props = schema["properties"]
@@ -246,7 +246,7 @@ end
 
 @testset "String-like type variations" begin
     ctx = SchemaContext()
-    result = generate_schema(StringVariations; ctx = ctx)
+    result = generate_schema(StringVariations; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = def_for(defs, StringVariations)
     props = schema["properties"]
@@ -280,7 +280,7 @@ end
 
 @testset "Date and time type variations" begin
     ctx = SchemaContext()
-    result = generate_schema(DateTimeVariations; ctx = ctx)
+    result = generate_schema(DateTimeVariations; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = def_for(defs, DateTimeVariations)
     props = schema["properties"]
@@ -313,7 +313,7 @@ end
 
 @testset "Boolean type variations" begin
     ctx = SchemaContext()
-    result = generate_schema(BooleanVariations; ctx = ctx)
+    result = generate_schema(BooleanVariations; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = def_for(defs, BooleanVariations)
     props = schema["properties"]
@@ -337,7 +337,7 @@ end
 
 @testset "Rational and Regex type variations" begin
     ctx = SchemaContext()
-    result = generate_schema(RationalAndRegexVariations; ctx = ctx)
+    result = generate_schema(RationalAndRegexVariations; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = def_for(defs, RationalAndRegexVariations)
     props = schema["properties"]
@@ -366,7 +366,7 @@ end
 
 @testset "More nullable type combinations" begin
     ctx = SchemaContext()
-    result = generate_schema(MixedNullableTypes; ctx = ctx)
+    result = generate_schema(MixedNullableTypes; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = def_for(defs, MixedNullableTypes)
     props = schema["properties"]
@@ -397,7 +397,7 @@ end
 
 @testset "More Missing type combinations" begin
     ctx = SchemaContext()
-    result = generate_schema(MixedMissingTypes; ctx = ctx)
+    result = generate_schema(MixedMissingTypes; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = def_for(defs, MixedMissingTypes)
     props = schema["properties"]
@@ -427,7 +427,7 @@ end
 
 @testset "Multiple Any type fields" begin
     ctx = SchemaContext()
-    result = generate_schema(AnyPayloadVariations; ctx = ctx)
+    result = generate_schema(AnyPayloadVariations; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = def_for(defs, AnyPayloadVariations)
     props = schema["properties"]
@@ -448,7 +448,7 @@ end
 
 @testset "More Float type variations" begin
     ctx = SchemaContext()
-    result = generate_schema(FloatVariations; ctx = ctx)
+    result = generate_schema(FloatVariations; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = def_for(defs, FloatVariations)
     props = schema["properties"]

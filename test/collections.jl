@@ -20,7 +20,7 @@ c_def(defs, T) = defs[c_schema_key(T)]
 
 @testset "Collection schema generation" begin
     ctx = SchemaContext()
-    result = generate_schema(CollectionRecord; ctx = ctx)
+    result = generate_schema(CollectionRecord; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = c_def(defs, CollectionRecord)
     props = schema["properties"]
@@ -75,7 +75,7 @@ end
 
 @testset "Vector types" begin
     ctx = SchemaContext()
-    result = generate_schema(CollectionRecord2; ctx = ctx)
+    result = generate_schema(CollectionRecord2; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = c_def(defs, CollectionRecord2)
     props = schema["properties"]
@@ -103,7 +103,7 @@ end
 
 @testset "Deeply nested collections" begin
     ctx = SchemaContext()
-    result = generate_schema(NestedCollections; ctx = ctx)
+    result = generate_schema(NestedCollections; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = c_def(defs, NestedCollections)
     props = schema["properties"]
@@ -125,7 +125,7 @@ end
 
 @testset "Multiple Set types" begin
     ctx = SchemaContext()
-    result = generate_schema(SetCollections; ctx = ctx)
+    result = generate_schema(SetCollections; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = c_def(defs, SetCollections)
     props = schema["properties"]
@@ -155,7 +155,7 @@ end
 
 @testset "Various Tuple types" begin
     ctx = SchemaContext()
-    result = generate_schema(TupleVariations; ctx = ctx)
+    result = generate_schema(TupleVariations; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = c_def(defs, TupleVariations)
     props = schema["properties"]
@@ -198,7 +198,7 @@ end
 
 @testset "Various NamedTuple types" begin
     ctx = SchemaContext()
-    result = generate_schema(NamedTupleVariations; ctx = ctx)
+    result = generate_schema(NamedTupleVariations; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = c_def(defs, NamedTupleVariations)
     props = schema["properties"]
@@ -230,7 +230,7 @@ end
 
 @testset "Various Dict types" begin
     ctx = SchemaContext()
-    result = generate_schema(DictVariations; ctx = ctx)
+    result = generate_schema(DictVariations; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = c_def(defs, DictVariations)
     props = schema["properties"]
@@ -257,7 +257,7 @@ end
 
 @testset "Various NTuple types" begin
     ctx = SchemaContext()
-    result = generate_schema(NTupleVariations; ctx = ctx)
+    result = generate_schema(NTupleVariations; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = c_def(defs, NTupleVariations)
     props = schema["properties"]
@@ -290,7 +290,7 @@ end
 
 @testset "Complex nested collection combinations" begin
     ctx = SchemaContext()
-    result = generate_schema(ComplexNestedCollections; ctx = ctx)
+    result = generate_schema(ComplexNestedCollections; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = c_def(defs, ComplexNestedCollections)
     props = schema["properties"]
@@ -318,7 +318,7 @@ end
 
 @testset "Collections of different integer types" begin
     ctx = SchemaContext()
-    result = generate_schema(MixedCollections; ctx = ctx)
+    result = generate_schema(MixedCollections; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = c_def(defs, MixedCollections)
     props = schema["properties"]
@@ -336,7 +336,7 @@ end
 
 @testset "Large NTuple types" begin
     ctx = SchemaContext()
-    result = generate_schema(LargeNTuples; ctx = ctx)
+    result = generate_schema(LargeNTuples; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = c_def(defs, LargeNTuples)
     props = schema["properties"]

@@ -1,5 +1,5 @@
 using Test
-using Struct2JSONSchema: SchemaContext, generate_schema, register_field_override!, register_optional_fields!, treat_union_nothing_as_optional!
+using Struct2JSONSchema: SchemaContext, generate_schema, register_field_override!, register_optional_fields!, treat_union_nothing_as_optional!, Struct2JSONSchema.simplify_schema
 using JSON3
 using Dates
 
@@ -37,32 +37,42 @@ function run_validation_tests(test_name::String, struct_type::Type, schema_gener
         data_path = joinpath(tmp, "data.json")
 
         schema = schema_generator()
-        open(schema_path, "w") do io
-            JSON3.write(io, schema.doc)
-        end
+        schema_variants = [
+            ("original", schema.doc),
+            ("simplified", simplify_schema(schema.doc))
+        ]
 
         valids = JSON3.read(read(valids_path, String))
-        for (idx, valid_data) in enumerate(valids)
-            open(data_path, "w") do io
-                JSON3.write(io, valid_data)
-            end
-            success, log_output = validate_py(schema_path, data_path)
-            if !success
-                @error "Python validation failed for valid data" test_name = test_name index = idx data = valid_data reason = format_reason(log_output)
-            end
-            @test success
-        end
-
         invalids = JSON3.read(read(invalids_path, String))
-        for (idx, invalid_data) in enumerate(invalids)
-            open(data_path, "w") do io
-                JSON3.write(io, invalid_data)
+
+        for (variant_name, schema_doc) in schema_variants
+            @testset "$test_name - schema=$variant_name" begin
+                open(schema_path, "w") do io
+                    JSON3.write(io, schema_doc)
+                end
+
+                for (idx, valid_data) in enumerate(valids)
+                    open(data_path, "w") do io
+                        JSON3.write(io, valid_data)
+                    end
+                    success, log_output = validate_py(schema_path, data_path)
+                    if !success
+                        @error "Python validation failed for valid data" test_name = test_name variant = variant_name index = idx data = valid_data reason = format_reason(log_output)
+                    end
+                    @test success
+                end
+
+                for (idx, invalid_data) in enumerate(invalids)
+                    open(data_path, "w") do io
+                        JSON3.write(io, invalid_data)
+                    end
+                    success, log_output = validate_py(schema_path, data_path)
+                    if success
+                        @error "Python validation unexpectedly accepted invalid data" test_name = test_name variant = variant_name index = idx data = invalid_data reason = format_reason(log_output)
+                    end
+                    @test !success
+                end
             end
-            success, log_output = validate_py(schema_path, data_path)
-            if success
-                @error "Python validation unexpectedly accepted invalid data" test_name = test_name index = idx data = invalid_data reason = format_reason(log_output)
-            end
-            @test !success
         end
     end
 end
@@ -162,7 +172,7 @@ struct SupportTicket
     followup::Union{String, Nothing}
 end
 @testset "Python validator - basic_person" begin
-    run_validation_tests("basic_person", BasicPerson, () -> generate_schema(BasicPerson))
+    run_validation_tests("basic_person", BasicPerson, () -> generate_schema(BasicPerson; simplify = false))
 end
 
 @testset "Python validator - optional_email" begin
@@ -170,21 +180,21 @@ end
         "optional_email", PersonWithOptionalEmail, () -> begin
             ctx = SchemaContext()
             treat_union_nothing_as_optional!(ctx)
-            generate_schema(PersonWithOptionalEmail; ctx = ctx)
+            generate_schema(PersonWithOptionalEmail; ctx = ctx, simplify = false)
         end
     )
 end
 
 @testset "Python validator - nested_address" begin
-    run_validation_tests("nested_address", PersonWithAddress, () -> generate_schema(PersonWithAddress))
+    run_validation_tests("nested_address", PersonWithAddress, () -> generate_schema(PersonWithAddress; simplify = false))
 end
 
 @testset "Python validator - array_items" begin
-    run_validation_tests("array_items", TodoList, () -> generate_schema(TodoList))
+    run_validation_tests("array_items", TodoList, () -> generate_schema(TodoList; simplify = false))
 end
 
 @testset "Python validator - enum_status" begin
-    run_validation_tests("enum_status", Request, () -> generate_schema(Request))
+    run_validation_tests("enum_status", Request, () -> generate_schema(Request; simplify = false))
 end
 
 @testset "Python validator - field_override_datetime" begin
@@ -197,13 +207,13 @@ end
                     "format" => "date-time"
                 )
             end
-            generate_schema(Event; ctx = ctx)
+            generate_schema(Event; ctx = ctx, simplify = false)
         end
     )
 end
 
 @testset "Python validator - numeric_constraints" begin
-    run_validation_tests("numeric_constraints", Product, () -> generate_schema(Product))
+    run_validation_tests("numeric_constraints", Product, () -> generate_schema(Product; simplify = false))
 end
 
 @testset "Python validator - optional_registry" begin
@@ -214,13 +224,13 @@ end
             ctx = SchemaContext()
             register_optional_fields!(ctx, SupportTicket, :internal_notes)
             treat_union_nothing_as_optional!(ctx)
-            generate_schema(SupportTicket; ctx = ctx)
+            generate_schema(SupportTicket; ctx = ctx, simplify = false)
         end
     )
 end
 
 @testset "Python validator - union_types" begin
-    run_validation_tests("union_types", FlexibleValue, () -> generate_schema(FlexibleValue))
+    run_validation_tests("union_types", FlexibleValue, () -> generate_schema(FlexibleValue; simplify = false))
 end
 
 struct Coordinates
@@ -228,7 +238,7 @@ struct Coordinates
 end
 
 @testset "Python validator - ntuple_fixed_length" begin
-    run_validation_tests("ntuple_fixed_length", Coordinates, () -> generate_schema(Coordinates))
+    run_validation_tests("ntuple_fixed_length", Coordinates, () -> generate_schema(Coordinates; simplify = false))
 end
 
 struct TaggedPost
@@ -237,7 +247,7 @@ struct TaggedPost
 end
 
 @testset "Python validator - set_unique_items" begin
-    run_validation_tests("set_unique_items", TaggedPost, () -> generate_schema(TaggedPost))
+    run_validation_tests("set_unique_items", TaggedPost, () -> generate_schema(TaggedPost; simplify = false))
 end
 
 struct Company
@@ -246,7 +256,7 @@ struct Company
 end
 
 @testset "Python validator - nested_array_objects" begin
-    run_validation_tests("nested_array_objects", Company, () -> generate_schema(Company))
+    run_validation_tests("nested_array_objects", Company, () -> generate_schema(Company; simplify = false))
 end
 
 struct DeepNested
@@ -255,7 +265,7 @@ struct DeepNested
 end
 
 @testset "Python validator - deep_nesting" begin
-    run_validation_tests("deep_nesting", DeepNested, () -> generate_schema(DeepNested))
+    run_validation_tests("deep_nesting", DeepNested, () -> generate_schema(DeepNested; simplify = false))
 end
 
 struct MultiUnion
@@ -263,7 +273,7 @@ struct MultiUnion
 end
 
 @testset "Python validator - complex_union" begin
-    run_validation_tests("complex_union", MultiUnion, () -> generate_schema(MultiUnion))
+    run_validation_tests("complex_union", MultiUnion, () -> generate_schema(MultiUnion; simplify = false))
 end
 
 struct RangeConstraint
@@ -282,7 +292,7 @@ end
                     "maximum" => 100
                 )
             end
-            generate_schema(RangeConstraint; ctx = ctx)
+            generate_schema(RangeConstraint; ctx = ctx, simplify = false)
         end
     )
 end
@@ -302,7 +312,7 @@ end
                     "format" => "email"
                 )
             end
-            generate_schema(EmailRecord; ctx = ctx)
+            generate_schema(EmailRecord; ctx = ctx, simplify = false)
         end
     )
 end
@@ -322,7 +332,7 @@ end
                     "format" => "uri"
                 )
             end
-            generate_schema(URLRecord; ctx = ctx)
+            generate_schema(URLRecord; ctx = ctx, simplify = false)
         end
     )
 end
@@ -332,7 +342,7 @@ struct NamedTupleRecord
 end
 
 @testset "Python validator - named_tuple" begin
-    run_validation_tests("named_tuple", NamedTupleRecord, () -> generate_schema(NamedTupleRecord))
+    run_validation_tests("named_tuple", NamedTupleRecord, () -> generate_schema(NamedTupleRecord; simplify = false))
 end
 
 struct DictRecord
@@ -340,7 +350,7 @@ struct DictRecord
 end
 
 @testset "Python validator - dict_properties" begin
-    run_validation_tests("dict_properties", DictRecord, () -> generate_schema(DictRecord))
+    run_validation_tests("dict_properties", DictRecord, () -> generate_schema(DictRecord; simplify = false))
 end
 
 struct BooleanRecord
@@ -350,7 +360,7 @@ struct BooleanRecord
 end
 
 @testset "Python validator - boolean_fields" begin
-    run_validation_tests("boolean_fields", BooleanRecord, () -> generate_schema(BooleanRecord))
+    run_validation_tests("boolean_fields", BooleanRecord, () -> generate_schema(BooleanRecord; simplify = false))
 end
 
 struct MixedTypes
@@ -362,5 +372,5 @@ struct MixedTypes
 end
 
 @testset "Python validator - mixed_types" begin
-    run_validation_tests("mixed_types", MixedTypes, () -> generate_schema(MixedTypes))
+    run_validation_tests("mixed_types", MixedTypes, () -> generate_schema(MixedTypes; simplify = false))
 end

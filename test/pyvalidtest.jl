@@ -1,5 +1,5 @@
 using Test
-using Struct2JSONSchema: SchemaContext, generate_schema, register_field_override!, register_optional_fields!, treat_union_nothing_as_optional!
+using Struct2JSONSchema: SchemaContext, generate_schema, register_field_override!, register_optional_fields!, treat_union_nothing_as_optional!, Struct2JSONSchema.simplify_schema
 using JSON3
 using Dates
 
@@ -37,32 +37,42 @@ function run_validation_tests(test_name::String, struct_type::Type, schema_gener
         data_path = joinpath(tmp, "data.json")
 
         schema = schema_generator()
-        open(schema_path, "w") do io
-            JSON3.write(io, schema.doc)
-        end
+        schema_variants = [
+            ("original", schema.doc),
+            ("simplified", simplify_schema(schema.doc))
+        ]
 
         valids = JSON3.read(read(valids_path, String))
-        for (idx, valid_data) in enumerate(valids)
-            open(data_path, "w") do io
-                JSON3.write(io, valid_data)
-            end
-            success, log_output = validate_py(schema_path, data_path)
-            if !success
-                @error "Python validation failed for valid data" test_name = test_name index = idx data = valid_data reason = format_reason(log_output)
-            end
-            @test success
-        end
-
         invalids = JSON3.read(read(invalids_path, String))
-        for (idx, invalid_data) in enumerate(invalids)
-            open(data_path, "w") do io
-                JSON3.write(io, invalid_data)
+
+        for (variant_name, schema_doc) in schema_variants
+            @testset "$test_name - schema=$variant_name" begin
+                open(schema_path, "w") do io
+                    JSON3.write(io, schema_doc)
+                end
+
+                for (idx, valid_data) in enumerate(valids)
+                    open(data_path, "w") do io
+                        JSON3.write(io, valid_data)
+                    end
+                    success, log_output = validate_py(schema_path, data_path)
+                    if !success
+                        @error "Python validation failed for valid data" test_name = test_name variant = variant_name index = idx data = valid_data reason = format_reason(log_output)
+                    end
+                    @test success
+                end
+
+                for (idx, invalid_data) in enumerate(invalids)
+                    open(data_path, "w") do io
+                        JSON3.write(io, invalid_data)
+                    end
+                    success, log_output = validate_py(schema_path, data_path)
+                    if success
+                        @error "Python validation unexpectedly accepted invalid data" test_name = test_name variant = variant_name index = idx data = invalid_data reason = format_reason(log_output)
+                    end
+                    @test !success
+                end
             end
-            success, log_output = validate_py(schema_path, data_path)
-            if success
-                @error "Python validation unexpectedly accepted invalid data" test_name = test_name index = idx data = invalid_data reason = format_reason(log_output)
-            end
-            @test !success
         end
     end
 end

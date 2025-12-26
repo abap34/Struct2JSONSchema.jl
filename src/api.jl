@@ -110,6 +110,31 @@ function register_field_override!(generator::Function, ctx::SchemaContext, T::Da
     return nothing
 end
 
+# Common validation helper for field registration APIs
+function validate_struct_fields(T::Type, fields, context::String)
+    if !(T isa DataType) || !isstructtype(T) || isabstracttype(T)
+        throw(ArgumentError("Type $T must be a concrete struct when $context"))
+    end
+    allowed = Set(fieldnames(T))
+    for field in fields
+        if !(field in allowed)
+            throw(ArgumentError("Type $T has no field $field"))
+        end
+    end
+    return allowed
+end
+
+# Common registration helper for adding fields to IdDict{DataType, Set{Symbol}}
+function register_to_field_set!(dict::IdDict, T::Type, fields)
+    entry = get!(dict, T) do
+        Set{Symbol}()
+    end
+    for field in fields
+        push!(entry, field)
+    end
+    return nothing
+end
+
 """
     register_optional_fields!(ctx, T, fields)
 
@@ -118,24 +143,8 @@ Mark specific fields on `T` as optional regardless of their declared types.
 """
 function register_optional_fields!(ctx::SchemaContext, T::Type, fields::Symbol...)
     isempty(fields) && return nothing
-    _register_optional_fields!(ctx, T, fields)
-    return nothing
-end
-
-function _register_optional_fields!(ctx::SchemaContext, T::Type, fields)
-    if !(T isa DataType) || !isstructtype(T) || isabstracttype(T)
-        throw(ArgumentError("Type $T must be a concrete struct when registering optional fields"))
-    end
-    allowed = Set(fieldnames(T))
-    entry = get!(ctx.optional_fields, T) do
-        Set{Symbol}()
-    end
-    for field in fields
-        if !(field in allowed)
-            throw(ArgumentError("Type $T has no field $field"))
-        end
-        push!(entry, field)
-    end
+    validate_struct_fields(T, fields, "registering optional fields")
+    register_to_field_set!(ctx.optional_fields, T, fields)
     return nothing
 end
 
@@ -147,14 +156,37 @@ The description will be added to the JSON Schema as the `description` property.
 Manual registration takes priority over automatic extraction via `REPL.fielddoc`.
 """
 function register_field_description!(ctx::SchemaContext, T::Type, field::Symbol, description::String)
-    if !(T isa DataType) || !isstructtype(T) || isabstracttype(T)
-        throw(ArgumentError("Type $T must be a concrete struct when registering field descriptions"))
-    end
-    allowed = Set(fieldnames(T))
-    if !(field in allowed)
-        throw(ArgumentError("Type $T has no field $field"))
-    end
+    validate_struct_fields(T, (field,), "registering field descriptions")
     ctx.field_descriptions[(T, field)] = description
+    return nothing
+end
+
+"""
+    register_skip_fields!(ctx, T, fields...)
+
+Mark specific fields on `T` to be completely skipped (excluded from schema generation).
+Skipped fields will not appear in `properties` or `required`.
+`fields` may be supplied as a collection of `Symbol`s or as varargs.
+"""
+function register_skip_fields!(ctx::SchemaContext, T::Type, fields::Symbol...)
+    isempty(fields) && return nothing
+    validate_struct_fields(T, fields, "registering skip fields")
+    register_to_field_set!(ctx.skip_fields, T, fields)
+    return nothing
+end
+
+"""
+    register_only_fields!(ctx, T, fields...)
+
+Mark that only the specified fields on `T` should be included in the schema.
+All other fields will be skipped. This is the inverse of `register_skip_fields!`.
+`fields` may be supplied as a collection of `Symbol`s or as varargs.
+"""
+function register_only_fields!(ctx::SchemaContext, T::Type, fields::Symbol...)
+    isempty(fields) && return nothing
+    all_fields = validate_struct_fields(T, fields, "registering only fields")
+    skip_fields = setdiff(all_fields, Set(fields))
+    register_to_field_set!(ctx.skip_fields, T, skip_fields)
     return nothing
 end
 

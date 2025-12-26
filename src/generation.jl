@@ -226,6 +226,11 @@ function struct_schema(T::Type, ctx::SchemaContext)
     required = String[]
     names = fieldnames(T)
     for (idx, name) in enumerate(names)
+        # Skip if field is registered in skip_fields
+        if haskey(ctx.skip_fields, T) && name in ctx.skip_fields[T]
+            continue
+        end
+
         field_type = fieldtype(T, idx)
         old_parent = ctx.current_parent
         old_field = ctx.current_field

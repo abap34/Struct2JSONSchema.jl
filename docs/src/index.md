@@ -309,6 +309,27 @@ Invalid JSON:
 
 In other words, when using `treat_union_nothing_as_optional!`, the `Nothing` in `Union{T, Nothing}` is treated as a marker for optionality in Julia, not as a nullable value in JSON.
 
+## Skipping Fields
+
+Use [`register_skip_fields!`](@ref) to exclude fields or [`register_only_fields!`](@ref) to include only specified fields:
+
+```julia
+struct User
+    id::Int
+    name::String
+    _cache::Dict
+end
+
+ctx = SchemaContext()
+register_skip_fields!(ctx, User, :_cache)
+# or equivalently:
+# register_only_fields!(ctx, User, :id, :name)
+
+result = generate_schema(User; ctx=ctx)
+```
+
+Skipped fields are excluded from both `properties` and `required`.
+
 ## Field Descriptions
 
 Struct2JSONSchema.jl can automatically extract field docstrings and add them as `description` properties in the JSON Schema.

@@ -15,6 +15,7 @@ mutable struct SchemaContext
     key_of::IdDict{Any, String}                      # stable type→key cache
     visited::Set{Any}                                # recursion guard for define!
     optional_fields::IdDict{DataType, Set{Symbol}}   # explicit optional field hints
+    skip_fields::IdDict{DataType, Set{Symbol}}       # fields to skip entirely
     field_descriptions::IdDict{Tuple{DataType,Symbol},String}  # field descriptions
     auto_fielddoc::Bool                              # auto extract REPL.fielddoc?
     path::Vector{Symbol}                             # current traversal path
@@ -53,6 +54,7 @@ function SchemaContext(;
         IdDict{Any, String}(),
         Set{Any}(),
         IdDict{DataType, Set{Symbol}}(),
+        IdDict{DataType, Set{Symbol}}(),
         IdDict{Tuple{DataType,Symbol},String}(),
         auto_fielddoc,
         Symbol[],
@@ -74,6 +76,7 @@ function clone_context(ctx::SchemaContext)
         ctx.key_of,
         Set{Any}(),
         ctx.optional_fields,
+        ctx.skip_fields,
         ctx.field_descriptions,
         ctx.auto_fielddoc,
         Symbol[],

@@ -1,6 +1,6 @@
 name = "Struct2JSONSchema"
 uuid = "6b9a66ba-ce23-4e49-9189-ad500babf267"
-version = "0.0.1"
+version = "0.1.0"
 authors = ["abap34 <abap0002@gmail.com> and contributors"]
 
 [deps]

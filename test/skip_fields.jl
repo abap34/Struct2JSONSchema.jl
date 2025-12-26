@@ -12,7 +12,7 @@ using Struct2JSONSchema
         ctx = SchemaContext()
         register_skip_fields!(ctx, SimpleSkip, :_internal)
 
-        result = generate_schema(SimpleSkip; ctx=ctx)
+        result = generate_schema(SimpleSkip; ctx = ctx)
         key = ctx.key_of[SimpleSkip]
         schema = result.doc["\$defs"][key]
 
@@ -36,7 +36,7 @@ using Struct2JSONSchema
         ctx = SchemaContext()
         register_skip_fields!(ctx, MultiSkip, :skip1, :skip2, :skip3)
 
-        result = generate_schema(MultiSkip; ctx=ctx)
+        result = generate_schema(MultiSkip; ctx = ctx)
         key = ctx.key_of[MultiSkip]
         schema = result.doc["\$defs"][key]
 
@@ -55,7 +55,7 @@ using Struct2JSONSchema
         treat_union_nothing_as_optional!(ctx)
         register_skip_fields!(ctx, SkipOptional, :_skip_me)
 
-        result = generate_schema(SkipOptional; ctx=ctx)
+        result = generate_schema(SkipOptional; ctx = ctx)
         key = ctx.key_of[SkipOptional]
         schema = result.doc["\$defs"][key]
 
@@ -89,7 +89,7 @@ using Struct2JSONSchema
         ctx = SchemaContext()
         register_skip_fields!(ctx, AlmostEmpty, :skip1, :skip2)
 
-        result = generate_schema(AlmostEmpty; ctx=ctx)
+        result = generate_schema(AlmostEmpty; ctx = ctx)
         key = ctx.key_of[AlmostEmpty]
         schema = result.doc["\$defs"][key]
 
@@ -107,7 +107,7 @@ using Struct2JSONSchema
         ctx = SchemaContext()
         register_skip_fields!(ctx, NoSkip)  # No fields specified
 
-        result = generate_schema(NoSkip; ctx=ctx)
+        result = generate_schema(NoSkip; ctx = ctx)
         key = ctx.key_of[NoSkip]
         schema = result.doc["\$defs"][key]
 
@@ -127,7 +127,7 @@ using Struct2JSONSchema
         register_skip_fields!(ctx, Cumulative, :f2)
         register_skip_fields!(ctx, Cumulative, :f4)  # Add more
 
-        result = generate_schema(Cumulative; ctx=ctx)
+        result = generate_schema(Cumulative; ctx = ctx)
         key = ctx.key_of[Cumulative]
         schema = result.doc["\$defs"][key]
 
@@ -147,7 +147,7 @@ using Struct2JSONSchema
         register_field_description!(ctx, SkipDescription, :id, "User ID")
         register_field_description!(ctx, SkipDescription, :_internal, "Should be ignored")
 
-        result = generate_schema(SkipDescription; ctx=ctx)
+        result = generate_schema(SkipDescription; ctx = ctx)
         key = ctx.key_of[SkipDescription]
         schema = result.doc["\$defs"][key]
 
@@ -166,7 +166,7 @@ using Struct2JSONSchema
         ctx = SchemaContext()
         register_only_fields!(ctx, OnlyBasic, :keep1, :keep2)
 
-        result = generate_schema(OnlyBasic; ctx=ctx)
+        result = generate_schema(OnlyBasic; ctx = ctx)
         key = ctx.key_of[OnlyBasic]
         schema = result.doc["\$defs"][key]
 
@@ -186,7 +186,7 @@ using Struct2JSONSchema
         ctx = SchemaContext()
         register_only_fields!(ctx, OnlySingle, :important)
 
-        result = generate_schema(OnlySingle; ctx=ctx)
+        result = generate_schema(OnlySingle; ctx = ctx)
         key = ctx.key_of[OnlySingle]
         schema = result.doc["\$defs"][key]
 
@@ -204,7 +204,7 @@ using Struct2JSONSchema
         ctx = SchemaContext()
         register_only_fields!(ctx, OnlyAll, :f1, :f2)
 
-        result = generate_schema(OnlyAll; ctx=ctx)
+        result = generate_schema(OnlyAll; ctx = ctx)
         key = ctx.key_of[OnlyAll]
         schema = result.doc["\$defs"][key]
 
@@ -231,7 +231,7 @@ using Struct2JSONSchema
         ctx = SchemaContext()
         register_skip_fields!(ctx, AllSkipped, :f1, :f2, :f3)
 
-        result = generate_schema(AllSkipped; ctx=ctx)
+        result = generate_schema(AllSkipped; ctx = ctx)
         key = ctx.key_of[AllSkipped]
         schema = result.doc["\$defs"][key]
 
@@ -252,7 +252,7 @@ using Struct2JSONSchema
         end
         register_skip_fields!(ctx, SkipOverride, :_cache)
 
-        result = generate_schema(SkipOverride; ctx=ctx)
+        result = generate_schema(SkipOverride; ctx = ctx)
         key = ctx.key_of[SkipOverride]
         schema = result.doc["\$defs"][key]
 
@@ -271,7 +271,7 @@ using Struct2JSONSchema
         register_optional_fields!(ctx, SkipOptionalConflict, :maybe_skip)
         register_skip_fields!(ctx, SkipOptionalConflict, :maybe_skip)
 
-        result = generate_schema(SkipOptionalConflict; ctx=ctx)
+        result = generate_schema(SkipOptionalConflict; ctx = ctx)
         key = ctx.key_of[SkipOptionalConflict]
         schema = result.doc["\$defs"][key]
 
@@ -295,7 +295,7 @@ using Struct2JSONSchema
         register_skip_fields!(ctx, NestedInner, :_internal)
         register_skip_fields!(ctx, NestedOuter, :_metadata)
 
-        result = generate_schema(NestedOuter; ctx=ctx, simplify=false)
+        result = generate_schema(NestedOuter; ctx = ctx, simplify = false)
 
         outer_key = ctx.key_of[NestedOuter]
         outer_schema = result.doc["\$defs"][outer_key]
@@ -321,7 +321,7 @@ using Struct2JSONSchema
         ctx = SchemaContext()
         register_skip_fields!(ctx, Container, :skipped)
 
-        result = generate_schema(Container; ctx=ctx, simplify=false)
+        result = generate_schema(Container; ctx = ctx, simplify = false)
 
         # UsedElsewhere should still be in $defs because 'used' field references it
         @test haskey(ctx.key_of, UsedElsewhere)
@@ -341,7 +341,7 @@ using Struct2JSONSchema
         register_only_fields!(ctx, CombineSkipOnly, :f1, :f2, :f3)
         register_skip_fields!(ctx, CombineSkipOnly, :f3)  # Further restrict
 
-        result = generate_schema(CombineSkipOnly; ctx=ctx)
+        result = generate_schema(CombineSkipOnly; ctx = ctx)
         key = ctx.key_of[CombineSkipOnly]
         schema = result.doc["\$defs"][key]
 

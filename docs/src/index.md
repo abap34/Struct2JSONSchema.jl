@@ -99,7 +99,7 @@ end
 
 ctx = SchemaContext()
 register_override!(ctx) do ctx
-    if ctx.current_type === UUID
+    if current_type(ctx) === UUID
         return Dict("type" => "string", "format" => "uuid")
     end
     return nothing
@@ -109,12 +109,12 @@ result = generate_schema(User; ctx=ctx)
 println(JSON.json(result.doc, 4))
 ```
 
-[`SchemaContext`](@ref) has the following fields, which can be used for customization:
+[`SchemaContext`](@ref) provides the following accessor functions for customization:
 
-* `current_type` — the type currently being generated
-* `current_parent` — the parent struct, when generating a field
-* `current_field` — the field name, when generating a field
-* `path` — the hierarchical path in the schema
+* `current_type(ctx)` — the type currently being generated
+* `current_parent(ctx)` — the parent struct, when generating a field
+* `current_field(ctx)` — the field name, when generating a field
+* `ctx.path` — the hierarchical path in the schema
 
 [`register_override!`](@ref) accepts a hook function that takes a `SchemaContext` object and returns either a schema `Dict`, or `nothing` to indicate that default generation should continue.
 
@@ -458,8 +458,8 @@ When generating a schema:
 The following are separate systems that can be used together:
 
 - `ctx.overrides` — override mechanism
-- `ctx.optional_fields` — optional field management
-- `ctx.field_descriptions` — field description management
+- `optional_fields(ctx)` — optional field management
+- `field_descriptions(ctx)` — field description management
 
 During field generation, they are processed in the following order:
 

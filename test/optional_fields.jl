@@ -198,19 +198,19 @@ end
 
 @testset "Optional fields - constructor parameters" begin
     ctx1 = SchemaContext(auto_optional_union_nothing = true)
-    @test ctx1.auto_optional_union_nothing == true
-    @test ctx1.auto_optional_union_missing == false
+    @test ctx1.options.auto_optional_union_nothing == true
+    @test ctx1.options.auto_optional_union_missing == false
 
     ctx2 = SchemaContext(auto_optional_union_missing = true)
-    @test ctx2.auto_optional_union_nothing == false
-    @test ctx2.auto_optional_union_missing == true
+    @test ctx2.options.auto_optional_union_nothing == false
+    @test ctx2.options.auto_optional_union_missing == true
 
     ctx3 = SchemaContext(
         auto_optional_union_nothing = true,
         auto_optional_union_missing = true
     )
-    @test ctx3.auto_optional_union_nothing == true
-    @test ctx3.auto_optional_union_missing == true
+    @test ctx3.options.auto_optional_union_nothing == true
+    @test ctx3.options.auto_optional_union_missing == true
 end
 
 struct ExtendedUser

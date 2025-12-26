@@ -53,7 +53,7 @@ function register_abstract!(
     variants_copy = copy(variants)
 
     register_override!(ctx) do ctx
-        if ctx.current_type === A && ctx.current_field === nothing
+        if current_type(ctx) === A && current_field(ctx) === nothing
             return generate_abstract_schema(variants_copy, discr_key, tags, require_discr, ctx)
         end
         return nothing
@@ -84,7 +84,7 @@ should return the full replacement schema for that type.
 """
 function register_type_override!(generator::Function, ctx::SchemaContext, T::DataType)
     register_override!(ctx) do ctx
-        if ctx.current_type === T && ctx.current_field === nothing
+        if current_type(ctx) === T && current_field(ctx) === nothing
             return generator(ctx)
         end
         return nothing
@@ -102,7 +102,7 @@ default `\$ref`.
 """
 function register_field_override!(generator::Function, ctx::SchemaContext, T::DataType, field::Symbol)
     register_override!(ctx) do ctx
-        if ctx.current_parent === T && ctx.current_field === field
+        if current_parent(ctx) === T && current_field(ctx) === field
             return generator(ctx)
         end
         return nothing
@@ -144,7 +144,7 @@ Mark specific fields on `T` as optional regardless of their declared types.
 function register_optional_fields!(ctx::SchemaContext, T::Type, fields::Symbol...)
     isempty(fields) && return nothing
     validate_struct_fields(T, fields, "registering optional fields")
-    register_to_field_set!(ctx.optional_fields, T, fields)
+    register_to_field_set!(optional_fields(ctx), T, fields)
     return nothing
 end
 
@@ -157,7 +157,7 @@ Manual registration takes priority over automatic extraction via `REPL.fielddoc`
 """
 function register_field_description!(ctx::SchemaContext, T::Type, field::Symbol, description::String)
     validate_struct_fields(T, (field,), "registering field descriptions")
-    ctx.field_descriptions[(T, field)] = description
+    field_descriptions(ctx)[(T, field)] = description
     return nothing
 end
 
@@ -171,7 +171,7 @@ Skipped fields will not appear in `properties` or `required`.
 function register_skip_fields!(ctx::SchemaContext, T::Type, fields::Symbol...)
     isempty(fields) && return nothing
     validate_struct_fields(T, fields, "registering skip fields")
-    register_to_field_set!(ctx.skip_fields, T, fields)
+    register_to_field_set!(skip_fields(ctx), T, fields)
     return nothing
 end
 
@@ -185,16 +185,16 @@ All other fields will be skipped. This is the inverse of `register_skip_fields!`
 function register_only_fields!(ctx::SchemaContext, T::Type, fields::Symbol...)
     isempty(fields) && return nothing
     all_fields = validate_struct_fields(T, fields, "registering only fields")
-    skip_fields = setdiff(all_fields, Set(fields))
-    register_to_field_set!(ctx.skip_fields, T, skip_fields)
+    fields_to_skip = setdiff(all_fields, Set(fields))
+    register_to_field_set!(skip_fields(ctx), T, fields_to_skip)
     return nothing
 end
 
 """Enable automatic `Union{T,Nothing}` → optional field detection."""
-treat_union_nothing_as_optional!(ctx::SchemaContext) = (ctx.auto_optional_union_nothing = true; nothing)
+treat_union_nothing_as_optional!(ctx::SchemaContext) = (ctx.options.auto_optional_union_nothing = true; nothing)
 
 """Enable automatic `Union{T,Missing}` → optional field detection."""
-treat_union_missing_as_optional!(ctx::SchemaContext) = (ctx.auto_optional_union_missing = true; nothing)
+treat_union_missing_as_optional!(ctx::SchemaContext) = (ctx.options.auto_optional_union_missing = true; nothing)
 
 """
     treat_null_as_optional!(ctx)
@@ -203,8 +203,8 @@ Helper that enables both `Union{T,Nothing}` and `Union{T,Missing}`
 detection in one call.
 """
 function treat_null_as_optional!(ctx::SchemaContext)
-    ctx.auto_optional_union_nothing = true
-    ctx.auto_optional_union_missing = true
+    ctx.options.auto_optional_union_nothing = true
+    ctx.options.auto_optional_union_missing = true
     return nothing
 end
 

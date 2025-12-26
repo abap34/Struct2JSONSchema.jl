@@ -17,7 +17,7 @@ function define!(T::Type, ctx::SchemaContext)
     Tn = normalize_type(T, ctx)
     key = k(Tn, ctx)
     if haskey(ctx.defs, key)
-        if Tn in ctx.unknown_types
+        if is_unknown_type(ctx, Tn)
             record_unknown!(ctx, Tn)
         end
         return Tn
@@ -30,7 +30,7 @@ function define!(T::Type, ctx::SchemaContext)
     catch err
         ctx.defs[key] = Dict{String, Any}()
         record_unknown!(ctx, Tn; message = "Unexpected error generating schema for $Tn ($err)")
-        if ctx.verbose
+        if is_verbose(ctx)
             @warn "Unexpected error generating schema for $Tn at path $(path_to_string(ctx.path))" exception = (err, catch_backtrace())
         end
     finally
@@ -48,7 +48,7 @@ function apply_overrides(ctx::SchemaContext; location::Union{Nothing, String} = 
                 return result
             end
         catch err
-            if ctx.verbose
+            if is_verbose(ctx)
                 loc = location === nothing ? path_to_string(ctx.path) : location
                 @warn "Override threw an error at $loc. Falling back to default." exception = (err, catch_backtrace())
             end
@@ -59,8 +59,8 @@ end
 
 # Build the definition for `T`, honoring overrides and falling back to defaults.
 function build_def_safe(T::Type, ctx::SchemaContext)
-    old_type = ctx.current_type
-    ctx.current_type = T
+    old_type = current_type(ctx)
+    set_current_type!(ctx, T)
     try
         override = apply_overrides(ctx; location = "type $(repr(T))")
         if override !== nothing
@@ -74,7 +74,7 @@ function build_def_safe(T::Type, ctx::SchemaContext)
 
         return default_generate(T, ctx)
     finally
-        ctx.current_type = old_type
+        set_current_type!(ctx, old_type)
     end
 end
 
@@ -195,14 +195,14 @@ function enum_schema(T::Type)
 end
 
 # Get field description from manual registration or REPL.fielddoc auto-extraction
-function get_field_description(T::Type, field::Symbol, ctx::SchemaContext)::Union{String,Nothing}
+function get_field_description(T::Type, field::Symbol, ctx::SchemaContext)::Union{String, Nothing}
     # 1. Check explicit registration
-    if haskey(ctx.field_descriptions, (T, field))
-        return ctx.field_descriptions[(T, field)]
+    if haskey(field_descriptions(ctx), (T, field))
+        return field_descriptions(ctx)[(T, field)]
     end
 
     # 2. If auto_fielddoc disabled, return nothing
-    if !ctx.auto_fielddoc
+    if !auto_fielddoc(ctx)
         return nothing
     end
 
@@ -227,27 +227,27 @@ function struct_schema(T::Type, ctx::SchemaContext)
     names = fieldnames(T)
     for (idx, name) in enumerate(names)
         # Skip if field is registered in skip_fields
-        if haskey(ctx.skip_fields, T) && name in ctx.skip_fields[T]
+        if haskey(skip_fields(ctx), T) && name in skip_fields(ctx)[T]
             continue
         end
 
         field_type = fieldtype(T, idx)
-        old_parent = ctx.current_parent
-        old_field = ctx.current_field
-        old_type = ctx.current_type
-        ctx.current_parent = T
-        ctx.current_field = name
-        ctx.current_type = field_type
+        old_parent = current_parent(ctx)
+        old_field = current_field(ctx)
+        old_type = current_type(ctx)
+        set_current_parent!(ctx, T)
+        set_current_field!(ctx, name)
+        set_current_type!(ctx, field_type)
         try
             prop = with_path(ctx, name) do
                 override = apply_overrides(ctx; location = "$(repr(T)).$(name)")
                 if override !== nothing
                     return override
                 end
-                saved_parent = ctx.current_parent
-                saved_field = ctx.current_field
-                ctx.current_parent = nothing
-                ctx.current_field = nothing
+                saved_parent = current_parent(ctx)
+                saved_field = current_field(ctx)
+                set_current_parent!(ctx, nothing)
+                set_current_field!(ctx, nothing)
                 try
                     # If field is optional and is Union{T, Nothing/Missing},
                     # generate schema for T only, not the full Union
@@ -258,8 +258,8 @@ function struct_schema(T::Type, ctx::SchemaContext)
                     normalized = define!(schema_type, ctx)
                     reference(normalized, ctx)
                 finally
-                    ctx.current_parent = saved_parent
-                    ctx.current_field = saved_field
+                    set_current_parent!(ctx, saved_parent)
+                    set_current_field!(ctx, saved_field)
                 end
             end
 
@@ -284,9 +284,9 @@ function struct_schema(T::Type, ctx::SchemaContext)
                 push!(required, string(name))
             end
         finally
-            ctx.current_parent = old_parent
-            ctx.current_field = old_field
-            ctx.current_type = old_type
+            set_current_parent!(ctx, old_parent)
+            set_current_field!(ctx, old_field)
+            set_current_type!(ctx, old_type)
         end
     end
     return Dict(
@@ -298,18 +298,18 @@ function struct_schema(T::Type, ctx::SchemaContext)
 end
 
 function should_be_optional(T::DataType, field::Symbol, field_type::Type, ctx::SchemaContext)::Bool
-    # 1. Explicit registration via ctx.optional_fields
-    if haskey(ctx.optional_fields, T) && field in ctx.optional_fields[T]
+    # 1. Explicit registration via optional_fields(ctx)
+    if haskey(optional_fields(ctx), T) && field in optional_fields(ctx)[T]
         return true
     end
 
     # 2. Union{T, Nothing} auto-detection
-    if ctx.auto_optional_union_nothing && is_union_with_nothing(field_type)
+    if auto_optional_union_nothing(ctx) && is_union_with_nothing(field_type)
         return true
     end
 
     # 3. Union{T, Missing} auto-detection
-    if ctx.auto_optional_union_missing && is_union_with_missing(field_type)
+    if auto_optional_union_missing(ctx) && is_union_with_missing(field_type)
         return true
     end
 

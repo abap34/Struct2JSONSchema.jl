@@ -39,7 +39,7 @@ function run_validation_tests(test_name::String, struct_type::Type, schema_gener
         schema = schema_generator()
         schema_variants = [
             ("original", schema.doc),
-            ("simplified", simplify_schema(schema.doc))
+            ("simplified", simplify_schema(schema.doc)),
         ]
 
         valids = JSON3.read(read(valids_path, String))

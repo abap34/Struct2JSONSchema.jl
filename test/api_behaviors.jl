@@ -44,7 +44,7 @@ end
 
     verbose_ctx = SchemaContext(verbose = true)
     cloned = clone_context(verbose_ctx)
-    @test cloned.verbose
+    @test cloned.options.verbose
 end
 
 struct TestRecord1
@@ -144,6 +144,6 @@ end
     original = SchemaContext(verbose = true)
     cloned = clone_context(original)
 
-    @test cloned.verbose == original.verbose
+    @test cloned.options.verbose == original.options.verbose
     @test cloned !== original
 end

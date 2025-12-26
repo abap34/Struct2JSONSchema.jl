@@ -481,7 +481,7 @@ end
                         "properties" => Dict(
                             "next" => Dict("\$ref" => "#/\$defs/Node")
                         )
-                    )
+                    ),
                 ]
             )
         )

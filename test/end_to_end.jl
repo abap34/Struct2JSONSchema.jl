@@ -5,7 +5,7 @@ include("./helpers/validator.jl")
 
 schema_variants(doc) = [
     ("original", doc),
-    ("simplified", simplify_schema(doc))
+    ("simplified", simplify_schema(doc)),
 ]
 
 struct ShippingAddressE2E

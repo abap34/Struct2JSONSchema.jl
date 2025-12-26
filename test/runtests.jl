@@ -52,6 +52,10 @@ end
     include("simplification.jl")
 end
 
+@testset "field descriptions" begin
+    include("field_descriptions.jl")
+end
+
 py_exec = Sys.which("python3") !== nothing ? "python3" : Sys.which("python") !== nothing ? "python" : nothing
 
 if py_exec !== nothing

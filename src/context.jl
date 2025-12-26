@@ -15,6 +15,8 @@ mutable struct SchemaContext
     key_of::IdDict{Any, String}                      # stable type→key cache
     visited::Set{Any}                                # recursion guard for define!
     optional_fields::IdDict{DataType, Set{Symbol}}   # explicit optional field hints
+    field_descriptions::IdDict{Tuple{DataType,Symbol},String}  # field descriptions
+    auto_fielddoc::Bool                              # auto extract REPL.fielddoc?
     path::Vector{Symbol}                             # current traversal path
     unknowns::Set{Tuple{Any, SymbolPath}}            # unsupported type traces
     unknown_types::Set{Any}                          # cache of types that yielded empty schemas
@@ -30,17 +32,20 @@ end
 """
     SchemaContext(; auto_optional_union_nothing=false,
                     auto_optional_union_missing=false,
+                    auto_fielddoc=true,
                     verbose=false)
 
 Create a fresh schema generation context. Optional fields can
 be inferred when `auto_optional_union_nothing` or
-`auto_optional_union_missing` is true. When `verbose` is true
-the generator emits `@info`/`@warn` logs for unknown types and
-failed overrides.
+`auto_optional_union_missing` is true. When `auto_fielddoc` is true
+(default), field docstrings are automatically extracted using
+`REPL.fielddoc`. When `verbose` is true the generator emits
+`@info`/`@warn` logs for unknown types and failed overrides.
 """
 function SchemaContext(;
         auto_optional_union_nothing::Bool = false,
         auto_optional_union_missing::Bool = false,
+        auto_fielddoc::Bool = true,
         verbose::Bool = false
     )
     return SchemaContext(
@@ -48,6 +53,8 @@ function SchemaContext(;
         IdDict{Any, String}(),
         Set{Any}(),
         IdDict{DataType, Set{Symbol}}(),
+        IdDict{Tuple{DataType,Symbol},String}(),
+        auto_fielddoc,
         Symbol[],
         Set{Tuple{Any, SymbolPath}}(),
         Set{Any}(),
@@ -67,6 +74,8 @@ function clone_context(ctx::SchemaContext)
         ctx.key_of,
         Set{Any}(),
         ctx.optional_fields,
+        ctx.field_descriptions,
+        ctx.auto_fielddoc,
         Symbol[],
         Set{Tuple{Any, SymbolPath}}(),
         Set{Any}(),

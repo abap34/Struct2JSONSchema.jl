@@ -139,6 +139,25 @@ function _register_optional_fields!(ctx::SchemaContext, T::Type, fields)
     return nothing
 end
 
+"""
+    register_field_description!(ctx, T, field, description)
+
+Register a description for the field `field` on struct `T`.
+The description will be added to the JSON Schema as the `description` property.
+Manual registration takes priority over automatic extraction via `REPL.fielddoc`.
+"""
+function register_field_description!(ctx::SchemaContext, T::Type, field::Symbol, description::String)
+    if !(T isa DataType) || !isstructtype(T) || isabstracttype(T)
+        throw(ArgumentError("Type $T must be a concrete struct when registering field descriptions"))
+    end
+    allowed = Set(fieldnames(T))
+    if !(field in allowed)
+        throw(ArgumentError("Type $T has no field $field"))
+    end
+    ctx.field_descriptions[(T, field)] = description
+    return nothing
+end
+
 """Enable automatic `Union{T,Nothing}` → optional field detection."""
 treat_union_nothing_as_optional!(ctx::SchemaContext) = (ctx.auto_optional_union_nothing = true; nothing)
 

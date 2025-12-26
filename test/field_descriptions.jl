@@ -308,6 +308,6 @@ end
     @test schema["properties"]["field1"]["description"] == "Original description"
 
     # Original context should still have the description
-    @test haskey(ctx.field_descriptions, (CloneTest, :field1))
-    @test ctx.field_descriptions[(CloneTest, :field1)] == "Original description"
+    @test haskey(ctx.field_metadata.descriptions, (CloneTest, :field1))
+    @test ctx.field_metadata.descriptions[(CloneTest, :field1)] == "Original description"
 end

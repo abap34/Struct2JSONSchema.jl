@@ -1,5 +1,5 @@
 using Test
-using Struct2JSONSchema: SchemaContext, generate_schema, generate_schema!, register_abstract!, register_override!, register_type_override!, register_field_override!, k, define!
+using Struct2JSONSchema: SchemaContext, generate_schema, generate_schema!, register_abstract!, register_override!, register_type_override!, register_field_override!, k, define!, current_type, current_parent, current_field
 using Dates
 import Logging
 
@@ -526,7 +526,7 @@ end
     ctx = SchemaContext()
 
     register_override!(ctx) do ctx
-        if ctx.current_parent === UnifiedFieldTarget && ctx.current_field === :value
+        if current_parent(ctx) === UnifiedFieldTarget && current_field(ctx) === :value
             return Dict("type" => "integer", "minimum" => 0)
         end
         return nothing
@@ -547,7 +547,7 @@ end
     ctx = SchemaContext()
 
     register_override!(ctx) do ctx
-        if ctx.current_type === UnifiedTypeTarget && ctx.current_field === nothing
+        if current_type(ctx) === UnifiedTypeTarget && current_field(ctx) === nothing
             return Dict("type" => "object", "description" => "custom type override")
         end
         return nothing
@@ -574,7 +574,7 @@ end
     ctx = SchemaContext()
 
     register_override!(ctx) do ctx
-        if ctx.current_type === String && :config in ctx.path
+        if current_type(ctx) === String && :config in ctx.path
             return Dict("type" => "string", "minLength" => 1)
         end
         return nothing
@@ -692,7 +692,7 @@ end
 
     verbose_ctx = SchemaContext(verbose = true)
     register_override!(verbose_ctx) do ctx
-        if ctx.current_type === BrokenOverride
+        if current_type(ctx) === BrokenOverride
             error("boom")
         end
         return nothing
@@ -713,7 +713,7 @@ end
     ctx = SchemaContext()
     first_hit = Ref(false)
     register_override!(ctx) do ctx
-        if ctx.current_type === OrderingTarget
+        if current_type(ctx) === OrderingTarget
             first_hit[] = true
             return Dict(
                 "type" => "object",
@@ -727,7 +727,7 @@ end
 
     second_hit = Ref(false)
     register_override!(ctx) do ctx
-        if ctx.current_type === OrderingTarget
+        if current_type(ctx) === OrderingTarget
             second_hit[] = true
             return Dict("type" => "object")
         end

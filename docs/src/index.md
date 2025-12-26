@@ -99,7 +99,7 @@ end
 
 ctx = SchemaContext()
 register_override!(ctx) do ctx
-    if ctx.current_type === UUID
+    if current_type(ctx) === UUID
         return Dict("type" => "string", "format" => "uuid")
     end
     return nothing
@@ -109,12 +109,12 @@ result = generate_schema(User; ctx=ctx)
 println(JSON.json(result.doc, 4))
 ```
 
-[`SchemaContext`](@ref) has the following fields, which can be used for customization:
+[`SchemaContext`](@ref) provides the following accessor functions for customization:
 
-* `current_type` — the type currently being generated
-* `current_parent` — the parent struct, when generating a field
-* `current_field` — the field name, when generating a field
-* `path` — the hierarchical path in the schema
+* `current_type(ctx)` — the type currently being generated
+* `current_parent(ctx)` — the parent struct, when generating a field
+* `current_field(ctx)` — the field name, when generating a field
+* `ctx.path` — the hierarchical path in the schema
 
 [`register_override!`](@ref) accepts a hook function that takes a `SchemaContext` object and returns either a schema `Dict`, or `nothing` to indicate that default generation should continue.
 
@@ -309,6 +309,27 @@ Invalid JSON:
 
 In other words, when using `treat_union_nothing_as_optional!`, the `Nothing` in `Union{T, Nothing}` is treated as a marker for optionality in Julia, not as a nullable value in JSON.
 
+## Skipping Fields
+
+Use [`register_skip_fields!`](@ref) to exclude fields or [`register_only_fields!`](@ref) to include only specified fields:
+
+```julia
+struct User
+    id::Int
+    name::String
+    _cache::Dict
+end
+
+ctx = SchemaContext()
+register_skip_fields!(ctx, User, :_cache)
+# or equivalently:
+# register_only_fields!(ctx, User, :id, :name)
+
+result = generate_schema(User; ctx=ctx)
+```
+
+Skipped fields are excluded from both `properties` and `required`.
+
 ## Field Descriptions
 
 Struct2JSONSchema.jl can automatically extract field docstrings and add them as `description` properties in the JSON Schema.
@@ -437,8 +458,8 @@ When generating a schema:
 The following are separate systems that can be used together:
 
 - `ctx.overrides` — override mechanism
-- `ctx.optional_fields` — optional field management
-- `ctx.field_descriptions` — field description management
+- `optional_fields(ctx)` — optional field management
+- `field_descriptions(ctx)` — field description management
 
 During field generation, they are processed in the following order:
 

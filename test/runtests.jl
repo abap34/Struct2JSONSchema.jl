@@ -56,6 +56,10 @@ end
     include("field_descriptions.jl")
 end
 
+@testset "skip fields" begin
+    include("skip_fields.jl")
+end
+
 py_exec = Sys.which("python3") !== nothing ? "python3" : Sys.which("python") !== nothing ? "python" : nothing
 
 if py_exec !== nothing

@@ -21,6 +21,7 @@ register_override!
 register_type_override!
 register_field_override!
 register_optional_fields!
+register_field_description!
 ```
 
 ## Optional Fields

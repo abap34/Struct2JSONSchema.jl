@@ -1,4 +1,5 @@
 include("context.jl")
+using REPL
 
 # Normalize unions and `UnionAll` types before looking up schema definitions.
 function normalize_type(T::Type, ctx::SchemaContext)::Type
@@ -193,6 +194,32 @@ function enum_schema(T::Type)
     return Dict("enum" => values)
 end
 
+# Get field description from manual registration or REPL.fielddoc auto-extraction
+function get_field_description(T::Type, field::Symbol, ctx::SchemaContext)::Union{String,Nothing}
+    # 1. Check explicit registration
+    if haskey(ctx.field_descriptions, (T, field))
+        return ctx.field_descriptions[(T, field)]
+    end
+
+    # 2. If auto_fielddoc disabled, return nothing
+    if !ctx.auto_fielddoc
+        return nothing
+    end
+
+    # 3. Try REPL.fielddoc extraction
+    try
+        doc = REPL.fielddoc(T, field)
+        doc_str = string(doc)
+        # Skip default messages
+        if occursin("has field", doc_str) || occursin("has fields", doc_str)
+            return nothing
+        end
+        return strip(doc_str)
+    catch
+        return nothing
+    end
+end
+
 # Generate an object schema for `T`, evaluating overrides per field as needed.
 function struct_schema(T::Type, ctx::SchemaContext)
     properties = Dict{String, Any}()
@@ -228,6 +255,21 @@ function struct_schema(T::Type, ctx::SchemaContext)
                 finally
                     ctx.current_parent = saved_parent
                     ctx.current_field = saved_field
+                end
+            end
+
+            # Check for field description
+            description = get_field_description(T, name, ctx)
+            if description !== nothing
+                # If prop is just a $ref, wrap it in allOf to add description
+                if haskey(prop, "\$ref") && length(prop) == 1
+                    prop = Dict(
+                        "allOf" => [prop],
+                        "description" => description
+                    )
+                else
+                    # Otherwise, add description directly
+                    prop["description"] = description
                 end
             end
 

@@ -309,6 +309,169 @@ Invalid JSON:
 
 In other words, when using `treat_union_nothing_as_optional!`, the `Nothing` in `Union{T, Nothing}` is treated as a marker for optionality in Julia, not as a nullable value in JSON.
 
+## Field Descriptions
+
+Struct2JSONSchema.jl can automatically extract field docstrings and add them as `description` properties in the JSON Schema.
+
+### Automatic Extraction from Docstrings
+
+By default, field docstrings are automatically extracted:
+
+```julia
+"""
+User information
+"""
+struct User
+    """User's unique identifier"""
+    id::Int
+
+    """User's full name"""
+    name::String
+
+    email::String  # No docstring
+end
+
+result = generate_schema(User)
+# id and name fields will have "description" in the schema
+```
+
+This feature is controlled by the `auto_fielddoc` parameter in `SchemaContext` (default: `true`).
+
+Note: Field docstrings can only be extracted if the struct itself also has a docstring. Without a docstring on the struct definition, field docstrings are not stored by Julia and cannot be automatically extracted.
+
+### Manual Registration
+
+You can manually register field descriptions using [`register_field_description!`](@ref):
+
+```julia
+struct Product
+    id::Int
+    name::String
+    price::Float64
+end
+
+ctx = SchemaContext()
+register_field_description!(ctx, Product, :price, "Product price in USD")
+
+result = generate_schema(Product; ctx=ctx)
+```
+
+### Integration with Field Overrides
+
+Field descriptions work together with field overrides:
+
+```julia
+struct Product
+    id::Int
+    price::Float64
+end
+
+ctx = SchemaContext()
+
+# Override adds constraint
+register_field_override!(ctx, Product, :price) do ctx
+    Dict("type" => "number", "minimum" => 0)
+end
+
+# Description is added to the overridden schema
+register_field_description!(ctx, Product, :price, "Product price in USD")
+
+result = generate_schema(Product; ctx=ctx)
+# price field will be:
+# {
+#   "type": "number",
+#   "minimum": 0,
+#   "description": "Product price in USD"
+# }
+```
+
+## Registration Priorities
+
+### Field Description Priority
+
+Manual registration takes priority over automatic extraction:
+
+1. Manual registration via `register_field_description!` (highest priority)
+2. Automatic extraction from field docstrings (if `auto_fielddoc=true`)
+3. None (no description added)
+
+Example:
+
+```julia
+"""
+Event data
+"""
+struct Event
+    """Event ID from docstring"""
+    id::Int
+end
+
+ctx = SchemaContext()
+register_field_description!(ctx, Event, :id, "Event unique ID (overridden)")
+
+result = generate_schema(Event; ctx=ctx)
+# id will have "Event unique ID (overridden)" as description
+```
+
+### Override Evaluation Order
+
+All `register_*_override!` functions internally call [`register_override!`](@ref), adding functions to `ctx.overrides` in FIFO (first-in, first-out) order.
+
+```julia
+ctx = SchemaContext()
+
+register_type_override!(ctx, TypeA, gen1)      # 1st
+register_field_override!(ctx, TypeB, :f, gen2) # 2nd
+register_abstract!(ctx, AbstractType, ...)     # 3rd
+```
+
+When generating a schema:
+1. The first registered function is evaluated
+   - If it returns a `Dict`: use that result (stop evaluation)
+   - If it returns `nothing`: continue to next
+2. The second function is evaluated, and so on
+3. First match wins
+
+### How Different Systems Interact
+
+The following are separate systems that can be used together:
+
+- `ctx.overrides` — override mechanism
+- `ctx.optional_fields` — optional field management
+- `ctx.field_descriptions` — field description management
+
+During field generation, they are processed in the following order:
+
+1. Override evaluation → determines the field schema
+2. Optional fields check → determines if the field goes in `required` array
+3. Description addition → adds `description` property if available
+
+### Example: All Features Combined
+
+```julia
+struct User
+    id::Int
+    email::String
+end
+
+ctx = SchemaContext()
+
+# All three systems work together:
+register_field_override!(ctx, User, :email) do ctx
+    Dict("type" => "string", "format" => "email")
+end
+
+register_optional_fields!(ctx, User, :email)
+
+register_field_description!(ctx, User, :email, "User's email address")
+
+result = generate_schema(User; ctx=ctx)
+# email field will be:
+# - format: "email" (from override)
+# - not in required array (from optional_fields)
+# - description: "User's email address" (from field_descriptions)
+```
+
 ## Default Type Mappings
 
 Currently, the following types are mapped to JSON Schema.

@@ -85,6 +85,7 @@ Additional utilities are provided for tasks such as:
 * Marking specific fields as optional.
 * Treating `Union{T, Nothing}` and `Union{T, Missing}` as optional fields.
 * Registering custom expansion strategies for abstract types.
+* Adding field descriptions from docstrings or manual registration.
 
 For detailed customization options, see
 [https://abap34.github.io/Struct2JSONSchema.jl/dev/#Customization](https://abap34.github.io/Struct2JSONSchema.jl/dev/#Customization)

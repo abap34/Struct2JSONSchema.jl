@@ -30,7 +30,7 @@ field_desc_key(T) = k(T, _FIELD_DESC_KEY_CTX)
     @test !haskey(schema["properties"]["name"], "description")
 end
 
-@testset "Field descriptions - allOf structure with \$ref" begin
+@testset "Field descriptions - with \$ref" begin
     struct Product
         id::Int
         price::Float64
@@ -43,12 +43,10 @@ end
     defs = result.doc["\$defs"]
     schema = defs[field_desc_key(Product)]
 
-    # Should use allOf when description is added to a $ref
+    # Description should be added directly alongside $ref
     prop = schema["properties"]["id"]
-    @test haskey(prop, "allOf")
+    @test haskey(prop, "\$ref")
     @test haskey(prop, "description")
-    @test length(prop["allOf"]) == 1
-    @test haskey(prop["allOf"][1], "\$ref")
     @test prop["description"] == "Product identifier"
 end
 
@@ -310,4 +308,98 @@ end
     # Original context should still have the description
     @test haskey(ctx.field_metadata.descriptions, (CloneTest, :field1))
     @test ctx.field_metadata.descriptions[(CloneTest, :field1)] == "Original description"
+end
+
+# Test specification: When combining field_override with composition keywords (oneOf, anyOf, allOf)
+# and field_description, the description should be added directly alongside the composition keyword.
+@testset "Field descriptions - with composition keyword overrides (oneOf/anyOf/allOf)" begin
+    struct DiagnosticPattern
+        severity::Int
+    end
+
+    ctx = SchemaContext()
+
+    # Register field override that returns oneOf schema
+    register_field_override!(ctx, DiagnosticPattern, :severity) do ctx
+        Dict(
+            "oneOf" => [
+                Dict("type" => "integer", "minimum" => 0, "maximum" => 4),
+                Dict("type" => "string", "enum" => ["off", "error", "warning"]),
+            ]
+        )
+    end
+
+    # Register description for the same field
+    register_field_description!(ctx, DiagnosticPattern, :severity, "Severity level")
+
+    # This should not fail - description should be added directly
+    result = generate_schema(DiagnosticPattern; ctx = ctx, simplify = false)
+    defs = result.doc["\$defs"]
+    schema = defs[field_desc_key(DiagnosticPattern)]
+
+    # Description should be added directly alongside oneOf
+    prop = schema["properties"]["severity"]
+    @test haskey(prop, "oneOf")
+    @test haskey(prop, "description")
+    @test prop["description"] == "Severity level"
+    @test length(prop["oneOf"]) == 2
+end
+
+@testset "Field descriptions - with anyOf override" begin
+    struct FlexibleField
+        value::Any
+    end
+
+    ctx = SchemaContext()
+
+    register_field_override!(ctx, FlexibleField, :value) do ctx
+        Dict(
+            "anyOf" => [
+                Dict("type" => "string"),
+                Dict("type" => "number"),
+                Dict("type" => "boolean"),
+            ]
+        )
+    end
+
+    register_field_description!(ctx, FlexibleField, :value, "Can be string, number, or boolean")
+
+    result = generate_schema(FlexibleField; ctx = ctx, simplify = false)
+    defs = result.doc["\$defs"]
+    schema = defs[field_desc_key(FlexibleField)]
+
+    prop = schema["properties"]["value"]
+    @test haskey(prop, "anyOf")
+    @test haskey(prop, "description")
+    @test prop["description"] == "Can be string, number, or boolean"
+end
+
+@testset "Field descriptions - with allOf override" begin
+    struct ValidatedString
+        code::String
+    end
+
+    ctx = SchemaContext()
+
+    register_field_override!(ctx, ValidatedString, :code) do ctx
+        Dict(
+            "allOf" => [
+                Dict("type" => "string"),
+                Dict("minLength" => 3, "maxLength" => 10),
+            ]
+        )
+    end
+
+    register_field_description!(ctx, ValidatedString, :code, "Validated code string")
+
+    result = generate_schema(ValidatedString; ctx = ctx, simplify = false)
+    defs = result.doc["\$defs"]
+    schema = defs[field_desc_key(ValidatedString)]
+
+    prop = schema["properties"]["code"]
+    @test haskey(prop, "allOf")
+    @test haskey(prop, "description")
+    @test prop["description"] == "Validated code string"
+    # Description should be added directly alongside existing allOf
+    @test length(prop["allOf"]) == 2
 end

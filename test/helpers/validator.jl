@@ -13,6 +13,10 @@ end
 function validate_schema_entry(schema::AbstractDict, data, doc::AbstractDict)::Bool
     current = resolve_schema_entry(schema, doc)
 
+    if haskey(current, "oneOf")
+        return any(sub -> validate_schema_entry(sub, data, doc), current["oneOf"])
+    end
+
     if haskey(current, "anyOf")
         return any(sub -> validate_schema_entry(sub, data, doc), current["anyOf"])
     end

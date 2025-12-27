@@ -147,7 +147,7 @@ using Struct2JSONSchema
         register_field_description!(ctx, SkipDescription, :id, "User ID")
         register_field_description!(ctx, SkipDescription, :_internal, "Should be ignored")
 
-        result = generate_schema(SkipDescription; ctx = ctx)
+        result = generate_schema(SkipDescription; ctx = ctx, simplify = false)
         key = ctx.key_of[SkipDescription]
         schema = result.doc["\$defs"][key]
 

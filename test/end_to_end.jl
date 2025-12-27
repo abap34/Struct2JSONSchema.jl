@@ -295,3 +295,43 @@ end
         end
     end
 end
+
+struct LogLevel
+    severity::Int
+end
+
+@testset "end-to-end validation - oneOf with description" begin
+    using Struct2JSONSchema: register_field_override!, register_field_description!
+
+    ctx = SchemaContext()
+
+    register_field_override!(ctx, LogLevel, :severity) do ctx
+        Dict(
+            "oneOf" => [
+                Dict("type" => "integer", "minimum" => 0, "maximum" => 5),
+                Dict("type" => "string", "enum" => ["debug", "info", "warn", "error", "fatal"]),
+            ]
+        )
+    end
+
+    register_field_description!(ctx, LogLevel, :severity, "Log severity level")
+
+    result = generate_schema(LogLevel; ctx = ctx, simplify = false)
+    doc = result.doc
+    @test isempty(result.unknowns)
+
+    valid_int = Dict("severity" => 3)
+    valid_str = Dict("severity" => "warn")
+    invalid_range = Dict("severity" => 10)
+    invalid_enum = Dict("severity" => "critical")
+
+    for (variant_name, schema_doc) in schema_variants(doc)
+        @testset "schema=$variant_name" begin
+            @test validate_payload(schema_doc, valid_int)
+            @test validate_payload(schema_doc, valid_str)
+            @test !validate_payload(schema_doc, invalid_range)
+            @test !validate_payload(schema_doc, invalid_enum)
+        end
+    end
+end
+

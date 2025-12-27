@@ -266,16 +266,7 @@ function struct_schema(T::Type, ctx::SchemaContext)
             # Check for field description
             description = get_field_description(T, name, ctx)
             if description !== nothing
-                # If prop is just a $ref, wrap it in allOf to add description
-                if haskey(prop, "\$ref") && length(prop) == 1
-                    prop = Dict(
-                        "allOf" => [prop],
-                        "description" => description
-                    )
-                else
-                    # Otherwise, add description directly
-                    prop["description"] = description
-                end
+                prop = merge(prop, Dict("description" => description))
             end
 
             properties[string(name)] = prop

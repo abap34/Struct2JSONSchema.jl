@@ -374,3 +374,33 @@ end
 @testset "Python validator - mixed_types" begin
     run_validation_tests("mixed_types", MixedTypes, () -> generate_schema(MixedTypes; simplify = false))
 end
+
+struct SeverityLevel
+    level::Int
+end
+
+@testset "Python validator - oneOf_with_description" begin
+    using Struct2JSONSchema: register_field_description!
+
+    run_validation_tests(
+        "oneOf_with_description",
+        SeverityLevel,
+        () -> begin
+            ctx = SchemaContext()
+
+            register_field_override!(ctx, SeverityLevel, :level) do ctx
+                Dict(
+                    "oneOf" => [
+                        Dict("type" => "integer", "minimum" => 0, "maximum" => 5),
+                        Dict("type" => "string", "enum" => ["trace", "debug", "info", "warn", "error", "fatal"]),
+                    ]
+                )
+            end
+
+            register_field_description!(ctx, SeverityLevel, :level, "Severity level (0-5 or named)")
+
+            generate_schema(SeverityLevel; ctx = ctx, simplify = false)
+        end
+    )
+end
+

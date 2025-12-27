@@ -1,0 +1,12 @@
+[
+  {"level": -1},
+  {"level": 6},
+  {"level": 10},
+  {"level": "critical"},
+  {"level": "warning"},
+  {"level": true},
+  {"level": false},
+  {"level": 3.5},
+  {"level": null},
+  {}
+]

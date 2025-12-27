@@ -262,26 +262,44 @@ function inline_refs_in_doc(doc::Dict, defs::AbstractDict, inline_targets::Set{S
 end
 
 function inline_refs_in_schema(schema::Any, defs::AbstractDict, inline_targets::Set{String})::Any
-    if schema isa Dict
-        result = Dict{String, Any}()
-        for (k, v) in schema
-            if k == "\$ref" && v isa String && startswith(v, "#/\$defs/")
-                ref_key = v[9:end]
-                if ref_key in inline_targets && haskey(defs, ref_key)
-                    return inline_refs_in_schema(defs[ref_key], defs, inline_targets)
-                else
-                    result[k] = v
-                end
-            else
-                result[k] = inline_refs_in_schema(v, defs, inline_targets)
-            end
-        end
-        return result
-    elseif schema isa Vector
-        return [inline_refs_in_schema(item, defs, inline_targets) for item in schema]
-    else
-        return schema
+    # Handle non-Dict types
+    schema isa Dict || return schema isa Vector ?
+        map(item -> inline_refs_in_schema(item, defs, inline_targets), schema) : schema
+
+    # Try to inline $ref if applicable
+    ref_key = extract_inlinable_ref_key(schema, inline_targets, defs)
+    if !isnothing(ref_key)
+        return inline_ref_with_metadata(schema, ref_key, defs, inline_targets)
     end
+
+    # Normal recursive processing
+    return Dict{String, Any}(k => inline_refs_in_schema(v, defs, inline_targets) for (k, v) in schema)
+end
+
+# Extract the ref key if this schema contains an inlinable $ref
+function extract_inlinable_ref_key(schema::Dict, inline_targets::Set{String}, defs::AbstractDict)::Union{String, Nothing}
+    haskey(schema, "\$ref") || return nothing
+
+    ref = schema["\$ref"]
+    ref isa String && startswith(ref, "#/\$defs/") || return nothing
+
+    ref_key = ref[9:end]
+    ref_key in inline_targets && haskey(defs, ref_key) ? ref_key : nothing
+end
+
+# Inline a $ref and merge any additional metadata from the wrapper schema
+function inline_ref_with_metadata(schema::Dict, ref_key::String, defs::AbstractDict, inline_targets::Set{String})::Any
+    # Recursively inline the referenced definition
+    inlined = inline_refs_in_schema(defs[ref_key], defs, inline_targets)
+
+    # Collect metadata: all properties except $ref, recursively processed
+    metadata = Dict{String, Any}(
+        k => inline_refs_in_schema(v, defs, inline_targets)
+        for (k, v) in schema if k != "\$ref"
+    )
+
+    # Merge: metadata takes precedence over inlined properties
+    return inlined isa Dict ? merge(inlined, metadata) : inlined
 end
 
 # Sort $defs keys: primitives first (alphabetically), then by dependency order, then alphabetically

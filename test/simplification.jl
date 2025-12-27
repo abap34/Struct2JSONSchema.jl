@@ -511,3 +511,324 @@ end
     object_idx = findfirst(k -> k == "Object", keys_list)
     @test array_idx < object_idx
 end
+
+@testset "inline_single_use_refs - preserves description metadata" begin
+    doc = Dict(
+        "\$ref" => "#/\$defs/Outer",
+        "\$defs" => Dict(
+            "Outer" => Dict(
+                "type" => "object",
+                "properties" => Dict(
+                    "inner" => Dict(
+                        "\$ref" => "#/\$defs/Inner",
+                        "description" => "Description for inner field"
+                    )
+                )
+            ),
+            "Inner" => Dict(
+                "type" => "object",
+                "properties" => Dict(
+                    "value" => Dict("type" => "integer")
+                ),
+                "required" => ["value"]
+            )
+        )
+    )
+
+    result = inline_single_use_refs(doc)
+
+    # Inner should be inlined
+    @test !haskey(result["\$defs"], "Inner")
+
+    # Description should be preserved in the inlined schema
+    inner_schema = result["\$defs"]["Outer"]["properties"]["inner"]
+    @test haskey(inner_schema, "description")
+    @test inner_schema["description"] == "Description for inner field"
+    @test inner_schema["type"] == "object"
+    @test haskey(inner_schema, "properties")
+end
+
+@testset "inline_single_use_refs - preserves title metadata" begin
+    doc = Dict(
+        "\$ref" => "#/\$defs/Person",
+        "\$defs" => Dict(
+            "Person" => Dict(
+                "type" => "object",
+                "properties" => Dict(
+                    "email" => Dict(
+                        "\$ref" => "#/\$defs/Email",
+                        "title" => "Email Address",
+                        "description" => "User's email"
+                    )
+                )
+            ),
+            "Email" => Dict(
+                "type" => "string",
+                "format" => "email"
+            )
+        )
+    )
+
+    result = inline_single_use_refs(doc)
+
+    # Email should be inlined
+    @test !haskey(result["\$defs"], "Email")
+
+    # Both title and description should be preserved
+    email_schema = result["\$defs"]["Person"]["properties"]["email"]
+    @test email_schema["title"] == "Email Address"
+    @test email_schema["description"] == "User's email"
+    @test email_schema["type"] == "string"
+    @test email_schema["format"] == "email"
+end
+
+@testset "inline_single_use_refs - metadata overrides inlined properties" begin
+    doc = Dict(
+        "\$ref" => "#/\$defs/Root",
+        "\$defs" => Dict(
+            "Root" => Dict(
+                "type" => "object",
+                "properties" => Dict(
+                    "field" => Dict(
+                        "\$ref" => "#/\$defs/Field",
+                        "title" => "Override Title"
+                    )
+                )
+            ),
+            "Field" => Dict(
+                "type" => "string",
+                "title" => "Original Title"
+            )
+        )
+    )
+
+    result = inline_single_use_refs(doc)
+
+    # Metadata from the wrapper should override the inlined schema
+    field_schema = result["\$defs"]["Root"]["properties"]["field"]
+    @test field_schema["title"] == "Override Title"
+end
+
+@testset "simplify_schema - preserves description through full pipeline" begin
+    doc = Dict(
+        "\$ref" => "#/\$defs/Config",
+        "\$defs" => Dict(
+            "Config" => Dict(
+                "type" => "object",
+                "properties" => Dict(
+                    "database" => Dict(
+                        "\$ref" => "#/\$defs/DatabaseConfig",
+                        "description" => "Database connection settings"
+                    )
+                ),
+                "required" => []
+            ),
+            "DatabaseConfig" => Dict(
+                "type" => "object",
+                "properties" => Dict(
+                    "host" => Dict("type" => "string"),
+                    "port" => Dict("type" => "integer")
+                )
+            ),
+            "UnusedType" => Dict("type" => "string")
+        )
+    )
+
+    result = simplify_schema(doc)
+
+    # DatabaseConfig should be inlined
+    @test !haskey(result["\$defs"], "DatabaseConfig")
+
+    # UnusedType should be removed
+    @test !haskey(result["\$defs"], "UnusedType")
+
+    # Empty required should be removed
+    @test !haskey(result["\$defs"]["Config"], "required")
+
+    # Description should be preserved
+    db_schema = result["\$defs"]["Config"]["properties"]["database"]
+    @test haskey(db_schema, "description")
+    @test db_schema["description"] == "Database connection settings"
+    @test db_schema["type"] == "object"
+end
+
+@testset "inline_single_use_refs - preserves metadata for array types" begin
+    doc = Dict(
+        "\$ref" => "#/\$defs/Root",
+        "\$defs" => Dict(
+            "Root" => Dict(
+                "type" => "object",
+                "properties" => Dict(
+                    "items" => Dict(
+                        "\$ref" => "#/\$defs/ItemList",
+                        "description" => "List of items",
+                        "title" => "Items Array"
+                    )
+                )
+            ),
+            "ItemList" => Dict(
+                "type" => "array",
+                "items" => Dict("type" => "string"),
+                "minItems" => 1
+            )
+        )
+    )
+
+    result = inline_single_use_refs(doc)
+
+    # ItemList should be inlined
+    @test !haskey(result["\$defs"], "ItemList")
+
+    # Metadata should be preserved
+    items_schema = result["\$defs"]["Root"]["properties"]["items"]
+    @test items_schema["description"] == "List of items"
+    @test items_schema["title"] == "Items Array"
+    @test items_schema["type"] == "array"
+    @test items_schema["minItems"] == 1
+end
+
+@testset "inline_single_use_refs - preserves metadata with multiple fields" begin
+    doc = Dict(
+        "\$ref" => "#/\$defs/Root",
+        "\$defs" => Dict(
+            "Root" => Dict(
+                "type" => "object",
+                "properties" => Dict(
+                    "config" => Dict(
+                        "\$ref" => "#/\$defs/Config",
+                        "description" => "Configuration object",
+                        "title" => "Config",
+                        "default" => Dict("enabled" => true),
+                        "examples" => [Dict("enabled" => false)]
+                    )
+                )
+            ),
+            "Config" => Dict(
+                "type" => "object",
+                "properties" => Dict(
+                    "enabled" => Dict("type" => "boolean")
+                )
+            )
+        )
+    )
+
+    result = inline_single_use_refs(doc)
+
+    # Config should be inlined
+    @test !haskey(result["\$defs"], "Config")
+
+    # All metadata should be preserved
+    config_schema = result["\$defs"]["Root"]["properties"]["config"]
+    @test config_schema["description"] == "Configuration object"
+    @test config_schema["title"] == "Config"
+    @test config_schema["default"] == Dict("enabled" => true)
+    @test config_schema["examples"] == [Dict("enabled" => false)]
+    @test config_schema["type"] == "object"
+end
+
+@testset "inline_single_use_refs - preserves metadata in anyOf branch" begin
+    doc = Dict(
+        "\$ref" => "#/\$defs/Root",
+        "\$defs" => Dict(
+            "Root" => Dict(
+                "type" => "object",
+                "properties" => Dict(
+                    "value" => Dict(
+                        "anyOf" => [
+                            Dict(
+                                "\$ref" => "#/\$defs/CustomType",
+                                "description" => "Custom value type"
+                            ),
+                            Dict("type" => "null")
+                        ]
+                    )
+                )
+            ),
+            "CustomType" => Dict(
+                "type" => "string",
+                "pattern" => "^[a-z]+\$"
+            )
+        )
+    )
+
+    result = inline_single_use_refs(doc)
+
+    # CustomType should be inlined
+    @test !haskey(result["\$defs"], "CustomType")
+
+    # Metadata should be preserved in the anyOf branch
+    value_schema = result["\$defs"]["Root"]["properties"]["value"]
+    @test haskey(value_schema, "anyOf")
+    @test length(value_schema["anyOf"]) == 2
+
+    custom_branch = value_schema["anyOf"][1]
+    @test custom_branch["description"] == "Custom value type"
+    @test custom_branch["type"] == "string"
+    @test custom_branch["pattern"] == "^[a-z]+\$"
+end
+
+@testset "inline_single_use_refs - preserves metadata for constrained primitives" begin
+    doc = Dict(
+        "\$ref" => "#/\$defs/Root",
+        "\$defs" => Dict(
+            "Root" => Dict(
+                "type" => "object",
+                "properties" => Dict(
+                    "username" => Dict(
+                        "\$ref" => "#/\$defs/Username",
+                        "description" => "User's login name"
+                    )
+                )
+            ),
+            "Username" => Dict(
+                "type" => "string",
+                "minLength" => 3,
+                "maxLength" => 20,
+                "pattern" => "^[a-zA-Z0-9_]+\$"
+            )
+        )
+    )
+
+    result = inline_single_use_refs(doc)
+
+    # Username should be inlined (constrained primitive)
+    @test !haskey(result["\$defs"], "Username")
+
+    # Metadata should be preserved
+    username_schema = result["\$defs"]["Root"]["properties"]["username"]
+    @test username_schema["description"] == "User's login name"
+    @test username_schema["type"] == "string"
+    @test username_schema["minLength"] == 3
+    @test username_schema["maxLength"] == 20
+    @test username_schema["pattern"] == "^[a-zA-Z0-9_]+\$"
+end
+
+@testset "inline_single_use_refs - preserves metadata for enum types" begin
+    doc = Dict(
+        "\$ref" => "#/\$defs/Root",
+        "\$defs" => Dict(
+            "Root" => Dict(
+                "type" => "object",
+                "properties" => Dict(
+                    "status" => Dict(
+                        "\$ref" => "#/\$defs/Status",
+                        "description" => "Current status",
+                        "default" => "pending"
+                    )
+                )
+            ),
+            "Status" => Dict(
+                "enum" => ["pending", "active", "completed"]
+            )
+        )
+    )
+
+    result = inline_single_use_refs(doc)
+
+    # Status is an enum (primitive), so it should NOT be inlined
+    # But if it were inlined, metadata should be preserved
+    # Let's check if metadata is preserved regardless
+    status_schema = result["\$defs"]["Root"]["properties"]["status"]
+    @test status_schema["description"] == "Current status"
+    @test status_schema["default"] == "pending"
+end

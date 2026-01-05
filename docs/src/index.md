@@ -114,12 +114,12 @@ println(JSON.json(result.doc, 4))
 * `current_type(ctx)` — the type currently being generated
 * `current_parent(ctx)` — the parent struct, when generating a field
 * `current_field(ctx)` — the field name, when generating a field
-* `ctx.path` — the hierarchical path in the schema
 
 [`register_override!`](@ref) accepts a hook function that takes a `SchemaContext` object and returns either a schema `Dict`, or `nothing` to indicate that default generation should continue.
 
 In practice, most customizations follow common patterns.
 For this reason, several helper functions are provided.
+Following customization are can be achived using `register_override!`, but are more conveniently done using helper functions.
 
 ### Whole-type overrides: [`register_type_override!`](@ref)
 
@@ -406,7 +406,119 @@ result = generate_schema(Product; ctx=ctx)
 # }
 ```
 
+## Default Values
+
+Use [`register_defaults!`](@ref) to register default values for struct fields from an instance:
+
+```julia
+using Dates
+
+struct ServerConfig
+    host::String
+    port::Int
+    timeout::Float64
+    started_at::DateTime
+end
+
+ctx = SchemaContext()
+
+default_config = ServerConfig(
+    "localhost",
+    8080,
+    30.0,
+    DateTime(2024, 1, 1)
+)
+
+register_defaults!(ctx, default_config)
+
+result = generate_schema(ServerConfig; ctx=ctx)
+# Each field will have a "default" property:
+# - host: "localhost"
+# - port: 8080
+# - timeout: 30.0
+# - started_at: "2024-01-01T00:00:00"
+```
+
+### Custom Serializers
+
+For custom types, register a serializer:
+
+```julia
+struct Color
+    r::UInt8
+    g::UInt8
+    b::UInt8
+end
+
+struct Theme
+    primary::Color
+    secondary::Color
+end
+
+ctx = SchemaContext()
+
+# Serialize Color as hex string
+register_default_type_serializer!(ctx, Color) do value, ctx
+    r = string(value.r, base=16, pad=2)
+    g = string(value.g, base=16, pad=2)
+    b = string(value.b, base=16, pad=2)
+    "#$(r)$(g)$(b)"
+end
+
+# Also customize the schema
+register_type_override!(ctx, Color) do ctx
+    Dict("type" => "string", "pattern" => "^#[0-9a-f]{6}\$")
+end
+
+default_theme = Theme(
+    Color(0x00, 0x7b, 0xff),
+    Color(0x6c, 0x75, 0x7d)
+)
+
+register_defaults!(ctx, default_theme)
+# primary.default: "#007bff"
+# secondary.default: "#6c757d"
+```
+
+### Override Priority for Default Values
+
+When an override sets a `"default"` property, it takes precedence over `register_defaults!`:
+
+```julia
+struct Config
+    formatter::String
+end
+
+ctx = SchemaContext()
+
+# Override sets default
+register_field_override!(ctx, Config, :formatter) do ctx
+    Dict(
+        "type" => "string",
+        "enum" => ["JuliaFormatter", "Runic"],
+        "default" => "JuliaFormatter"  # Override sets default
+    )
+end
+
+# This will be ignored because override already set default
+register_defaults!(ctx, Config("Runic"))
+
+result = generate_schema(Config; ctx=ctx)
+# formatter.default: "JuliaFormatter" (from override, not "Runic")
+```
+
 ## Registration Priorities
+
+### Priority Summary
+
+When multiple features are used together, the following priorities apply:
+
+| Feature | Priority |
+|---------|----------|
+| Schema structure | Override > Default generation |
+| `"default"` property | Override > `register_defaults!` |
+| `"description"` property | Override > `register_field_description!` > Auto-extraction |
+| `required` array | Independent: `register_optional_fields!` > Auto-detection |
 
 ### Field Description Priority
 
@@ -460,12 +572,14 @@ The following are separate systems that can be used together:
 - `ctx.overrides` — override mechanism
 - `optional_fields(ctx)` — optional field management
 - `field_descriptions(ctx)` — field description management
+- `default_values(ctx)` — default value management
 
 During field generation, they are processed in the following order:
 
-1. Override evaluation → determines the field schema
-2. Optional fields check → determines if the field goes in `required` array
-3. Description addition → adds `description` property if available
+1. Override evaluation → determines the field schema structure
+2. Default value addition → adds `"default"` property if available and not set by override
+3. Description addition → adds `"description"` property if available and not set by override
+4. Optional fields check → determines if the field goes in `required` array (independent system)
 
 ### Example: All Features Combined
 
@@ -477,10 +591,12 @@ end
 
 ctx = SchemaContext()
 
-# All three systems work together:
+# All four systems work together:
 register_field_override!(ctx, User, :email) do ctx
     Dict("type" => "string", "format" => "email")
 end
+
+register_defaults!(ctx, User(1, "user@example.com"))
 
 register_optional_fields!(ctx, User, :email)
 
@@ -488,9 +604,13 @@ register_field_description!(ctx, User, :email, "User's email address")
 
 result = generate_schema(User; ctx=ctx)
 # email field will be:
-# - format: "email" (from override)
+# {
+#   "type": "string",
+#   "format": "email",           // from override
+#   "default": "user@example.com", // from register_defaults!
+#   "description": "User's email address" // from register_field_description!
+# }
 # - not in required array (from optional_fields)
-# - description: "User's email address" (from field_descriptions)
 ```
 
 ## Default Type Mappings

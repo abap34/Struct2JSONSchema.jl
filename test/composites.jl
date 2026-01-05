@@ -1,5 +1,5 @@
 using Test
-using Struct2JSONSchema: SchemaContext, generate_schema, register_abstract!, k
+using Struct2JSONSchema: SchemaContext, generate_schema, register_abstract!, k, UnknownEntry
 
 struct OptionalProfile
     name::String
@@ -142,7 +142,7 @@ end
 
     @test handler_schema["properties"]["callback"]["\$ref"] == comp_ref(Function)
     @test isempty(comp_def(defs, Function))
-    @test result.unknowns == Set([(Function, (:callback,))])
+    @test result.unknowns == Set([UnknownEntry(Function, (:callback,), "abstract_no_discriminator")])
 end
 
 struct OptionalProfile2
@@ -402,7 +402,9 @@ end
     @test handler_schema["properties"]["on_click"]["\$ref"] == comp_ref(Function)
     @test handler_schema["properties"]["on_hover"]["\$ref"] == comp_ref(Function)
     @test isempty(comp_def(defs, Function))
-    @test result.unknowns == Set([(Function, (:on_click,)), (Function, (:on_hover,))])
+    # Function is recorded once, not multiple times for different paths
+    @test length(result.unknowns) == 1
+    @test any(entry.type === Function && entry.reason == "abstract_no_discriminator" for entry in result.unknowns)
 end
 
 struct Processor
@@ -417,7 +419,7 @@ end
 
     @test processor_schema["properties"]["transform"]["\$ref"] == comp_ref(Function)
     @test isempty(comp_def(defs, Function))
-    @test result.unknowns == Set([(Function, (:transform,))])
+    @test result.unknowns == Set([UnknownEntry(Function, (:transform,), "abstract_no_discriminator")])
 end
 
 struct ComplexUnion

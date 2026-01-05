@@ -4,7 +4,7 @@ using REPL
 # Normalize unions and `UnionAll` types before looking up schema definitions.
 function normalize_type(T::Type, ctx::SchemaContext)::Type
     if T isa UnionAll
-        record_unknown!(ctx, T; message = "UnionAll type $T encountered. Using Any")
+        record_unknown!(ctx, T, "unionall_type"; message = "UnionAll type $T encountered. Using Any")
         return Any
     elseif T isa Union
         return T
@@ -17,25 +17,13 @@ function define!(T::Type, ctx::SchemaContext)
     Tn = normalize_type(T, ctx)
     key = k(Tn, ctx)
     if haskey(ctx.defs, key)
-        if is_unknown_type(ctx, Tn)
-            record_unknown!(ctx, Tn)
-        end
         return Tn
     end
 
     ctx.defs[key] = Dict{String, Any}()
     push!(ctx.visited, Tn)
-    try
-        ctx.defs[key] = build_def_safe(Tn, ctx)
-    catch err
-        ctx.defs[key] = Dict{String, Any}()
-        record_unknown!(ctx, Tn; message = "Unexpected error generating schema for $Tn ($err)")
-        if is_verbose(ctx)
-            @warn "Unexpected error generating schema for $Tn at path $(path_to_string(ctx.path))" exception = (err, catch_backtrace())
-        end
-    finally
-        delete!(ctx.visited, Tn)
-    end
+    ctx.defs[key] = build_def_safe(Tn, ctx)
+    delete!(ctx.visited, Tn)
     return Tn
 end
 
@@ -68,7 +56,7 @@ function build_def_safe(T::Type, ctx::SchemaContext)
         end
 
         if isabstracttype(T)
-            record_unknown!(ctx, T; message = "Abstract type $T has no registered discriminator. Using empty schema")
+            record_unknown!(ctx, T, "abstract_no_discriminator"; message = "Abstract type $T has no registered discriminator. Using empty schema")
             return Dict{String, Any}()
         end
 
@@ -263,10 +251,22 @@ function struct_schema(T::Type, ctx::SchemaContext)
                 end
             end
 
-            # Check for field description
-            description = get_field_description(T, name, ctx)
-            if description !== nothing
-                prop = merge(prop, Dict("description" => description))
+            # Convert prop to Dict{String, Any} if needed (for adding defaults)
+            if !(prop isa Dict{String, Any})
+                prop = Dict{String, Any}(prop)
+            end
+
+            # Add default value if registered and not in override
+            if haskey(default_values(ctx), (T, name)) && !haskey(prop, "default")
+                prop["default"] = default_values(ctx)[(T, name)]
+            end
+
+            # Add description if available and not in override (priority: override > explicit > auto)
+            if !haskey(prop, "description")
+                description = get_field_description(T, name, ctx)
+                if description !== nothing
+                    prop["description"] = description
+                end
             end
 
             properties[string(name)] = prop
@@ -425,14 +425,14 @@ function default_generate(T::Type, ctx::SchemaContext)::Dict{String, Any}
     schema = composite_schema(T, ctx)
     schema !== nothing && return schema
 
-    record_unknown!(ctx, T; message = "Type $T cannot be represented. Using empty schema")
+    record_unknown!(ctx, T, "type_not_representable"; message = "Type $T cannot be represented. Using empty schema")
     return Dict{String, Any}()
 end
 
 function generate_abstract_schema(
         variants::Vector{DataType},
         discr_key::String,
-        tag_value::Dict{DataType, JSONScalar},
+        tag_value::Dict{DataType, RepresentableScalar},
         require_discr::Bool,
         ctx::SchemaContext
     )

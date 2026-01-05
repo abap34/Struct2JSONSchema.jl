@@ -60,6 +60,10 @@ end
     include("skip_fields.jl")
 end
 
+@testset "default values" begin
+    include("default_values.jl")
+end
+
 py_exec = Sys.which("python3") !== nothing ? "python3" : Sys.which("python") !== nothing ? "python" : nothing
 
 if py_exec !== nothing

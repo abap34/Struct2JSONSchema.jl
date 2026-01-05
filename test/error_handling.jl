@@ -1,5 +1,5 @@
 using Test
-using Struct2JSONSchema: SchemaContext, generate_schema, register_abstract!, register_optional_fields!, JSONScalar
+using Struct2JSONSchema: SchemaContext, generate_schema, register_abstract!, register_optional_fields!, RepresentableScalar, UnknownEntry
 
 # Test types for validation errors
 struct ConcreteType
@@ -28,7 +28,7 @@ end
         ctx, ConcreteType;
         variants = DataType[],
         discr_key = "kind",
-        tag_value = Dict{DataType, JSONScalar}()
+        tag_value = Dict{DataType, RepresentableScalar}()
     )
 end
 
@@ -38,7 +38,7 @@ end
         ctx, TestAbstractType;
         variants = [ConcreteVariant1, UnrelatedVariant],
         discr_key = "type",
-        tag_value = Dict{DataType, JSONScalar}(
+        tag_value = Dict{DataType, RepresentableScalar}(
             ConcreteVariant1 => "variant1",
             UnrelatedVariant => "unrelated"
         )
@@ -51,7 +51,7 @@ end
         ctx, TestAbstractType;
         variants = [TestAbstractType],
         discr_key = "type",
-        tag_value = Dict{DataType, JSONScalar}(TestAbstractType => "abstract")
+        tag_value = Dict{DataType, RepresentableScalar}(TestAbstractType => "abstract")
     )
 end
 
@@ -61,7 +61,7 @@ end
         ctx, TestAbstractType;
         variants = [ConcreteVariant1, ConcreteVariant2],
         discr_key = "type",
-        tag_value = Dict{DataType, JSONScalar}(ConcreteVariant1 => "variant1")
+        tag_value = Dict{DataType, RepresentableScalar}(ConcreteVariant1 => "variant1")
     )
 end
 
@@ -71,14 +71,14 @@ end
         ctx, TestAbstractType;
         variants = [ConcreteVariant1, ConcreteVariant2],
         discr_key = "type",
-        tag_value = Dict{DataType, JSONScalar}(
+        tag_value = Dict{DataType, RepresentableScalar}(
             ConcreteVariant1 => "same",
             ConcreteVariant2 => "same"
         )
     )
 end
 
-@testset "register_abstract! - non-JSONScalar tag value" begin
+@testset "register_abstract! - non-RepresentableScalar tag value" begin
     ctx = SchemaContext()
     @test_throws ArgumentError register_abstract!(
         ctx, TestAbstractType;
@@ -152,7 +152,7 @@ end
         ctx, AnimalBase;
         variants = [Cat, Dog],
         discr_key = "animal_type",
-        tag_value = Dict{DataType, JSONScalar}(
+        tag_value = Dict{DataType, RepresentableScalar}(
             Cat => "cat",
             Dog => "dog"
         ),
@@ -169,7 +169,7 @@ end
         ctx, AnimalBase;
         variants = [Cat, Dog],
         discr_key = "type_id",
-        tag_value = Dict{DataType, JSONScalar}(
+        tag_value = Dict{DataType, RepresentableScalar}(
             Cat => 1,
             Dog => 2
         )
@@ -182,7 +182,7 @@ end
         ctx, AnimalBase;
         variants = [Cat],
         discr_key = "is_cat",
-        tag_value = Dict{DataType, JSONScalar}(Cat => true)
+        tag_value = Dict{DataType, RepresentableScalar}(Cat => true)
     ) === nothing
 end
 
@@ -192,7 +192,7 @@ end
         ctx, AnimalBase;
         variants = [Cat],
         discr_key = "marker",
-        tag_value = Dict{DataType, JSONScalar}(Cat => nothing)
+        tag_value = Dict{DataType, RepresentableScalar}(Cat => nothing)
     ) === nothing
 end
 
@@ -204,7 +204,7 @@ end
     ctx = SchemaContext()
     result = generate_schema(TypeWithUnsupportedField; ctx = ctx, simplify = false)
     @test !isempty(result.unknowns)
-    @test (Function, (:func,)) in result.unknowns
+    @test any(e -> e.type == Function && e.path == (:func,) && e.reason == "abstract_no_discriminator", result.unknowns)
 end
 
 struct TypeWithMultipleUnsupported
@@ -216,9 +216,9 @@ end
 @testset "multiple unsupported fields" begin
     ctx = SchemaContext()
     result = generate_schema(TypeWithMultipleUnsupported; ctx = ctx, simplify = false)
-    @test length(result.unknowns) == 2 # Ensure both are recorded
-    @test (Function, (:func1,)) in result.unknowns
-    @test (Function, (:func2,)) in result.unknowns
+    # Function is recorded once, not multiple times for different fields
+    @test length(result.unknowns) == 1
+    @test any(e -> e.type == Function && e.reason == "abstract_no_discriminator", result.unknowns)
 end
 
 struct TypeWithUnionAll
@@ -229,7 +229,7 @@ end
     ctx = SchemaContext()
     result = generate_schema(TypeWithUnionAll; ctx = ctx, simplify = false)
     @test !isempty(result.unknowns)
-    @test (Vector, (:data,)) in result.unknowns
+    @test any(e -> e.type == Vector && e.path == (:data,) && e.reason == "unionall_type", result.unknowns)
 end
 
 @testset "register_abstract! - extra keys in tag_value" begin
@@ -238,7 +238,7 @@ end
         ctx, AnimalBase;
         variants = [Cat],
         discr_key = "type",
-        tag_value = Dict{DataType, JSONScalar}(
+        tag_value = Dict{DataType, RepresentableScalar}(
             Cat => "cat",
             Dog => "dog"
         )

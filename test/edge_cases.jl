@@ -1,5 +1,5 @@
 using Test
-using Struct2JSONSchema: SchemaContext, generate_schema, k
+using Struct2JSONSchema: SchemaContext, generate_schema, k, UnknownEntry
 
 const _EDGE_CASES_KEY_CTX = SchemaContext()
 edge_case_key(T) = k(T, _EDGE_CASES_KEY_CTX)
@@ -41,7 +41,7 @@ edge_case_key(T) = k(T, _EDGE_CASES_KEY_CTX)
         @test isempty(any_schema)
 
         # Vector is recorded as unknown
-        @test any(u -> u[1] === Vector, result.unknowns)
+        @test any(u -> u.type === Vector, result.unknowns)
     end
 
     @testset "Zero-sized Tuple" begin

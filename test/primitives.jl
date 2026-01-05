@@ -1,6 +1,6 @@
 using Test
 using Dates
-using Struct2JSONSchema: SchemaContext, generate_schema, k
+using Struct2JSONSchema: SchemaContext, generate_schema, k, UnknownEntry
 
 struct PrimitiveRecord
     id::Int64
@@ -155,7 +155,7 @@ end
     value_schema = schema["properties"]["values"]
 
     @test value_schema["\$ref"] == ref_for(Any)
-    @test result.unknowns == Set([(Vector, (:values,))])
+    @test result.unknowns == Set([UnknownEntry(Vector, (:values,), "unionall_type")])
 end
 
 struct PrimitiveRecord2

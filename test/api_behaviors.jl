@@ -1,5 +1,5 @@
 using Test
-using Struct2JSONSchema: SchemaContext, generate_schema, generate_schema!, register_type_override!, k
+using Struct2JSONSchema: SchemaContext, generate_schema, generate_schema!, register_type_override!, k, UnknownEntry
 import Struct2JSONSchema: clone_context
 
 struct VerboseCheck
@@ -17,7 +17,7 @@ end
 @testset "Schema API behaviors" begin
     ctx = SchemaContext()
     result1 = generate_schema!(VerboseCheck; ctx = ctx, simplify = false)
-    @test result1.unknowns == Set([(Vector, (:items,))])
+    @test result1.unknowns == Set([UnknownEntry(Vector, (:items,), "unionall_type")])
 
     result2 = generate_schema!(SimpleRecord; ctx = ctx, simplify = false)
     @test isempty(result2.unknowns)
@@ -84,10 +84,10 @@ end
     ctx = SchemaContext()
 
     result1 = generate_schema!(VectorHolder1; ctx = ctx, simplify = false)
-    @test result1.unknowns == Set([(Vector, (:data,))])
+    @test result1.unknowns == Set([UnknownEntry(Vector, (:data,), "unionall_type")])
 
     result2 = generate_schema!(VectorHolder2; ctx = ctx, simplify = false)
-    @test result2.unknowns == Set([(Vector, (:items,))])
+    @test result2.unknowns == Set([UnknownEntry(Vector, (:items,), "unionall_type")])
 end
 
 struct IsolatedRecord1

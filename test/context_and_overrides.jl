@@ -1,5 +1,5 @@
 using Test
-using Struct2JSONSchema: SchemaContext, generate_schema, generate_schema!, register_abstract!, register_override!, register_type_override!, register_field_override!, k, define!, current_type, current_parent, current_field
+using Struct2JSONSchema: SchemaContext, generate_schema, generate_schema!, register_abstract!, register_override!, register_type_override!, register_field_override!, k, define!, current_type, current_parent, current_field, UnknownEntry
 using Dates
 import Logging
 
@@ -33,7 +33,7 @@ ctx_key(T) = k(T, _CTX_KEY_CTX)
     bang_ctx = SchemaContext()
     result = generate_schema!(WithFunctionField; ctx = bang_ctx, simplify = false)
     @test !isempty(bang_ctx.defs)
-    @test result.unknowns == Set([(Function, (:handler,))])
+    @test result.unknowns == Set([UnknownEntry(Function, (:handler,), "abstract_no_discriminator")])
 
     second = generate_schema!(WithFunctionField; ctx = bang_ctx, simplify = false)
     @test isempty(second.unknowns)
@@ -208,10 +208,10 @@ end
     ctx = SchemaContext()
 
     result1 = generate_schema(UnknownHolder1; ctx = ctx, simplify = false)
-    @test result1.unknowns == Set([(Vector, (:data,))])
+    @test result1.unknowns == Set([UnknownEntry(Vector, (:data,), "unionall_type")])
 
     result2 = generate_schema(UnknownHolder2; ctx = ctx, simplify = false)
-    @test result2.unknowns == Set([(Vector, (:items,))])
+    @test result2.unknowns == Set([UnknownEntry(Vector, (:items,), "unionall_type")])
 end
 
 struct URLContainer

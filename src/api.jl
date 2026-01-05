@@ -38,10 +38,10 @@ function register_abstract!(
         throw(ArgumentError("tag_value keys must match provided variants"))
     end
 
-    values_seen = Set{JSONScalar}()
+    values_seen = Set{RepresentableScalar}()
     for (variant, val) in tag_value
-        if !(val isa JSONScalar)
-            throw(ArgumentError("Discriminator value for $variant must be a JSON scalar"))
+        if !(val isa RepresentableScalar)
+            throw(ArgumentError("Discriminator value for $variant must be a representable scalar"))
         end
         push!(values_seen, val)
     end
@@ -49,7 +49,7 @@ function register_abstract!(
         throw(ArgumentError("tag_value contains duplicate discriminator values"))
     end
 
-    tags = Dict{DataType, JSONScalar}(tag_value)
+    tags = Dict{DataType, RepresentableScalar}(tag_value)
     variants_copy = copy(variants)
 
     register_override!(ctx) do ctx
@@ -248,3 +248,6 @@ function generate_schema(T::Type; ctx::SchemaContext = SchemaContext(), simplify
     ctx_clone = clone_context(ctx)
     return generate_schema!(T; ctx = ctx_clone, simplify = simplify)
 end
+
+# ===== Default Values API =====
+# See src/defaults.jl for implementation details

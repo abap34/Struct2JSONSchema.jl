@@ -1,5 +1,5 @@
 using Test
-using Struct2JSONSchema: SchemaContext, generate_schema, register_field_override!, register_optional_fields!, treat_union_nothing_as_optional!, Struct2JSONSchema.simplify_schema
+using Struct2JSONSchema: SchemaContext, generate_schema, override_field!, optional!, auto_optional_nothing!, Struct2JSONSchema.simplify_schema
 using JSON3
 using Dates
 
@@ -179,7 +179,7 @@ end
     run_validation_tests(
         "optional_email", PersonWithOptionalEmail, () -> begin
             ctx = SchemaContext()
-            treat_union_nothing_as_optional!(ctx)
+            auto_optional_nothing!(ctx)
             generate_schema(PersonWithOptionalEmail; ctx = ctx, simplify = false)
         end
     )
@@ -201,7 +201,7 @@ end
     run_validation_tests(
         "field_override_datetime", Event, () -> begin
             ctx = SchemaContext()
-            register_field_override!(ctx, Event, :timestamp) do ctx
+            override_field!(ctx, Event, :timestamp) do ctx
                 Dict(
                     "type" => "string",
                     "format" => "date-time"
@@ -222,8 +222,8 @@ end
         SupportTicket,
         () -> begin
             ctx = SchemaContext()
-            register_optional_fields!(ctx, SupportTicket, :internal_notes)
-            treat_union_nothing_as_optional!(ctx)
+            optional!(ctx, SupportTicket, :internal_notes)
+            auto_optional_nothing!(ctx)
             generate_schema(SupportTicket; ctx = ctx, simplify = false)
         end
     )
@@ -285,7 +285,7 @@ end
     run_validation_tests(
         "range_validation", RangeConstraint, () -> begin
             ctx = SchemaContext()
-            register_field_override!(ctx, RangeConstraint, :score) do ctx
+            override_field!(ctx, RangeConstraint, :score) do ctx
                 Dict(
                     "type" => "integer",
                     "minimum" => 0,
@@ -306,7 +306,7 @@ end
     run_validation_tests(
         "email_format", EmailRecord, () -> begin
             ctx = SchemaContext()
-            register_field_override!(ctx, EmailRecord, :email) do ctx
+            override_field!(ctx, EmailRecord, :email) do ctx
                 Dict(
                     "type" => "string",
                     "format" => "email"
@@ -326,7 +326,7 @@ end
     run_validation_tests(
         "url_format", URLRecord, () -> begin
             ctx = SchemaContext()
-            register_field_override!(ctx, URLRecord, :website) do ctx
+            override_field!(ctx, URLRecord, :website) do ctx
                 Dict(
                     "type" => "string",
                     "format" => "uri"
@@ -380,7 +380,7 @@ struct SeverityLevel
 end
 
 @testset "Python validator - oneOf_with_description" begin
-    using Struct2JSONSchema: register_field_description!
+    using Struct2JSONSchema: describe!
 
     run_validation_tests(
         "oneOf_with_description",
@@ -388,7 +388,7 @@ end
         () -> begin
             ctx = SchemaContext()
 
-            register_field_override!(ctx, SeverityLevel, :level) do ctx
+            override_field!(ctx, SeverityLevel, :level) do ctx
                 Dict(
                     "oneOf" => [
                         Dict("type" => "integer", "minimum" => 0, "maximum" => 5),
@@ -397,7 +397,7 @@ end
                 )
             end
 
-            register_field_description!(ctx, SeverityLevel, :level, "Severity level (0-5 or named)")
+            describe!(ctx, SeverityLevel, :level, "Severity level (0-5 or named)")
 
             generate_schema(SeverityLevel; ctx = ctx, simplify = false)
         end

@@ -1,5 +1,5 @@
 using Test
-using Struct2JSONSchema: SchemaContext, generate_schema, register_field_description!, k
+using Struct2JSONSchema: SchemaContext, generate_schema, describe!, k
 using REPL
 
 const _FIELD_DESC_KEY_CTX = SchemaContext()
@@ -13,8 +13,8 @@ field_desc_key(T) = k(T, _FIELD_DESC_KEY_CTX)
     end
 
     ctx = SchemaContext()
-    register_field_description!(ctx, BasicUser, :email, "User's primary email address")
-    register_field_description!(ctx, BasicUser, :id, "Unique user identifier")
+    describe!(ctx, BasicUser, :email, "User's primary email address")
+    describe!(ctx, BasicUser, :id, "Unique user identifier")
 
     result = generate_schema(BasicUser; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
@@ -37,7 +37,7 @@ end
     end
 
     ctx = SchemaContext()
-    register_field_description!(ctx, Product, :id, "Product identifier")
+    describe!(ctx, Product, :id, "Product identifier")
 
     result = generate_schema(Product; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
@@ -67,7 +67,7 @@ end
     )
 
     for (field, desc) in descriptions
-        register_field_description!(ctx, Article, field, desc)
+        describe!(ctx, Article, field, desc)
     end
 
     result = generate_schema(Article; ctx = ctx, simplify = false)
@@ -122,7 +122,7 @@ end
     end
 
     ctx = SchemaContext(auto_fielddoc = true)
-    register_field_description!(ctx, EventData, :id, "Event unique ID (overridden)")
+    describe!(ctx, EventData, :id, "Event unique ID (overridden)")
 
     result = generate_schema(EventData; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
@@ -168,7 +168,7 @@ end
     end
 
     ctx = SchemaContext(auto_fielddoc = false)
-    register_field_description!(ctx, ServerSettings, :port, "Manual port description")
+    describe!(ctx, ServerSettings, :port, "Manual port description")
 
     result = generate_schema(ServerSettings; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
@@ -203,7 +203,7 @@ end
 
     ctx = SchemaContext()
 
-    @test_throws ArgumentError register_field_description!(
+    @test_throws ArgumentError describe!(
         ctx, TestStruct, :nonexistent, "Description"
     )
 end
@@ -211,7 +211,7 @@ end
 @testset "Field descriptions - error on non-struct type" begin
     ctx = SchemaContext()
 
-    @test_throws ArgumentError register_field_description!(
+    @test_throws ArgumentError describe!(
         ctx, Int, :value, "Description"
     )
 end
@@ -228,7 +228,7 @@ end
     ctx = SchemaContext()
 
     # Register field override for timestamp
-    register_field_override!(ctx, EventWithOverride, :timestamp) do ctx
+    override_field!(ctx, EventWithOverride, :timestamp) do ctx
         Dict(
             "type" => "string",
             "format" => "date-time"
@@ -236,8 +236,8 @@ end
     end
 
     # Register description for timestamp
-    register_field_description!(ctx, EventWithOverride, :timestamp, "ISO 8601 timestamp")
-    register_field_description!(ctx, EventWithOverride, :id, "Event identifier")
+    describe!(ctx, EventWithOverride, :timestamp, "ISO 8601 timestamp")
+    describe!(ctx, EventWithOverride, :id, "Event identifier")
 
     result = generate_schema(EventWithOverride; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
@@ -261,7 +261,7 @@ end
     end
 
     ctx = SchemaContext()
-    register_field_description!(ctx, EmptyDescTest, :field1, "")
+    describe!(ctx, EmptyDescTest, :field1, "")
 
     result = generate_schema(EmptyDescTest; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
@@ -279,8 +279,8 @@ end
     end
 
     ctx = SchemaContext()
-    register_field_description!(ctx, UnicodeTest, :field1, "ユーザー名 (Japanese)")
-    register_field_description!(ctx, UnicodeTest, :field2, "Field with \"quotes\" and\nnewlines")
+    describe!(ctx, UnicodeTest, :field1, "ユーザー名 (Japanese)")
+    describe!(ctx, UnicodeTest, :field2, "Field with \"quotes\" and\nnewlines")
 
     result = generate_schema(UnicodeTest; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
@@ -296,7 +296,7 @@ end
     end
 
     ctx = SchemaContext()
-    register_field_description!(ctx, CloneTest, :field1, "Original description")
+    describe!(ctx, CloneTest, :field1, "Original description")
 
     # Use generate_schema (safe version, which clones context)
     result = generate_schema(CloneTest; ctx = ctx, simplify = false)
@@ -320,7 +320,7 @@ end
     ctx = SchemaContext()
 
     # Register field override that returns oneOf schema
-    register_field_override!(ctx, DiagnosticPattern, :severity) do ctx
+    override_field!(ctx, DiagnosticPattern, :severity) do ctx
         Dict(
             "oneOf" => [
                 Dict("type" => "integer", "minimum" => 0, "maximum" => 4),
@@ -330,7 +330,7 @@ end
     end
 
     # Register description for the same field
-    register_field_description!(ctx, DiagnosticPattern, :severity, "Severity level")
+    describe!(ctx, DiagnosticPattern, :severity, "Severity level")
 
     # This should not fail - description should be added directly
     result = generate_schema(DiagnosticPattern; ctx = ctx, simplify = false)
@@ -352,7 +352,7 @@ end
 
     ctx = SchemaContext()
 
-    register_field_override!(ctx, FlexibleField, :value) do ctx
+    override_field!(ctx, FlexibleField, :value) do ctx
         Dict(
             "anyOf" => [
                 Dict("type" => "string"),
@@ -362,7 +362,7 @@ end
         )
     end
 
-    register_field_description!(ctx, FlexibleField, :value, "Can be string, number, or boolean")
+    describe!(ctx, FlexibleField, :value, "Can be string, number, or boolean")
 
     result = generate_schema(FlexibleField; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
@@ -381,7 +381,7 @@ end
 
     ctx = SchemaContext()
 
-    register_field_override!(ctx, ValidatedString, :code) do ctx
+    override_field!(ctx, ValidatedString, :code) do ctx
         Dict(
             "allOf" => [
                 Dict("type" => "string"),
@@ -390,7 +390,7 @@ end
         )
     end
 
-    register_field_description!(ctx, ValidatedString, :code, "Validated code string")
+    describe!(ctx, ValidatedString, :code, "Validated code string")
 
     result = generate_schema(ValidatedString; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]

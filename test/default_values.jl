@@ -1,5 +1,5 @@
 using Test
-using Struct2JSONSchema: SchemaContext, generate_schema, register_defaults!, k, register_field_override!, register_type_override!, register_field_description!, register_default_field_serializer!, register_default_type_serializer!, register_default_serializer!, treat_union_nothing_as_optional!, register_abstract!, register_skip_fields!, RepresentableScalar
+using Struct2JSONSchema: SchemaContext, generate_schema, defaultvalue!, k, override_field!, override_type!, describe!, defaultvalue_field_serializer!, defaultvalue_type_serializer!, defaultvalue_serializer!, auto_optional_nothing!, override_abstract!, skip!, RepresentableScalar
 using Dates
 import Base: UUID
 
@@ -16,7 +16,7 @@ default_key(T) = k(T, _DEFAULT_KEY_CTX)
 
     ctx = SchemaContext()
     default_val = BasicTypes("hello", 42, 3.14, true)
-    register_defaults!(ctx, default_val)
+    defaultvalue!(ctx, default_val)
 
     result = generate_schema(BasicTypes; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
@@ -47,7 +47,7 @@ end
         :test_symbol,
         'A'
     )
-    register_defaults!(ctx, default_val)
+    defaultvalue!(ctx, default_val)
 
     result = generate_schema(StandardTypes; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
@@ -72,7 +72,7 @@ end
         [1, 2, 3],
         Dict("a" => 1, "b" => 2)
     )
-    register_defaults!(ctx, default_val)
+    defaultvalue!(ctx, default_val)
 
     result = generate_schema(CollectionTypes; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
@@ -91,13 +91,13 @@ end
     ctx = SchemaContext()
 
     # Override で default を設定
-    register_field_override!(ctx, ConfigValue, :port) do ctx
+    override_field!(ctx, ConfigValue, :port) do ctx
         Dict("type" => "integer", "minimum" => 1024, "default" => 8080)
     end
 
-    # register_defaults! で別の値を登録
+    # defaultvalue! で別の値を登録
     default_val = ConfigValue(3000, "localhost")
-    register_defaults!(ctx, default_val)
+    defaultvalue!(ctx, default_val)
 
     result = generate_schema(ConfigValue; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
@@ -105,7 +105,7 @@ end
 
     # Override の default が優先される
     @test schema["properties"]["port"]["default"] == 8080
-    # host は register_defaults! の値が使われる
+    # host は defaultvalue! の値が使われる
     @test schema["properties"]["host"]["default"] == "localhost"
 end
 
@@ -117,19 +117,19 @@ end
     ctx = SchemaContext()
 
     # Override で制約のみ設定（default なし）
-    register_field_override!(ctx, SimpleConfig, :timeout) do ctx
+    override_field!(ctx, SimpleConfig, :timeout) do ctx
         Dict("type" => "number", "minimum" => 0)
     end
 
-    # register_defaults! で設定
+    # defaultvalue! で設定
     default_val = SimpleConfig(30.0)
-    register_defaults!(ctx, default_val)
+    defaultvalue!(ctx, default_val)
 
     result = generate_schema(SimpleConfig; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = defs[default_key(SimpleConfig)]
 
-    # register_defaults! の値が設定される
+    # defaultvalue! の値が設定される
     @test schema["properties"]["timeout"]["default"] == 30.0
     @test schema["properties"]["timeout"]["minimum"] == 0
 end
@@ -144,7 +144,7 @@ end
     ctx = SchemaContext(verbose = false)
 
     default_val = MixedTypes("test", 123, () -> nothing)
-    register_defaults!(ctx, default_val)
+    defaultvalue!(ctx, default_val)
 
     result = generate_schema(MixedTypes; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
@@ -167,10 +167,10 @@ end
     ctx = SchemaContext()
 
     # Abstract type should error
-    @test_throws ArgumentError register_defaults!(ctx, AbstractBase)
+    @test_throws ArgumentError defaultvalue!(ctx, AbstractBase)
 
     # Union type should error
-    @test_throws ArgumentError register_defaults!(ctx, Union{Int, String})
+    @test_throws ArgumentError defaultvalue!(ctx, Union{Int, String})
 end
 
 @testset "Default values - number normalization" begin
@@ -183,7 +183,7 @@ end
 
     ctx = SchemaContext()
     default_val = NumberTypes(Int8(10), Int16(20), Int32(30), Float32(1.5))
-    register_defaults!(ctx, default_val)
+    defaultvalue!(ctx, default_val)
 
     result = generate_schema(NumberTypes; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
@@ -213,7 +213,7 @@ end
     ctx = SchemaContext()
 
     # Register custom serializer for Color
-    register_default_type_serializer!(ctx, Color) do value, ctx
+    defaultvalue_type_serializer!(ctx, Color) do value, ctx
         r = string(value.r, base = 16, pad = 2)
         g = string(value.g, base = 16, pad = 2)
         b = string(value.b, base = 16, pad = 2)
@@ -221,7 +221,7 @@ end
     end
 
     # Register type override for Color
-    register_type_override!(ctx, Color) do ctx
+    override_type!(ctx, Color) do ctx
         Dict("type" => "string", "pattern" => "^#[0-9a-f]{6}\$")
     end
 
@@ -229,7 +229,7 @@ end
         Color(0x00, 0x7b, 0xff),
         Color(0x6c, 0x75, 0x7d)
     )
-    register_defaults!(ctx, default_theme)
+    defaultvalue!(ctx, default_theme)
 
     result = generate_schema(Theme; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
@@ -249,11 +249,11 @@ end
     ctx = SchemaContext()
 
     # created_at as Unix timestamp
-    register_default_field_serializer!(ctx, Metrics, :created_at) do value, ctx
+    defaultvalue_field_serializer!(ctx, Metrics, :created_at) do value, ctx
         Int(datetime2unix(value))
     end
 
-    register_field_override!(ctx, Metrics, :created_at) do ctx
+    override_field!(ctx, Metrics, :created_at) do ctx
         Dict("type" => "integer", "description" => "Unix timestamp")
     end
 
@@ -261,7 +261,7 @@ end
         DateTime(2024, 1, 1, 0, 0, 0),
         DateTime(2024, 1, 2, 0, 0, 0)
     )
-    register_defaults!(ctx, default_metrics)
+    defaultvalue!(ctx, default_metrics)
 
     result = generate_schema(Metrics; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
@@ -282,10 +282,10 @@ end
     end
 
     ctx = SchemaContext()
-    treat_union_nothing_as_optional!(ctx)
+    auto_optional_nothing!(ctx)
 
     default_config = UserConfig("guest", nothing, "")
-    register_defaults!(ctx, default_config)
+    defaultvalue!(ctx, default_config)
 
     result = generate_schema(UserConfig; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
@@ -310,10 +310,10 @@ end
 
     ctx = SchemaContext()
 
-    register_field_description!(ctx, Product, :price, "Product price in USD")
+    describe!(ctx, Product, :price, "Product price in USD")
 
     default_product = Product("Widget", 9.99)
-    register_defaults!(ctx, default_product)
+    defaultvalue!(ctx, default_product)
 
     result = generate_schema(Product; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
@@ -332,7 +332,7 @@ end
     ctx = SchemaContext()
 
     # Override with description
-    register_field_override!(ctx, Settings, :timeout) do ctx
+    override_field!(ctx, Settings, :timeout) do ctx
         Dict(
             "type" => "integer",
             "minimum" => 0,
@@ -341,10 +341,10 @@ end
     end
 
     # Try to set description via registration (should be ignored)
-    register_field_description!(ctx, Settings, :timeout, "Timeout from registration")
+    describe!(ctx, Settings, :timeout, "Timeout from registration")
 
     default_settings = Settings(30)
-    register_defaults!(ctx, default_settings)
+    defaultvalue!(ctx, default_settings)
 
     result = generate_schema(Settings; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
@@ -364,7 +364,7 @@ end
     ctx = SchemaContext()
 
     default_val = EmptyCollections(String[], Dict{String, Int}())
-    register_defaults!(ctx, default_val)
+    defaultvalue!(ctx, default_val)
 
     result = generate_schema(EmptyCollections; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
@@ -386,7 +386,7 @@ end
         [[1, 2], [3, 4]],
         Dict("a" => Dict("x" => 1, "y" => 2))
     )
-    register_defaults!(ctx, default_val)
+    defaultvalue!(ctx, default_val)
 
     result = generate_schema(NestedData; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
@@ -406,7 +406,7 @@ end
     ctx = SchemaContext(verbose = false)
 
     default_val = WithUnknown("test", () -> nothing, Int)
-    register_defaults!(ctx, default_val)
+    defaultvalue!(ctx, default_val)
 
     result = generate_schema(WithUnknown; ctx = ctx, simplify = false)
 
@@ -425,14 +425,14 @@ end
     ctx = SchemaContext()
 
     # Register multiple serializers in order
-    register_default_serializer!(ctx) do field_type, value, ctx
+    defaultvalue_serializer!(ctx) do field_type, value, ctx
         if field_type == Int
             return 100  # First serializer
         end
         return nothing
     end
 
-    register_default_serializer!(ctx) do field_type, value, ctx
+    defaultvalue_serializer!(ctx) do field_type, value, ctx
         if field_type == Int
             return 200  # Second serializer (should not be reached)
         end
@@ -440,7 +440,7 @@ end
     end
 
     default_val = OrderTest(42)
-    register_defaults!(ctx, default_val)
+    defaultvalue!(ctx, default_val)
 
     result = generate_schema(OrderTest; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
@@ -458,18 +458,18 @@ end
     ctx = SchemaContext()
 
     # Register serializer that returns nothing
-    register_default_serializer!(ctx) do field_type, value, ctx
+    defaultvalue_serializer!(ctx) do field_type, value, ctx
         return nothing  # Fall through
     end
 
     default_val = FallbackTest("test")
-    register_defaults!(ctx, default_val)
+    defaultvalue!(ctx, default_val)
 
     result = generate_schema(FallbackTest; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = defs[default_key(FallbackTest)]
 
-    # Should fall back to default_serialize_for_schema
+    # Should fall back to defaultvalue_serialize
     @test schema["properties"]["name"]["default"] == "test"
 end
 
@@ -496,7 +496,7 @@ end
     ctx = SchemaContext()
 
     # 抽象型の登録
-    register_abstract!(
+    override_abstract!(
         ctx, Vehicle;
         variants = [Car, Bike],
         discr_key = "vehicle_type",
@@ -507,9 +507,9 @@ end
     )
 
     # 各バリアントのデフォルト値を登録
-    register_defaults!(ctx, Car("Toyota", 5))
-    register_defaults!(ctx, Bike("Giant", 21))
-    register_defaults!(ctx, Garage("My Garage", Vehicle[]))
+    defaultvalue!(ctx, Car("Toyota", 5))
+    defaultvalue!(ctx, Bike("Giant", 21))
+    defaultvalue!(ctx, Garage("My Garage", Vehicle[]))
 
     # Garage のスキーマを生成
     result = generate_schema(Garage; ctx = ctx, simplify = false)
@@ -546,11 +546,11 @@ end
     ctx = SchemaContext()
 
     # Point をカスタムフォーマットにシリアライズ（配列として）
-    register_default_type_serializer!(ctx, Point) do value, ctx
+    defaultvalue_type_serializer!(ctx, Point) do value, ctx
         [value.x, value.y]
     end
 
-    register_type_override!(ctx, Point) do ctx
+    override_type!(ctx, Point) do ctx
         Dict(
             "type" => "array",
             "items" => Dict("type" => "number"),
@@ -565,7 +565,7 @@ end
         Point(100.0, 0.0),
         "#FF0000"
     )
-    register_defaults!(ctx, default_rect)
+    defaultvalue!(ctx, default_rect)
 
     result = generate_schema(Rectangle; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
@@ -592,13 +592,13 @@ end
     end
 
     ctx = SchemaContext()
-    treat_union_nothing_as_optional!(ctx)
+    auto_optional_nothing!(ctx)
 
     # フィールドのスキップ
-    register_skip_fields!(ctx, ComplexConfig, :internal_state)
+    skip!(ctx, ComplexConfig, :internal_state)
 
     # ポートのオーバーライド（制約を追加）
-    register_field_override!(ctx, ComplexConfig, :port) do ctx
+    override_field!(ctx, ComplexConfig, :port) do ctx
         Dict(
             "type" => "integer",
             "minimum" => 1024,
@@ -607,7 +607,7 @@ end
     end
 
     # タイムアウトの説明
-    register_field_description!(ctx, ComplexConfig, :timeout, "Request timeout in seconds")
+    describe!(ctx, ComplexConfig, :timeout, "Request timeout in seconds")
 
     # デフォルト値を登録
     default_config = ComplexConfig(
@@ -617,7 +617,7 @@ end
         8080,
         30.0
     )
-    register_defaults!(ctx, default_config)
+    defaultvalue!(ctx, default_config)
 
     result = generate_schema(ComplexConfig; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
@@ -653,7 +653,7 @@ end
 
     # 再帰的な構造のデフォルト値
     default_tree = TreeNode(1, TreeNode[])
-    register_defaults!(ctx, default_tree)
+    defaultvalue!(ctx, default_tree)
 
     result = generate_schema(TreeNode; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
@@ -684,16 +684,16 @@ end
     ctx = SchemaContext()
 
     # id フィールドは大文字のUUIDとして
-    register_default_field_serializer!(ctx, LogEntry, :id) do value, ctx
+    defaultvalue_field_serializer!(ctx, LogEntry, :id) do value, ctx
         uppercase(string(value))
     end
 
     # created は Unix タイムスタンプとして
-    register_default_field_serializer!(ctx, LogEntry, :created) do value, ctx
+    defaultvalue_field_serializer!(ctx, LogEntry, :created) do value, ctx
         Int(datetime2unix(value))
     end
 
-    register_field_override!(ctx, LogEntry, :created) do ctx
+    override_field!(ctx, LogEntry, :created) do ctx
         Dict("type" => "integer", "description" => "Unix timestamp")
     end
 
@@ -706,7 +706,7 @@ end
         DateTime(2024, 1, 1, 1, 0, 0),
         Dict("level" => "info", "component" => "main")
     )
-    register_defaults!(ctx, default_entry)
+    defaultvalue!(ctx, default_entry)
 
     result = generate_schema(LogEntry; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
@@ -741,19 +741,19 @@ end
     end
 
     ctx = SchemaContext()
-    treat_union_nothing_as_optional!(ctx)
+    auto_optional_nothing!(ctx)
 
     # Address をカンマ区切り文字列としてシリアライズ
-    register_default_type_serializer!(ctx, Address) do value, ctx
+    defaultvalue_type_serializer!(ctx, Address) do value, ctx
         "$(value.street), $(value.city), $(value.zip)"
     end
 
-    register_type_override!(ctx, Address) do ctx
+    override_type!(ctx, Address) do ctx
         Dict("type" => "string", "description" => "Address in format: street, city, zip")
     end
 
     # Contact をJSON文字列としてシリアライズ
-    register_default_type_serializer!(ctx, Contact) do value, ctx
+    defaultvalue_type_serializer!(ctx, Contact) do value, ctx
         parts = String[]
         if value.email !== nothing
             push!(parts, "email:$(value.email)")
@@ -764,7 +764,7 @@ end
         isempty(parts) ? "no contact" : join(parts, ";")
     end
 
-    register_type_override!(ctx, Contact) do ctx
+    override_type!(ctx, Contact) do ctx
         Dict("type" => "string", "description" => "Contact info")
     end
 
@@ -776,7 +776,7 @@ end
         Contact(nothing, nothing),
         String[]
     )
-    register_defaults!(ctx, default_person)
+    defaultvalue!(ctx, default_person)
 
     result = generate_schema(Person; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
@@ -797,7 +797,7 @@ end
         Contact("alice@example.com", "+81-90-1234-5678"),
         ["developer", "team-lead"]
     )
-    register_defaults!(ctx, default_person2)
+    defaultvalue!(ctx, default_person2)
 
     result2 = generate_schema(Person; ctx = ctx, simplify = false)
     defs2 = result2.doc["\$defs"]
@@ -818,7 +818,7 @@ end
     end
 
     ctx = SchemaContext()
-    register_defaults!(ctx, Config("app", 8080, true))
+    defaultvalue!(ctx, Config("app", 8080, true))
 
     # simplify=true でもデフォルト値が保持されるか
     result = generate_schema(Config; ctx = ctx, simplify = true)
@@ -856,13 +856,13 @@ end
     ctx = SchemaContext()
 
     # Enum 型のカスタムシリアライザー
-    register_default_type_serializer!(ctx, Status) do value, ctx
+    defaultvalue_type_serializer!(ctx, Status) do value, ctx
         string(value)
     end
 
     # Enum 型を含む構造体のデフォルト値
     default_task = Task("My Task", PENDING, 1)
-    register_defaults!(ctx, default_task)
+    defaultvalue!(ctx, default_task)
 
     result = generate_schema(Task; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
@@ -887,11 +887,11 @@ end
     ctx = SchemaContext()
 
     # Tuple と NamedTuple のカスタムシリアライザー
-    register_default_field_serializer!(ctx, Coordinate, :point) do value, ctx
+    defaultvalue_field_serializer!(ctx, Coordinate, :point) do value, ctx
         [value[1], value[2]]
     end
 
-    register_default_field_serializer!(ctx, Coordinate, :meta) do value, ctx
+    defaultvalue_field_serializer!(ctx, Coordinate, :meta) do value, ctx
         Dict("label" => value.label, "color" => value.color)
     end
 
@@ -899,7 +899,7 @@ end
         (1.5, 2.5),
         (label = "origin", color = "red")
     )
-    register_defaults!(ctx, default_coord)
+    defaultvalue!(ctx, default_coord)
 
     result = generate_schema(Coordinate; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
@@ -919,7 +919,7 @@ end
     end
 
     ctx = SchemaContext()
-    register_defaults!(ctx, Service("api", 3000))
+    defaultvalue!(ctx, Service("api", 3000))
 
     # コンテキストをクローンしてもデフォルト値が保持されるか
     result1 = generate_schema(Service; ctx = ctx, simplify = false)
@@ -947,7 +947,7 @@ end
     ctx = SchemaContext(verbose = false)
 
     # エラーを投げるシリアライザーを登録
-    register_default_serializer!(ctx) do field_type, value, ctx
+    defaultvalue_serializer!(ctx) do field_type, value, ctx
         if field_type == Int
             error("Intentional error")
         end
@@ -956,7 +956,7 @@ end
 
     # エラーが発生してもクラッシュせず、フォールバックする
     default_data = Data(42, DateTime(2024, 1, 1))
-    register_defaults!(ctx, default_data)
+    defaultvalue!(ctx, default_data)
 
     result = generate_schema(Data; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
@@ -988,20 +988,20 @@ end
     ctx = SchemaContext()
 
     # 複数の型オーバーライド
-    register_type_override!(ctx, Point2D) do ctx
+    override_type!(ctx, Point2D) do ctx
         Dict("type" => "array", "items" => Dict("type" => "number"), "minItems" => 2, "maxItems" => 2)
     end
 
-    register_type_override!(ctx, Point3D) do ctx
+    override_type!(ctx, Point3D) do ctx
         Dict("type" => "array", "items" => Dict("type" => "number"), "minItems" => 3, "maxItems" => 3)
     end
 
     # カスタムシリアライザー
-    register_default_type_serializer!(ctx, Point2D) do value, ctx
+    defaultvalue_type_serializer!(ctx, Point2D) do value, ctx
         [value.x, value.y]
     end
 
-    register_default_type_serializer!(ctx, Point3D) do value, ctx
+    defaultvalue_type_serializer!(ctx, Point3D) do value, ctx
         [value.x, value.y, value.z]
     end
 
@@ -1010,7 +1010,7 @@ end
         Point3D(1.0, 2.0, 3.0),
         5.0
     )
-    register_defaults!(ctx, default_shape)
+    defaultvalue!(ctx, default_shape)
 
     result = generate_schema(Shape; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
@@ -1037,7 +1037,7 @@ end
     end
 
     ctx = SchemaContext()
-    treat_union_nothing_as_optional!(ctx)
+    auto_optional_nothing!(ctx)
 
     # ネストした optional フィールド
     default_outer = Outer(
@@ -1047,13 +1047,13 @@ end
         ),
         1
     )
-    register_defaults!(ctx, default_outer)
+    defaultvalue!(ctx, default_outer)
 
     # Inner のデフォルト値も登録
-    register_defaults!(ctx, Inner(nothing))
+    defaultvalue!(ctx, Inner(nothing))
 
     # Middle のデフォルト値も登録
-    register_defaults!(ctx, Middle(nothing, nothing))
+    defaultvalue!(ctx, Middle(nothing, nothing))
 
     result = generate_schema(Outer; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
@@ -1080,7 +1080,7 @@ end
     ctx = SchemaContext()
 
     # Rational のカスタムシリアライザー（浮動小数点数に変換）
-    register_default_type_serializer!(ctx, Rational{Int}) do value, ctx
+    defaultvalue_type_serializer!(ctx, Rational{Int}) do value, ctx
         Float64(value)
     end
 
@@ -1089,7 +1089,7 @@ end
         v"1.2.3",
         1//2
     )
-    register_defaults!(ctx, default_pkg)
+    defaultvalue!(ctx, default_pkg)
 
     result = generate_schema(Package; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
@@ -1113,10 +1113,10 @@ end
     end
 
     ctx = SchemaContext()
-    treat_union_nothing_as_optional!(ctx)
+    auto_optional_nothing!(ctx)
 
     # スキップするフィールドを登録
-    register_skip_fields!(ctx, FullConfig, :internal_cache, :internal_state)
+    skip!(ctx, FullConfig, :internal_cache, :internal_state)
 
     # すべてのフィールドのデフォルト値を登録
     default_config = FullConfig(
@@ -1126,7 +1126,7 @@ end
         12345,                    # このフィールドもスキップされる
         "A description"
     )
-    register_defaults!(ctx, default_config)
+    defaultvalue!(ctx, default_config)
 
     result = generate_schema(FullConfig; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
@@ -1156,7 +1156,7 @@ end
 
     # 空の子ノードリストを持つノード
     default_node = Node(1, Node[])
-    register_defaults!(ctx, default_node)
+    defaultvalue!(ctx, default_node)
 
     result = generate_schema(Node; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
@@ -1198,10 +1198,10 @@ end
     end
 
     ctx = SchemaContext(auto_fielddoc = true)
-    treat_union_nothing_as_optional!(ctx)
+    auto_optional_nothing!(ctx)
 
     # 抽象型の登録
-    register_abstract!(
+    override_abstract!(
         ctx, Asset;
         variants = [Stock, Bond],
         discr_key = "asset_type",
@@ -1212,25 +1212,25 @@ end
     )
 
     # risk_level にオーバーライドと説明を追加
-    register_field_override!(ctx, Portfolio, :risk_level) do ctx
+    override_field!(ctx, Portfolio, :risk_level) do ctx
         Dict("type" => "integer", "minimum" => 1, "maximum" => 10)
     end
 
-    register_field_description!(ctx, Portfolio, :risk_level, "Risk level from 1 (low) to 10 (high)")
+    describe!(ctx, Portfolio, :risk_level, "Risk level from 1 (low) to 10 (high)")
 
     # Date をカスタムフォーマットでシリアライズ
-    register_default_field_serializer!(ctx, Stock, :purchased) do value, ctx
+    defaultvalue_field_serializer!(ctx, Stock, :purchased) do value, ctx
         Dates.format(value, "yyyy/mm/dd")
     end
 
-    register_field_override!(ctx, Stock, :purchased) do ctx
+    override_field!(ctx, Stock, :purchased) do ctx
         Dict("type" => "string", "pattern" => "^\\d{4}/\\d{2}/\\d{2}\$")
     end
 
     # デフォルト値を登録
-    register_defaults!(ctx, Stock("AAPL", 100, 150.0, Date(2024, 1, 1)))
-    register_defaults!(ctx, Bond("US Treasury", 1000.0, Date(2034, 1, 1)))
-    register_defaults!(ctx, Portfolio(
+    defaultvalue!(ctx, Stock("AAPL", 100, 150.0, Date(2024, 1, 1)))
+    defaultvalue!(ctx, Bond("US Treasury", 1000.0, Date(2034, 1, 1)))
+    defaultvalue!(ctx, Portfolio(
         "My Portfolio",
         "John Doe",
         Asset[],

@@ -1,5 +1,5 @@
 using Test
-using Struct2JSONSchema: SchemaContext, generate_schema, register_abstract!, k, UnknownEntry
+using Struct2JSONSchema: SchemaContext, generate_schema, override_abstract!, k, UnknownEntry
 
 struct OptionalProfile
     name::String
@@ -105,7 +105,7 @@ end
 
 @testset "Abstract discriminator" begin
     ctx = SchemaContext()
-    register_abstract!(
+    override_abstract!(
         ctx, AnimalKind;
         variants = [DogKind, CatKind],
         discr_key = "kind",
@@ -310,7 +310,7 @@ end
 
 @testset "abstract discriminator - Vehicle types" begin
     ctx = SchemaContext()
-    register_abstract!(
+    override_abstract!(
         ctx, Vehicle;
         variants = [Car, Motorcycle],
         discr_key = "type",
@@ -359,7 +359,7 @@ end
 
 @testset "abstract discriminator - Shape types" begin
     ctx = SchemaContext()
-    register_abstract!(
+    override_abstract!(
         ctx, Shape;
         variants = [Circle, Square, Triangle],
         discr_key = "shape_type",

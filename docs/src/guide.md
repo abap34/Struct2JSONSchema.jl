@@ -39,7 +39,7 @@ println(JSON.json(result.doc, 4))
 
 In practice, most customizations follow common patterns.
 For this reason, several helper functions are provided.
-Following customization are can be achived using `override!`, but are more conveniently done using helper functions.
+Following customization are can be achieved using `override!`, but are more conveniently done using helper functions.
 
 ### Whole-type overrides: [`override_type!`](@ref)
 

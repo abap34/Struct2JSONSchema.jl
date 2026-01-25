@@ -85,7 +85,7 @@ println(result.unknowns)  # Set{Tuple{DataType, Tuple{Vararg{Symbol}}}}((Ptr{Not
 ## Customization
 
 [`generate_schema`](@ref) recursively generates schemas while updating a [`SchemaContext`](@ref).
-By using [`register_override!`](@ref), users can hook into this process and customize the generated schema.
+By using [`override!`](@ref), users can hook into this process and customize the generated schema.
 
 ```julia
 # Customize the generation so that UUID is represented as a string with format: uuid
@@ -98,7 +98,7 @@ struct User
 end
 
 ctx = SchemaContext()
-register_override!(ctx) do ctx
+override!(ctx) do ctx
     if current_type(ctx) === UUID
         return Dict("type" => "string", "format" => "uuid")
     end
@@ -115,15 +115,15 @@ println(JSON.json(result.doc, 4))
 * `current_parent(ctx)` — the parent struct, when generating a field
 * `current_field(ctx)` — the field name, when generating a field
 
-[`register_override!`](@ref) accepts a hook function that takes a `SchemaContext` object and returns either a schema `Dict`, or `nothing` to indicate that default generation should continue.
+[`override!`](@ref) accepts a hook function that takes a `SchemaContext` object and returns either a schema `Dict`, or `nothing` to indicate that default generation should continue.
 
 In practice, most customizations follow common patterns.
 For this reason, several helper functions are provided.
-Following customization are can be achived using `register_override!`, but are more conveniently done using helper functions.
+Following customization are can be achived using `override!`, but are more conveniently done using helper functions.
 
-### Whole-type overrides: [`register_type_override!`](@ref)
+### Whole-type overrides: [`override_type!`](@ref)
 
-Using [`register_type_override!`](@ref), a specific type can always be overridden for generation with the given `ctx`.
+Using [`override_type!`](@ref), a specific type can always be overridden for generation with the given `ctx`.
 The following code is equivalent to the previous example.
 
 ```julia
@@ -135,16 +135,16 @@ struct User
 end
 
 ctx = SchemaContext()
-register_type_override!(ctx, UUID) do ctx
+override_type!(ctx, UUID) do ctx
     Dict("type" => "string", "format" => "uuid")
 end
 
 result = generate_schema(User; ctx=ctx)
 ```
 
-### Field-specific overrides: [`register_field_override!`](@ref)
+### Field-specific overrides: [`override_field!`](@ref)
 
-Using [`register_field_override!`](@ref), an override can be applied only to a specific field of a specific struct.
+Using [`override_field!`](@ref), an override can be applied only to a specific field of a specific struct.
 
 ```julia
 struct User
@@ -153,16 +153,16 @@ struct User
 end
 
 ctx = SchemaContext()
-register_field_override!(ctx, User, :email) do ctx
+override_field!(ctx, User, :email) do ctx
     Dict("type" => "string", "format" => "email")
 end
 
 result = generate_schema(User; ctx=ctx)
 ```
 
-### Abstract types: [`register_abstract!`](@ref)
+### Abstract types: [`override_abstract!`](@ref)
 
-Using [`register_abstract!`](@ref), an identifier-based schema can be generated for abstract types with concrete subtypes.
+Using [`override_abstract!`](@ref), an identifier-based schema can be generated for abstract types with concrete subtypes.
 
 ```julia
 abstract type Event end
@@ -204,12 +204,12 @@ A commonly desired schema is one where the `event` field of `EventEnvelope` take
 ]
 ```
 
-[`register_abstract!`](@ref) automatically generates such identifier-based schemas.
+[`override_abstract!`](@ref) automatically generates such identifier-based schemas.
 
 ```julia
 ctx = SchemaContext()
 
-register_abstract!(
+override_abstract!(
     ctx,
     Event;
     variants = [Deployment, Alert],
@@ -235,10 +235,10 @@ However, many users want fields of the following types to be treated as optional
 
 For this purpose, the following helper functions are provided:
 
-* [`register_optional_fields!`](@ref) — explicitly mark fields as optional regardless of their type
-* [`treat_union_nothing_as_optional!`](@ref) — treat `Union{T, Nothing}` fields as optional
-* [`treat_union_missing_as_optional!`](@ref) — treat `Union{T, Missing}` fields as optional
-* [`treat_null_as_optional!`](@ref) — treat both `Union{T, Nothing}` and `Union{T, Missing}` fields as optional
+* [`optional!`](@ref) — explicitly mark fields as optional regardless of their type
+* [`auto_optional_nothing!`](@ref) — treat `Union{T, Nothing}` fields as optional
+* [`auto_optional_missing!`](@ref) — treat `Union{T, Missing}` fields as optional
+* [`auto_optional_null!`](@ref) — treat both `Union{T, Nothing}` and `Union{T, Missing}` fields as optional
 
 ```julia
 struct User
@@ -249,8 +249,8 @@ struct User
 end
 
 ctx = SchemaContext()
-register_optional_fields!(ctx, User, :nickname)
-treat_union_nothing_as_optional!(ctx)
+optional!(ctx, User, :nickname)
+auto_optional_nothing!(ctx)
 generate_schema(User; ctx=ctx)
 ```
 
@@ -260,7 +260,7 @@ With this configuration, both `birthdate` and `nickname` are treated as optional
 
 There is an important distinction between **optional fields** and **nullable fields**:
 
-**Without `treat_union_nothing_as_optional!`** (default behavior):
+**Without `auto_optional_nothing!`** (default behavior):
 ```julia
 struct User
     name::String
@@ -285,10 +285,10 @@ Invalid JSON:
 {"name": "Charlie"}  // email is missing
 ```
 
-**With `treat_union_nothing_as_optional!`**:
+**With `auto_optional_nothing!`**:
 ```julia
 ctx = SchemaContext()
-treat_union_nothing_as_optional!(ctx)
+auto_optional_nothing!(ctx)
 result = generate_schema(User; ctx=ctx)
 ```
 
@@ -307,11 +307,11 @@ Invalid JSON:
 {"name": "Charlie", "email": null}  // null is not allowed when field is present
 ```
 
-In other words, when using `treat_union_nothing_as_optional!`, the `Nothing` in `Union{T, Nothing}` is treated as a marker for optionality in Julia, not as a nullable value in JSON.
+In other words, when using `auto_optional_nothing!`, the `Nothing` in `Union{T, Nothing}` is treated as a marker for optionality in Julia, not as a nullable value in JSON.
 
 ## Skipping Fields
 
-Use [`register_skip_fields!`](@ref) to exclude fields or [`register_only_fields!`](@ref) to include only specified fields:
+Use [`skip!`](@ref) to exclude fields or [`only!`](@ref) to include only specified fields:
 
 ```julia
 struct User
@@ -321,9 +321,9 @@ struct User
 end
 
 ctx = SchemaContext()
-register_skip_fields!(ctx, User, :_cache)
+skip!(ctx, User, :_cache)
 # or equivalently:
-# register_only_fields!(ctx, User, :id, :name)
+# only!(ctx, User, :id, :name)
 
 result = generate_schema(User; ctx=ctx)
 ```
@@ -362,7 +362,7 @@ Note: Field docstrings can only be extracted if the struct itself also has a doc
 
 ### Manual Registration
 
-You can manually register field descriptions using [`register_field_description!`](@ref):
+You can manually register field descriptions using [`describe!`](@ref):
 
 ```julia
 struct Product
@@ -372,7 +372,7 @@ struct Product
 end
 
 ctx = SchemaContext()
-register_field_description!(ctx, Product, :price, "Product price in USD")
+describe!(ctx, Product, :price, "Product price in USD")
 
 result = generate_schema(Product; ctx=ctx)
 ```
@@ -390,12 +390,12 @@ end
 ctx = SchemaContext()
 
 # Override adds constraint
-register_field_override!(ctx, Product, :price) do ctx
+override_field!(ctx, Product, :price) do ctx
     Dict("type" => "number", "minimum" => 0)
 end
 
 # Description is added to the overridden schema
-register_field_description!(ctx, Product, :price, "Product price in USD")
+describe!(ctx, Product, :price, "Product price in USD")
 
 result = generate_schema(Product; ctx=ctx)
 # price field will be:
@@ -408,7 +408,7 @@ result = generate_schema(Product; ctx=ctx)
 
 ## Default Values
 
-Use [`register_defaults!`](@ref) to register default values for struct fields from an instance:
+Use [`defaultvalue!`](@ref) to register default values for struct fields from an instance:
 
 ```julia
 using Dates
@@ -429,7 +429,7 @@ default_config = ServerConfig(
     DateTime(2024, 1, 1)
 )
 
-register_defaults!(ctx, default_config)
+defaultvalue!(ctx, default_config)
 
 result = generate_schema(ServerConfig; ctx=ctx)
 # Each field will have a "default" property:
@@ -458,7 +458,7 @@ end
 ctx = SchemaContext()
 
 # Serialize Color as hex string
-register_default_type_serializer!(ctx, Color) do value, ctx
+defaultvalue_type_serializer!(ctx, Color) do value, ctx
     r = string(value.r, base=16, pad=2)
     g = string(value.g, base=16, pad=2)
     b = string(value.b, base=16, pad=2)
@@ -466,7 +466,7 @@ register_default_type_serializer!(ctx, Color) do value, ctx
 end
 
 # Also customize the schema
-register_type_override!(ctx, Color) do ctx
+override_type!(ctx, Color) do ctx
     Dict("type" => "string", "pattern" => "^#[0-9a-f]{6}\$")
 end
 
@@ -475,14 +475,14 @@ default_theme = Theme(
     Color(0x6c, 0x75, 0x7d)
 )
 
-register_defaults!(ctx, default_theme)
+defaultvalue!(ctx, default_theme)
 # primary.default: "#007bff"
 # secondary.default: "#6c757d"
 ```
 
 ### Override Priority for Default Values
 
-When an override sets a `"default"` property, it takes precedence over `register_defaults!`:
+When an override sets a `"default"` property, it takes precedence over `defaultvalue!`:
 
 ```julia
 struct Config
@@ -492,7 +492,7 @@ end
 ctx = SchemaContext()
 
 # Override sets default
-register_field_override!(ctx, Config, :formatter) do ctx
+override_field!(ctx, Config, :formatter) do ctx
     Dict(
         "type" => "string",
         "enum" => ["JuliaFormatter", "Runic"],
@@ -501,7 +501,7 @@ register_field_override!(ctx, Config, :formatter) do ctx
 end
 
 # This will be ignored because override already set default
-register_defaults!(ctx, Config("Runic"))
+defaultvalue!(ctx, Config("Runic"))
 
 result = generate_schema(Config; ctx=ctx)
 # formatter.default: "JuliaFormatter" (from override, not "Runic")
@@ -516,15 +516,15 @@ When multiple features are used together, the following priorities apply:
 | Feature | Priority |
 |---------|----------|
 | Schema structure | Override > Default generation |
-| `"default"` property | Override > `register_defaults!` |
-| `"description"` property | Override > `register_field_description!` > Auto-extraction |
-| `required` array | Independent: `register_optional_fields!` > Auto-detection |
+| `"default"` property | Override > `defaultvalue!` |
+| `"description"` property | Override > `describe!` > Auto-extraction |
+| `required` array | Independent: `optional!` > Auto-detection |
 
 ### Field Description Priority
 
 Manual registration takes priority over automatic extraction:
 
-1. Manual registration via `register_field_description!` (highest priority)
+1. Manual registration via `describe!` (highest priority)
 2. Automatic extraction from field docstrings (if `auto_fielddoc=true`)
 3. None (no description added)
 
@@ -540,7 +540,7 @@ struct Event
 end
 
 ctx = SchemaContext()
-register_field_description!(ctx, Event, :id, "Event unique ID (overridden)")
+describe!(ctx, Event, :id, "Event unique ID (overridden)")
 
 result = generate_schema(Event; ctx=ctx)
 # id will have "Event unique ID (overridden)" as description
@@ -548,14 +548,14 @@ result = generate_schema(Event; ctx=ctx)
 
 ### Override Evaluation Order
 
-All `register_*_override!` functions internally call [`register_override!`](@ref), adding functions to `ctx.overrides` in FIFO (first-in, first-out) order.
+All `register_*_override!` functions internally call [`override!`](@ref), adding functions to `ctx.overrides` in FIFO (first-in, first-out) order.
 
 ```julia
 ctx = SchemaContext()
 
-register_type_override!(ctx, TypeA, gen1)      # 1st
-register_field_override!(ctx, TypeB, :f, gen2) # 2nd
-register_abstract!(ctx, AbstractType, ...)     # 3rd
+override_type!(ctx, TypeA, gen1)      # 1st
+override_field!(ctx, TypeB, :f, gen2) # 2nd
+override_abstract!(ctx, AbstractType, ...)     # 3rd
 ```
 
 When generating a schema:
@@ -592,23 +592,23 @@ end
 ctx = SchemaContext()
 
 # All four systems work together:
-register_field_override!(ctx, User, :email) do ctx
+override_field!(ctx, User, :email) do ctx
     Dict("type" => "string", "format" => "email")
 end
 
-register_defaults!(ctx, User(1, "user@example.com"))
+defaultvalue!(ctx, User(1, "user@example.com"))
 
-register_optional_fields!(ctx, User, :email)
+optional!(ctx, User, :email)
 
-register_field_description!(ctx, User, :email, "User's email address")
+describe!(ctx, User, :email, "User's email address")
 
 result = generate_schema(User; ctx=ctx)
 # email field will be:
 # {
 #   "type": "string",
 #   "format": "email",           // from override
-#   "default": "user@example.com", // from register_defaults!
-#   "description": "User's email address" // from register_field_description!
+#   "default": "user@example.com", // from defaultvalue!
+#   "description": "User's email address" // from describe!
 # }
 # - not in required array (from optional_fields)
 ```

@@ -1,5 +1,5 @@
 using Test
-using Struct2JSONSchema: SchemaContext, generate_schema, register_abstract!, register_optional_fields!, RepresentableScalar, UnknownEntry
+using Struct2JSONSchema: SchemaContext, generate_schema, override_abstract!, optional!, RepresentableScalar, UnknownEntry
 
 # Test types for validation errors
 struct ConcreteType
@@ -22,9 +22,9 @@ struct UnrelatedVariant <: OtherAbstractType
     data::String
 end
 
-@testset "register_abstract! - non-abstract type error" begin
+@testset "override_abstract! - non-abstract type error" begin
     ctx = SchemaContext()
-    @test_throws ArgumentError register_abstract!(
+    @test_throws ArgumentError override_abstract!(
         ctx, ConcreteType;
         variants = DataType[],
         discr_key = "kind",
@@ -32,9 +32,9 @@ end
     )
 end
 
-@testset "register_abstract! - variant not subtype of parent" begin
+@testset "override_abstract! - variant not subtype of parent" begin
     ctx = SchemaContext()
-    @test_throws ArgumentError register_abstract!(
+    @test_throws ArgumentError override_abstract!(
         ctx, TestAbstractType;
         variants = [ConcreteVariant1, UnrelatedVariant],
         discr_key = "type",
@@ -45,9 +45,9 @@ end
     )
 end
 
-@testset "register_abstract! - non-concrete variant" begin
+@testset "override_abstract! - non-concrete variant" begin
     ctx = SchemaContext()
-    @test_throws ArgumentError register_abstract!(
+    @test_throws ArgumentError override_abstract!(
         ctx, TestAbstractType;
         variants = [TestAbstractType],
         discr_key = "type",
@@ -55,9 +55,9 @@ end
     )
 end
 
-@testset "register_abstract! - tag_value keys mismatch variants" begin
+@testset "override_abstract! - tag_value keys mismatch variants" begin
     ctx = SchemaContext()
-    @test_throws ArgumentError register_abstract!(
+    @test_throws ArgumentError override_abstract!(
         ctx, TestAbstractType;
         variants = [ConcreteVariant1, ConcreteVariant2],
         discr_key = "type",
@@ -65,9 +65,9 @@ end
     )
 end
 
-@testset "register_abstract! - duplicate tag values" begin
+@testset "override_abstract! - duplicate tag values" begin
     ctx = SchemaContext()
-    @test_throws ArgumentError register_abstract!(
+    @test_throws ArgumentError override_abstract!(
         ctx, TestAbstractType;
         variants = [ConcreteVariant1, ConcreteVariant2],
         discr_key = "type",
@@ -78,9 +78,9 @@ end
     )
 end
 
-@testset "register_abstract! - non-RepresentableScalar tag value" begin
+@testset "override_abstract! - non-RepresentableScalar tag value" begin
     ctx = SchemaContext()
-    @test_throws ArgumentError register_abstract!(
+    @test_throws ArgumentError override_abstract!(
         ctx, TestAbstractType;
         variants = [ConcreteVariant1],
         discr_key = "type",
@@ -88,9 +88,9 @@ end
     )
 end
 
-@testset "register_abstract! - tag_value not a dict" begin
+@testset "override_abstract! - tag_value not a dict" begin
     ctx = SchemaContext()
-    @test_throws ArgumentError register_abstract!(
+    @test_throws ArgumentError override_abstract!(
         ctx, TestAbstractType;
         variants = [ConcreteVariant1],
         discr_key = "type",
@@ -98,29 +98,29 @@ end
     )
 end
 
-@testset "register_optional_fields! - non-struct type" begin
+@testset "optional! - non-struct type" begin
     ctx = SchemaContext()
-    @test_throws ArgumentError register_optional_fields!(ctx, Int, :field)
+    @test_throws ArgumentError optional!(ctx, Int, :field)
 end
 
-@testset "register_optional_fields! - abstract type" begin
+@testset "optional! - abstract type" begin
     ctx = SchemaContext()
-    @test_throws ArgumentError register_optional_fields!(ctx, TestAbstractType, :field)
+    @test_throws ArgumentError optional!(ctx, TestAbstractType, :field)
 end
 
-@testset "register_optional_fields! - non-existent field" begin
+@testset "optional! - non-existent field" begin
     ctx = SchemaContext()
-    @test_throws ArgumentError register_optional_fields!(ctx, ConcreteType, :nonexistent)
+    @test_throws ArgumentError optional!(ctx, ConcreteType, :nonexistent)
 end
 
-@testset "register_optional_fields! - UnionAll type" begin
+@testset "optional! - UnionAll type" begin
     ctx = SchemaContext()
-    @test_throws ArgumentError register_optional_fields!(ctx, Vector, :field)
+    @test_throws ArgumentError optional!(ctx, Vector, :field)
 end
 
-@testset "register_optional_fields! - multiple non-existent fields" begin
+@testset "optional! - multiple non-existent fields" begin
     ctx = SchemaContext()
-    @test_throws ArgumentError register_optional_fields!(ctx, ConcreteType, :value, :fake)
+    @test_throws ArgumentError optional!(ctx, ConcreteType, :value, :fake)
 end
 
 struct SelfReferencing
@@ -146,9 +146,9 @@ struct Dog <: AnimalBase
     breed::String
 end
 
-@testset "register_abstract! - all validations pass" begin
+@testset "override_abstract! - all validations pass" begin
     ctx = SchemaContext()
-    @test register_abstract!(
+    @test override_abstract!(
         ctx, AnimalBase;
         variants = [Cat, Dog],
         discr_key = "animal_type",
@@ -163,9 +163,9 @@ end
     @test haskey(result.doc, "\$defs")
 end
 
-@testset "register_abstract! - numeric tag values" begin
+@testset "override_abstract! - numeric tag values" begin
     ctx = SchemaContext()
-    @test register_abstract!(
+    @test override_abstract!(
         ctx, AnimalBase;
         variants = [Cat, Dog],
         discr_key = "type_id",
@@ -176,9 +176,9 @@ end
     ) === nothing
 end
 
-@testset "register_abstract! - boolean tag values" begin
+@testset "override_abstract! - boolean tag values" begin
     ctx = SchemaContext()
-    @test register_abstract!(
+    @test override_abstract!(
         ctx, AnimalBase;
         variants = [Cat],
         discr_key = "is_cat",
@@ -186,9 +186,9 @@ end
     ) === nothing
 end
 
-@testset "register_abstract! - nothing tag value" begin
+@testset "override_abstract! - nothing tag value" begin
     ctx = SchemaContext()
-    @test register_abstract!(
+    @test override_abstract!(
         ctx, AnimalBase;
         variants = [Cat],
         discr_key = "marker",
@@ -232,9 +232,9 @@ end
     @test any(e -> e.type == Vector && e.path == (:data,) && e.reason == "unionall_type", result.unknowns)
 end
 
-@testset "register_abstract! - extra keys in tag_value" begin
+@testset "override_abstract! - extra keys in tag_value" begin
     ctx = SchemaContext()
-    @test_throws ArgumentError register_abstract!(
+    @test_throws ArgumentError override_abstract!(
         ctx, AnimalBase;
         variants = [Cat],
         discr_key = "type",

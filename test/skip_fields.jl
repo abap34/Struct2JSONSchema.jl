@@ -10,7 +10,7 @@ using Struct2JSONSchema
         end
 
         ctx = SchemaContext()
-        register_skip_fields!(ctx, SimpleSkip, :_internal)
+        skip!(ctx, SimpleSkip, :_internal)
 
         result = generate_schema(SimpleSkip; ctx = ctx)
         key = ctx.key_of[SimpleSkip]
@@ -34,7 +34,7 @@ using Struct2JSONSchema
         end
 
         ctx = SchemaContext()
-        register_skip_fields!(ctx, MultiSkip, :skip1, :skip2, :skip3)
+        skip!(ctx, MultiSkip, :skip1, :skip2, :skip3)
 
         result = generate_schema(MultiSkip; ctx = ctx)
         key = ctx.key_of[MultiSkip]
@@ -52,8 +52,8 @@ using Struct2JSONSchema
         end
 
         ctx = SchemaContext()
-        treat_union_nothing_as_optional!(ctx)
-        register_skip_fields!(ctx, SkipOptional, :_skip_me)
+        auto_optional_nothing!(ctx)
+        skip!(ctx, SkipOptional, :_skip_me)
 
         result = generate_schema(SkipOptional; ctx = ctx)
         key = ctx.key_of[SkipOptional]
@@ -71,12 +71,12 @@ using Struct2JSONSchema
         end
 
         ctx = SchemaContext()
-        @test_throws ArgumentError register_skip_fields!(ctx, ErrorTest, :nonexistent)
+        @test_throws ArgumentError skip!(ctx, ErrorTest, :nonexistent)
     end
 
     @testset "Error on non-struct type" begin
         ctx = SchemaContext()
-        @test_throws ArgumentError register_skip_fields!(ctx, Int, :field)
+        @test_throws ArgumentError skip!(ctx, Int, :field)
     end
 
     @testset "Skip all fields except one" begin
@@ -87,7 +87,7 @@ using Struct2JSONSchema
         end
 
         ctx = SchemaContext()
-        register_skip_fields!(ctx, AlmostEmpty, :skip1, :skip2)
+        skip!(ctx, AlmostEmpty, :skip1, :skip2)
 
         result = generate_schema(AlmostEmpty; ctx = ctx)
         key = ctx.key_of[AlmostEmpty]
@@ -105,7 +105,7 @@ using Struct2JSONSchema
         end
 
         ctx = SchemaContext()
-        register_skip_fields!(ctx, NoSkip)  # No fields specified
+        skip!(ctx, NoSkip)  # No fields specified
 
         result = generate_schema(NoSkip; ctx = ctx)
         key = ctx.key_of[NoSkip]
@@ -124,8 +124,8 @@ using Struct2JSONSchema
         end
 
         ctx = SchemaContext()
-        register_skip_fields!(ctx, Cumulative, :f2)
-        register_skip_fields!(ctx, Cumulative, :f4)  # Add more
+        skip!(ctx, Cumulative, :f2)
+        skip!(ctx, Cumulative, :f4)  # Add more
 
         result = generate_schema(Cumulative; ctx = ctx)
         key = ctx.key_of[Cumulative]
@@ -143,9 +143,9 @@ using Struct2JSONSchema
         end
 
         ctx = SchemaContext()
-        register_skip_fields!(ctx, SkipDescription, :_internal)
-        register_field_description!(ctx, SkipDescription, :id, "User ID")
-        register_field_description!(ctx, SkipDescription, :_internal, "Should be ignored")
+        skip!(ctx, SkipDescription, :_internal)
+        describe!(ctx, SkipDescription, :id, "User ID")
+        describe!(ctx, SkipDescription, :_internal, "Should be ignored")
 
         result = generate_schema(SkipDescription; ctx = ctx, simplify = false)
         key = ctx.key_of[SkipDescription]
@@ -155,7 +155,7 @@ using Struct2JSONSchema
         @test haskey(schema["properties"]["id"], "description")
     end
 
-    @testset "register_only_fields! basic" begin
+    @testset "only! basic" begin
         struct OnlyBasic
             keep1::Int
             keep2::String
@@ -164,7 +164,7 @@ using Struct2JSONSchema
         end
 
         ctx = SchemaContext()
-        register_only_fields!(ctx, OnlyBasic, :keep1, :keep2)
+        only!(ctx, OnlyBasic, :keep1, :keep2)
 
         result = generate_schema(OnlyBasic; ctx = ctx)
         key = ctx.key_of[OnlyBasic]
@@ -176,7 +176,7 @@ using Struct2JSONSchema
         @test !haskey(schema["properties"], "skip2")
     end
 
-    @testset "register_only_fields! single field" begin
+    @testset "only! single field" begin
         struct OnlySingle
             important::String
             noise1::Int
@@ -184,7 +184,7 @@ using Struct2JSONSchema
         end
 
         ctx = SchemaContext()
-        register_only_fields!(ctx, OnlySingle, :important)
+        only!(ctx, OnlySingle, :important)
 
         result = generate_schema(OnlySingle; ctx = ctx)
         key = ctx.key_of[OnlySingle]
@@ -195,14 +195,14 @@ using Struct2JSONSchema
         @test schema["required"] == ["important"]
     end
 
-    @testset "register_only_fields! all fields" begin
+    @testset "only! all fields" begin
         struct OnlyAll
             f1::Int
             f2::String
         end
 
         ctx = SchemaContext()
-        register_only_fields!(ctx, OnlyAll, :f1, :f2)
+        only!(ctx, OnlyAll, :f1, :f2)
 
         result = generate_schema(OnlyAll; ctx = ctx)
         key = ctx.key_of[OnlyAll]
@@ -212,13 +212,13 @@ using Struct2JSONSchema
         @test Set(schema["required"]) == Set(["f1", "f2"])
     end
 
-    @testset "register_only_fields! error on non-existent field" begin
+    @testset "only! error on non-existent field" begin
         struct OnlyError
             f1::Int
         end
 
         ctx = SchemaContext()
-        @test_throws ArgumentError register_only_fields!(ctx, OnlyError, :nonexistent)
+        @test_throws ArgumentError only!(ctx, OnlyError, :nonexistent)
     end
 
     @testset "Skip all fields" begin
@@ -229,7 +229,7 @@ using Struct2JSONSchema
         end
 
         ctx = SchemaContext()
-        register_skip_fields!(ctx, AllSkipped, :f1, :f2, :f3)
+        skip!(ctx, AllSkipped, :f1, :f2, :f3)
 
         result = generate_schema(AllSkipped; ctx = ctx)
         key = ctx.key_of[AllSkipped]
@@ -247,10 +247,10 @@ using Struct2JSONSchema
         end
 
         ctx = SchemaContext()
-        register_field_override!(ctx, SkipOverride, :email) do ctx
+        override_field!(ctx, SkipOverride, :email) do ctx
             Dict("type" => "string", "format" => "email")
         end
-        register_skip_fields!(ctx, SkipOverride, :_cache)
+        skip!(ctx, SkipOverride, :_cache)
 
         result = generate_schema(SkipOverride; ctx = ctx)
         key = ctx.key_of[SkipOverride]
@@ -268,8 +268,8 @@ using Struct2JSONSchema
         end
 
         ctx = SchemaContext()
-        register_optional_fields!(ctx, SkipOptionalConflict, :maybe_skip)
-        register_skip_fields!(ctx, SkipOptionalConflict, :maybe_skip)
+        optional!(ctx, SkipOptionalConflict, :maybe_skip)
+        skip!(ctx, SkipOptionalConflict, :maybe_skip)
 
         result = generate_schema(SkipOptionalConflict; ctx = ctx)
         key = ctx.key_of[SkipOptionalConflict]
@@ -292,8 +292,8 @@ using Struct2JSONSchema
         end
 
         ctx = SchemaContext()
-        register_skip_fields!(ctx, NestedInner, :_internal)
-        register_skip_fields!(ctx, NestedOuter, :_metadata)
+        skip!(ctx, NestedInner, :_internal)
+        skip!(ctx, NestedOuter, :_metadata)
 
         result = generate_schema(NestedOuter; ctx = ctx, simplify = false)
 
@@ -319,7 +319,7 @@ using Struct2JSONSchema
         end
 
         ctx = SchemaContext()
-        register_skip_fields!(ctx, Container, :skipped)
+        skip!(ctx, Container, :skipped)
 
         result = generate_schema(Container; ctx = ctx, simplify = false)
 
@@ -338,8 +338,8 @@ using Struct2JSONSchema
         end
 
         ctx = SchemaContext()
-        register_only_fields!(ctx, CombineSkipOnly, :f1, :f2, :f3)
-        register_skip_fields!(ctx, CombineSkipOnly, :f3)  # Further restrict
+        only!(ctx, CombineSkipOnly, :f1, :f2, :f3)
+        skip!(ctx, CombineSkipOnly, :f3)  # Further restrict
 
         result = generate_schema(CombineSkipOnly; ctx = ctx)
         key = ctx.key_of[CombineSkipOnly]

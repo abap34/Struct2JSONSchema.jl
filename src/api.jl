@@ -1,12 +1,12 @@
 """
-    register_abstract!(ctx, A; variants, discr_key, tag_value, require_discr=true)
+    override_abstract!(ctx, A; variants, discr_key, tag_value, require_discr=true)
 
 Register a discriminator schema for the abstract type `A`. `variants`
 must be a vector of concrete subtypes, `discr_key` the discriminator field
 name, and `tag_value` a `Dict` mapping each variant to a JSON scalar tag.
 When `require_discr` is true the discriminator field is marked as required.
 """
-function register_abstract!(
+function override_abstract!(
         ctx::SchemaContext, A::DataType;
         variants::Vector{DataType},
         discr_key::String,
@@ -52,7 +52,7 @@ function register_abstract!(
     tags = Dict{DataType, RepresentableScalar}(tag_value)
     variants_copy = copy(variants)
 
-    register_override!(ctx) do ctx
+    override!(ctx) do ctx
         if current_type(ctx) === A && current_field(ctx) === nothing
             return generate_abstract_schema(variants_copy, discr_key, tags, require_discr, ctx)
         end
@@ -62,7 +62,7 @@ function register_abstract!(
 end
 
 """
-    register_override!(ctx, generator)
+    override!(generator, ctx)
 
 Append a generic override function. `generator` receives the live
 `SchemaContext` and must return a replacement schema `Dict` or
@@ -70,20 +70,20 @@ Append a generic override function. `generator` receives the live
 are caught; when `ctx.verbose` is true a warning is logged before
 falling back to the next candidate.
 """
-function register_override!(generator::Function, ctx::SchemaContext)
+function override!(generator::Function, ctx::SchemaContext)
     push!(ctx.overrides, generator)
     return nothing
 end
 
 """
-    register_type_override!(ctx, T, generator)
+    override_type!(generator, ctx, T)
 
-Convenience wrapper over [`register_override!`](@ref) that only fires
+Convenience wrapper over [`override!`](@ref) that only fires
 when the currently generated type is exactly `T`. The supplied `generator`
 should return the full replacement schema for that type.
 """
-function register_type_override!(generator::Function, ctx::SchemaContext, T::DataType)
-    register_override!(ctx) do ctx
+function override_type!(generator::Function, ctx::SchemaContext, T::DataType)
+    override!(ctx) do ctx
         if current_type(ctx) === T && current_field(ctx) === nothing
             return generator(ctx)
         end
@@ -93,15 +93,15 @@ function register_type_override!(generator::Function, ctx::SchemaContext, T::Dat
 end
 
 """
-    register_field_override!(ctx, T, field, generator)
+    override_field!(generator, ctx, T, field)
 
 Register a context-aware override for the field `field` on struct `T`.
 The override runs while the field is visited and may return any schema
 `Dict`. Returning `nothing` falls back to downstream overrides or the
 default `\$ref`.
 """
-function register_field_override!(generator::Function, ctx::SchemaContext, T::DataType, field::Symbol)
-    register_override!(ctx) do ctx
+function override_field!(generator::Function, ctx::SchemaContext, T::DataType, field::Symbol)
+    override!(ctx) do ctx
         if current_parent(ctx) === T && current_field(ctx) === field
             return generator(ctx)
         end
@@ -136,12 +136,12 @@ function register_to_field_set!(dict::IdDict, T::Type, fields)
 end
 
 """
-    register_optional_fields!(ctx, T, fields)
+    optional!(ctx, T, fields...)
 
 Mark specific fields on `T` as optional regardless of their declared types.
 `fields` may be supplied as a collection of `Symbol`s or as varargs.
 """
-function register_optional_fields!(ctx::SchemaContext, T::Type, fields::Symbol...)
+function optional!(ctx::SchemaContext, T::Type, fields::Symbol...)
     isempty(fields) && return nothing
     validate_struct_fields(T, fields, "registering optional fields")
     register_to_field_set!(optional_fields(ctx), T, fields)
@@ -149,26 +149,26 @@ function register_optional_fields!(ctx::SchemaContext, T::Type, fields::Symbol..
 end
 
 """
-    register_field_description!(ctx, T, field, description)
+    describe!(ctx, T, field, description)
 
 Register a description for the field `field` on struct `T`.
 The description will be added to the JSON Schema as the `description` property.
 Manual registration takes priority over automatic extraction via `REPL.fielddoc`.
 """
-function register_field_description!(ctx::SchemaContext, T::Type, field::Symbol, description::String)
+function describe!(ctx::SchemaContext, T::Type, field::Symbol, description::String)
     validate_struct_fields(T, (field,), "registering field descriptions")
     field_descriptions(ctx)[(T, field)] = description
     return nothing
 end
 
 """
-    register_skip_fields!(ctx, T, fields...)
+    skip!(ctx, T, fields...)
 
 Mark specific fields on `T` to be completely skipped (excluded from schema generation).
 Skipped fields will not appear in `properties` or `required`.
 `fields` may be supplied as a collection of `Symbol`s or as varargs.
 """
-function register_skip_fields!(ctx::SchemaContext, T::Type, fields::Symbol...)
+function skip!(ctx::SchemaContext, T::Type, fields::Symbol...)
     isempty(fields) && return nothing
     validate_struct_fields(T, fields, "registering skip fields")
     register_to_field_set!(skip_fields(ctx), T, fields)
@@ -176,13 +176,13 @@ function register_skip_fields!(ctx::SchemaContext, T::Type, fields::Symbol...)
 end
 
 """
-    register_only_fields!(ctx, T, fields...)
+    only!(ctx, T, fields...)
 
 Mark that only the specified fields on `T` should be included in the schema.
-All other fields will be skipped. This is the inverse of `register_skip_fields!`.
+All other fields will be skipped. This is the inverse of `skip!`.
 `fields` may be supplied as a collection of `Symbol`s or as varargs.
 """
-function register_only_fields!(ctx::SchemaContext, T::Type, fields::Symbol...)
+function only!(ctx::SchemaContext, T::Type, fields::Symbol...)
     isempty(fields) && return nothing
     all_fields = validate_struct_fields(T, fields, "registering only fields")
     fields_to_skip = setdiff(all_fields, Set(fields))
@@ -191,18 +191,18 @@ function register_only_fields!(ctx::SchemaContext, T::Type, fields::Symbol...)
 end
 
 """Enable automatic `Union{T,Nothing}` → optional field detection."""
-treat_union_nothing_as_optional!(ctx::SchemaContext) = (ctx.options.auto_optional_union_nothing = true; nothing)
+auto_optional_nothing!(ctx::SchemaContext) = (ctx.options.auto_optional_union_nothing = true; nothing)
 
 """Enable automatic `Union{T,Missing}` → optional field detection."""
-treat_union_missing_as_optional!(ctx::SchemaContext) = (ctx.options.auto_optional_union_missing = true; nothing)
+auto_optional_missing!(ctx::SchemaContext) = (ctx.options.auto_optional_union_missing = true; nothing)
 
 """
-    treat_null_as_optional!(ctx)
+    auto_optional_null!(ctx)
 
 Helper that enables both `Union{T,Nothing}` and `Union{T,Missing}`
 detection in one call.
 """
-function treat_null_as_optional!(ctx::SchemaContext)
+function auto_optional_null!(ctx::SchemaContext)
     ctx.options.auto_optional_union_nothing = true
     ctx.options.auto_optional_union_missing = true
     return nothing

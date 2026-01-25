@@ -1,5 +1,5 @@
 using Test
-using Struct2JSONSchema: SchemaContext, generate_schema, generate_schema!, register_abstract!, register_override!, register_type_override!, register_field_override!, k, define!, current_type, current_parent, current_field, UnknownEntry
+using Struct2JSONSchema: SchemaContext, generate_schema, generate_schema!, override_abstract!, override!, override_type!, override_field!, k, define!, current_type, current_parent, current_field, UnknownEntry
 using Dates
 import Logging
 
@@ -39,9 +39,9 @@ ctx_key(T) = k(T, _CTX_KEY_CTX)
     @test isempty(second.unknowns)
 end
 
-@testset "register_abstract! validation" begin
+@testset "override_abstract! validation" begin
     ctx = SchemaContext()
-    @test_throws ArgumentError register_abstract!(
+    @test_throws ArgumentError override_abstract!(
         ctx, PlainType;
         variants = DataType[],
         discr_key = "kind",
@@ -53,7 +53,7 @@ end
 @testset "Overrides customize definitions" begin
     ctx = SchemaContext()
 
-    register_type_override!(ctx, DateTime) do ctx
+    override_type!(ctx, DateTime) do ctx
         Dict(
             "type" => "string",
             "format" => "date-time",
@@ -61,7 +61,7 @@ end
         )
     end
 
-    register_type_override!(ctx, OverrideDemo) do ctx
+    override_type!(ctx, OverrideDemo) do ctx
         push!(ctx.path, :amount)
         define!(Int64, ctx)
         pop!(ctx.path)
@@ -151,11 +151,11 @@ end
 @testset "override tests" begin
     ctx = SchemaContext()
 
-    register_type_override!(ctx, OverrideTarget1) do ctx
+    override_type!(ctx, OverrideTarget1) do ctx
         Dict("type" => "object", "description" => "Override 1")
     end
 
-    register_type_override!(ctx, OverrideTarget2) do ctx
+    override_type!(ctx, OverrideTarget2) do ctx
         Dict("type" => "object", "description" => "Override 2")
     end
 
@@ -179,11 +179,11 @@ end
 @testset "primitive type override tests" begin
     ctx = SchemaContext()
 
-    register_type_override!(ctx, Int32) do ctx
+    override_type!(ctx, Int32) do ctx
         Dict("type" => "integer", "description" => "Custom Int32")
     end
 
-    register_type_override!(ctx, Int64) do ctx
+    override_type!(ctx, Int64) do ctx
         Dict("type" => "integer", "description" => "Custom Int64")
     end
 
@@ -222,7 +222,7 @@ end
 @testset "field override - multiple fields" begin
     ctx = SchemaContext()
 
-    register_field_override!(ctx, URLContainer, :homepage) do ctx
+    override_field!(ctx, URLContainer, :homepage) do ctx
         Dict(
             "type" => "string",
             "format" => "uri",
@@ -230,7 +230,7 @@ end
         )
     end
 
-    register_field_override!(ctx, URLContainer, :api_endpoint) do ctx
+    override_field!(ctx, URLContainer, :api_endpoint) do ctx
         Dict(
             "type" => "string",
             "format" => "uri",
@@ -255,14 +255,14 @@ end
 @testset "field override - same override for multiple fields" begin
     ctx = SchemaContext()
 
-    register_field_override!(ctx, EmailContainer, :primary) do ctx
+    override_field!(ctx, EmailContainer, :primary) do ctx
         Dict(
             "type" => "string",
             "format" => "email"
         )
     end
 
-    register_field_override!(ctx, EmailContainer, :secondary) do ctx
+    override_field!(ctx, EmailContainer, :secondary) do ctx
         Dict(
             "type" => "string",
             "format" => "email"
@@ -284,7 +284,7 @@ end
 @testset "field override - numeric constraints" begin
     ctx = SchemaContext()
 
-    register_field_override!(ctx, ScoreRecord, :score) do ctx
+    override_field!(ctx, ScoreRecord, :score) do ctx
         Dict(
             "type" => "number",
             "minimum" => 0.0,
@@ -309,7 +309,7 @@ end
 @testset "field override - string length constraints" begin
     ctx = SchemaContext()
 
-    register_field_override!(ctx, StringLengthRecord, :username) do ctx
+    override_field!(ctx, StringLengthRecord, :username) do ctx
         Dict(
             "type" => "string",
             "minLength" => 3,
@@ -318,7 +318,7 @@ end
         )
     end
 
-    register_field_override!(ctx, StringLengthRecord, :bio) do ctx
+    override_field!(ctx, StringLengthRecord, :bio) do ctx
         Dict(
             "type" => "string",
             "maxLength" => 500
@@ -342,7 +342,7 @@ end
 @testset "type override - DateTime custom format" begin
     ctx = SchemaContext()
 
-    register_type_override!(ctx, DateTime) do ctx
+    override_type!(ctx, DateTime) do ctx
         Dict(
             "type" => "string",
             "format" => "date-time",
@@ -365,7 +365,7 @@ end
 @testset "type override - Float64 custom representation" begin
     ctx = SchemaContext()
 
-    register_type_override!(ctx, Float64) do ctx
+    override_type!(ctx, Float64) do ctx
         Dict(
             "type" => "number",
             "description" => "Custom float representation"
@@ -387,7 +387,7 @@ end
 @testset "type override - String custom constraints" begin
     ctx = SchemaContext()
 
-    register_type_override!(ctx, String) do ctx
+    override_type!(ctx, String) do ctx
         Dict(
             "type" => "string",
             "minLength" => 1,
@@ -410,7 +410,7 @@ end
 @testset "field override - nested struct with overrides" begin
     ctx = SchemaContext()
 
-    register_field_override!(ctx, ScoreRecord, :score) do ctx
+    override_field!(ctx, ScoreRecord, :score) do ctx
         Dict(
             "type" => "number",
             "minimum" => 0.0,
@@ -418,7 +418,7 @@ end
         )
     end
 
-    register_field_override!(ctx, NestedOverride, :name) do ctx
+    override_field!(ctx, NestedOverride, :name) do ctx
         Dict(
             "type" => "string",
             "minLength" => 1
@@ -444,7 +444,7 @@ end
 @testset "type override - multiple integer types" begin
     ctx = SchemaContext()
 
-    register_type_override!(ctx, Int8) do ctx
+    override_type!(ctx, Int8) do ctx
         Dict(
             "type" => "integer",
             "minimum" => -128,
@@ -453,7 +453,7 @@ end
         )
     end
 
-    register_type_override!(ctx, Int32) do ctx
+    override_type!(ctx, Int32) do ctx
         Dict(
             "type" => "integer",
             "description" => "32-bit integer"
@@ -476,7 +476,7 @@ end
 @testset "field override - array constraints" begin
     ctx = SchemaContext()
 
-    register_field_override!(ctx, ArrayOverrideRecord, :items) do ctx
+    override_field!(ctx, ArrayOverrideRecord, :items) do ctx
         Dict(
             "type" => "array",
             "items" => Dict("type" => "integer"),
@@ -499,7 +499,7 @@ end
 @testset "field override - enum values" begin
     ctx = SchemaContext()
 
-    register_field_override!(ctx, EnumOverrideRecord, :color) do ctx
+    override_field!(ctx, EnumOverrideRecord, :color) do ctx
         Dict(
             "type" => "string",
             "enum" => ["red", "green", "blue"]
@@ -525,7 +525,7 @@ end
 
     ctx = SchemaContext()
 
-    register_override!(ctx) do ctx
+    override!(ctx) do ctx
         if current_parent(ctx) === UnifiedFieldTarget && current_field(ctx) === :value
             return Dict("type" => "integer", "minimum" => 0)
         end
@@ -546,7 +546,7 @@ end
 
     ctx = SchemaContext()
 
-    register_override!(ctx) do ctx
+    override!(ctx) do ctx
         if current_type(ctx) === UnifiedTypeTarget && current_field(ctx) === nothing
             return Dict("type" => "object", "description" => "custom type override")
         end
@@ -573,7 +573,7 @@ end
 
     ctx = SchemaContext()
 
-    register_override!(ctx) do ctx
+    override!(ctx) do ctx
         if current_type(ctx) === String && :config in ctx.path
             return Dict("type" => "string", "minLength" => 1)
         end
@@ -597,7 +597,7 @@ end
 
     ctx = SchemaContext()
 
-    register_type_override!(ctx, Float64) do ctx
+    override_type!(ctx, Float64) do ctx
         Dict("type" => "number", "minimum" => 0)
     end
 
@@ -616,7 +616,7 @@ end
 
     ctx = SchemaContext()
 
-    register_field_override!(ctx, FieldOverrideHolder, :email) do ctx
+    override_field!(ctx, FieldOverrideHolder, :email) do ctx
         Dict("type" => "string", "format" => "email")
     end
 
@@ -627,7 +627,7 @@ end
     @test haskey(schema["properties"]["name"], "\$ref")
 end
 
-@testset "override contexts - register_abstract!" begin
+@testset "override contexts - override_abstract!" begin
     abstract type UnifiedAnimal end
 
     struct UnifiedCat <: UnifiedAnimal
@@ -642,7 +642,7 @@ end
 
     ctx = SchemaContext()
 
-    register_abstract!(
+    override_abstract!(
         ctx, UnifiedAnimal;
         variants = [UnifiedCat, UnifiedDog],
         discr_key = "kind",
@@ -668,11 +668,11 @@ end
 
     ctx = SchemaContext()
 
-    register_type_override!(ctx, Int) do _
+    override_type!(ctx, Int) do _
         Dict("type" => "integer", "minimum" => 5)
     end
 
-    register_field_override!(ctx, PrecedenceHolder, :value) do _
+    override_field!(ctx, PrecedenceHolder, :value) do _
         Dict("type" => "integer", "minimum" => 0, "maximum" => 10)
     end
 
@@ -691,7 +691,7 @@ end
     end
 
     verbose_ctx = SchemaContext(verbose = true)
-    register_override!(verbose_ctx) do ctx
+    override!(verbose_ctx) do ctx
         if current_type(ctx) === BrokenOverride
             error("boom")
         end
@@ -712,7 +712,7 @@ end
 
     ctx = SchemaContext()
     first_hit = Ref(false)
-    register_override!(ctx) do ctx
+    override!(ctx) do ctx
         if current_type(ctx) === OrderingTarget
             first_hit[] = true
             return Dict(
@@ -726,7 +726,7 @@ end
     end
 
     second_hit = Ref(false)
-    register_override!(ctx) do ctx
+    override!(ctx) do ctx
         if current_type(ctx) === OrderingTarget
             second_hit[] = true
             return Dict("type" => "object")
@@ -744,14 +744,14 @@ end
 @testset "field override - regex patterns" begin
     ctx = SchemaContext()
 
-    register_field_override!(ctx, PatternRecord, :phone) do ctx
+    override_field!(ctx, PatternRecord, :phone) do ctx
         Dict(
             "type" => "string",
             "pattern" => "^\\+?[1-9]\\d{1,14}\$"
         )
     end
 
-    register_field_override!(ctx, PatternRecord, :zipcode) do ctx
+    override_field!(ctx, PatternRecord, :zipcode) do ctx
         Dict(
             "type" => "string",
             "pattern" => "^\\d{5}(-\\d{4})?\$"

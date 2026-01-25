@@ -1,5 +1,5 @@
 using Test
-using Struct2JSONSchema: SchemaContext, generate_schema, register_field_override!, register_type_override!, treat_union_nothing_as_optional!, k
+using Struct2JSONSchema: SchemaContext, generate_schema, override_field!, override_type!, auto_optional_nothing!, k
 using Dates
 
 const _FIELD_OVERRIDE_KEY_CTX = SchemaContext()
@@ -13,7 +13,7 @@ field_override_key(T) = k(T, _FIELD_OVERRIDE_KEY_CTX)
     end
 
     ctx = SchemaContext()
-    register_field_override!(ctx, EventWithTimestamp, :timestamp) do ctx
+    override_field!(ctx, EventWithTimestamp, :timestamp) do ctx
         Dict(
             "type" => "string",
             "format" => "date-time"
@@ -38,7 +38,7 @@ end
     end
 
     ctx = SchemaContext()
-    register_field_override!(ctx, UserWithEmail, :email) do ctx
+    override_field!(ctx, UserWithEmail, :email) do ctx
         Dict(
             "type" => "string",
             "format" => "email",
@@ -66,7 +66,7 @@ end
     ctx = SchemaContext()
 
     for field in [:created_at, :updated_at]
-        register_field_override!(ctx, Article, field) do ctx
+        override_field!(ctx, Article, field) do ctx
             Dict(
                 "type" => "string",
                 "format" => "date-time"
@@ -92,11 +92,11 @@ end
 
     ctx = SchemaContext()
 
-    register_type_override!(ctx, Float64) do ctx
+    override_type!(ctx, Float64) do ctx
         Dict("type" => "number", "minimum" => 0)
     end
 
-    register_field_override!(ctx, Product, :discounted_price) do ctx
+    override_field!(ctx, Product, :discounted_price) do ctx
         Dict(
             "type" => "number",
             "minimum" => 0,
@@ -132,7 +132,7 @@ end
 
     ctx = SchemaContext()
 
-    register_field_override!(ctx, Document, :metadata) do ctx
+    override_field!(ctx, Document, :metadata) do ctx
         Dict(
             "type" => "object",
             "description" => "Document metadata with custom validation"
@@ -156,7 +156,7 @@ end
     ctx = SchemaContext()
 
     timeout_gen = ctx -> Dict("type" => "integer", "minimum" => 1, "maximum" => 3600)
-    register_field_override!(timeout_gen, ctx, Config, :timeout)
+    override_field!(timeout_gen, ctx, Config, :timeout)
 
     result = generate_schema(Config; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
@@ -174,9 +174,9 @@ end
     end
 
     ctx = SchemaContext()
-    treat_union_nothing_as_optional!(ctx)
+    auto_optional_nothing!(ctx)
 
-    register_field_override!(ctx, OptionalTimestampRecord, :timestamp) do ctx
+    override_field!(ctx, OptionalTimestampRecord, :timestamp) do ctx
         Dict(
             "anyOf" => [
                 Dict("type" => "string", "format" => "date-time"),
@@ -202,7 +202,7 @@ end
     ctx = SchemaContext()
 
     custom_gen = ctx -> Dict("type" => "object", "description" => "Custom schema")
-    register_type_override!(custom_gen, ctx, MyCustomType)
+    override_type!(custom_gen, ctx, MyCustomType)
 
     result = generate_schema(MyCustomType; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
@@ -221,7 +221,7 @@ end
 @testset "field overrides - multiple fields with format" begin
     ctx = SchemaContext()
 
-    register_field_override!(ctx, ApiRequest, :url) do ctx
+    override_field!(ctx, ApiRequest, :url) do ctx
         Dict(
             "type" => "string",
             "format" => "uri",
@@ -229,7 +229,7 @@ end
         )
     end
 
-    register_field_override!(ctx, ApiRequest, :method) do ctx
+    override_field!(ctx, ApiRequest, :method) do ctx
         Dict(
             "type" => "string",
             "enum" => ["GET", "POST", "PUT", "DELETE", "PATCH"]
@@ -253,7 +253,7 @@ end
 @testset "field overrides - range constraints" begin
     ctx = SchemaContext()
 
-    register_field_override!(ctx, Coordinates, :latitude) do ctx
+    override_field!(ctx, Coordinates, :latitude) do ctx
         Dict(
             "type" => "number",
             "minimum" => -90,
@@ -261,7 +261,7 @@ end
         )
     end
 
-    register_field_override!(ctx, Coordinates, :longitude) do ctx
+    override_field!(ctx, Coordinates, :longitude) do ctx
         Dict(
             "type" => "number",
             "minimum" => -180,
@@ -288,7 +288,7 @@ end
 @testset "field overrides - string length constraints" begin
     ctx = SchemaContext()
 
-    register_field_override!(ctx, StringValidation, :username) do ctx
+    override_field!(ctx, StringValidation, :username) do ctx
         Dict(
             "type" => "string",
             "minLength" => 3,
@@ -296,14 +296,14 @@ end
         )
     end
 
-    register_field_override!(ctx, StringValidation, :password) do ctx
+    override_field!(ctx, StringValidation, :password) do ctx
         Dict(
             "type" => "string",
             "minLength" => 8
         )
     end
 
-    register_field_override!(ctx, StringValidation, :zipcode) do ctx
+    override_field!(ctx, StringValidation, :zipcode) do ctx
         Dict(
             "type" => "string",
             "pattern" => "^\\d{5}(-\\d{4})?\$"
@@ -329,14 +329,14 @@ end
 @testset "field overrides - integer constraints" begin
     ctx = SchemaContext()
 
-    register_field_override!(ctx, Pagination, :page) do ctx
+    override_field!(ctx, Pagination, :page) do ctx
         Dict(
             "type" => "integer",
             "minimum" => 1
         )
     end
 
-    register_field_override!(ctx, Pagination, :page_size) do ctx
+    override_field!(ctx, Pagination, :page_size) do ctx
         Dict(
             "type" => "integer",
             "minimum" => 1,
@@ -362,7 +362,7 @@ end
 @testset "field overrides - MIME type validation" begin
     ctx = SchemaContext()
 
-    register_field_override!(ctx, MediaFile, :content_type) do ctx
+    override_field!(ctx, MediaFile, :content_type) do ctx
         Dict(
             "type" => "string",
             "pattern" => "^[a-z]+/[a-z0-9\\-\\+\\.]+\$",
@@ -387,14 +387,14 @@ end
 @testset "field overrides - currency and UUID" begin
     ctx = SchemaContext()
 
-    register_field_override!(ctx, AccountInfo, :account_id) do ctx
+    override_field!(ctx, AccountInfo, :account_id) do ctx
         Dict(
             "type" => "string",
             "format" => "uuid"
         )
     end
 
-    register_field_override!(ctx, AccountInfo, :currency) do ctx
+    override_field!(ctx, AccountInfo, :currency) do ctx
         Dict(
             "type" => "string",
             "enum" => ["USD", "EUR", "GBP", "JPY"]
@@ -418,7 +418,7 @@ end
 @testset "field overrides - rating and timestamp" begin
     ctx = SchemaContext()
 
-    register_field_override!(ctx, ReviewData, :rating) do ctx
+    override_field!(ctx, ReviewData, :rating) do ctx
         Dict(
             "type" => "integer",
             "minimum" => 1,
@@ -426,7 +426,7 @@ end
         )
     end
 
-    register_field_override!(ctx, ReviewData, :created_at) do ctx
+    override_field!(ctx, ReviewData, :created_at) do ctx
         Dict(
             "type" => "string",
             "format" => "date-time"

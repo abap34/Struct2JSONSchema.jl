@@ -17,37 +17,37 @@ UnknownEntry
 ## Type Registration
 
 ```@docs
-register_abstract!
-register_override!
-register_type_override!
-register_field_override!
-register_optional_fields!
-register_field_description!
+override_abstract!
+override!
+override_type!
+override_field!
+optional!
+describe!
 ```
 
 ## Optional Fields
 
 ```@docs
-treat_union_nothing_as_optional!
-treat_union_missing_as_optional!
-treat_null_as_optional!
+auto_optional_nothing!
+auto_optional_missing!
+auto_optional_null!
 ```
 
 ## Field Filtering
 
 ```@docs
-register_skip_fields!
-register_only_fields!
+skip!
+only!
 ```
 
 ## Default Values
 
 ```@docs
-register_defaults!
-register_default_serializer!
-register_default_type_serializer!
-register_default_field_serializer!
-default_serialize_for_schema
+defaultvalue!
+defaultvalue_serializer!
+defaultvalue_type_serializer!
+defaultvalue_field_serializer!
+defaultvalue_serialize
 ```
 
 ## Index

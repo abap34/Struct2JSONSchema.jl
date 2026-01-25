@@ -1,5 +1,5 @@
 using Test
-using Struct2JSONSchema: SchemaContext, generate_schema, register_optional_fields!, treat_union_nothing_as_optional!, Struct2JSONSchema.simplify_schema
+using Struct2JSONSchema: SchemaContext, generate_schema, optional!, auto_optional_nothing!, Struct2JSONSchema.simplify_schema
 
 include("./helpers/validator.jl")
 
@@ -217,8 +217,8 @@ end
 
 @testset "end-to-end validation - optional preferences" begin
     ctx = SchemaContext()
-    register_optional_fields!(ctx, NotificationPreferencesE2E, :remarks)
-    treat_union_nothing_as_optional!(ctx)
+    optional!(ctx, NotificationPreferencesE2E, :remarks)
+    auto_optional_nothing!(ctx)
     result = generate_schema(NotificationPreferencesE2E; ctx = ctx, simplify = false)
     doc = result.doc
 
@@ -301,11 +301,11 @@ struct LogLevel
 end
 
 @testset "end-to-end validation - oneOf with description" begin
-    using Struct2JSONSchema: register_field_override!, register_field_description!
+    using Struct2JSONSchema: override_field!, describe!
 
     ctx = SchemaContext()
 
-    register_field_override!(ctx, LogLevel, :severity) do ctx
+    override_field!(ctx, LogLevel, :severity) do ctx
         Dict(
             "oneOf" => [
                 Dict("type" => "integer", "minimum" => 0, "maximum" => 5),
@@ -314,7 +314,7 @@ end
         )
     end
 
-    register_field_description!(ctx, LogLevel, :severity, "Log severity level")
+    describe!(ctx, LogLevel, :severity, "Log severity level")
 
     result = generate_schema(LogLevel; ctx = ctx, simplify = false)
     doc = result.doc

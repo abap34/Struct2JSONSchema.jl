@@ -12,6 +12,8 @@ makedocs(
     modules = [Struct2JSONSchema],
     pages = [
         "Home" => "index.md",
+        "User Guide" => "guide.md",
+        "Reference" => "reference.md",
         "API Reference" => "api.md",
     ],
 )

@@ -479,20 +479,20 @@ end
     result = generate_schema(UnsupportedTypeWrapper; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = def_for(defs, UnsupportedTypeWrapper)
-    
+
     # Both fields should reference empty schemas
     @test haskey(schema["properties"], "intrinsic_fn")
     @test haskey(schema["properties"], "ptr")
-    
+
     # Check that unknowns were recorded
     @test length(result.unknowns) == 2
     @test any(e -> e.type == Core.IntrinsicFunction && e.reason == "type_not_representable", result.unknowns)
     @test any(e -> e.type == Ptr{Nothing} && e.reason == "type_not_representable", result.unknowns)
-    
+
     # Schemas for unsupported types should be empty
     intrinsic_def = def_for(defs, Core.IntrinsicFunction)
     @test isempty(intrinsic_def)
-    
+
     ptr_def = def_for(defs, Ptr{Nothing})
     @test isempty(ptr_def)
 end

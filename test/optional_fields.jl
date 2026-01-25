@@ -167,7 +167,9 @@ end
     defs = result.doc["\$defs"]
     schema = defs[optional_key(FlexibleField)]
 
-    @test Set(schema["required"]) == Set(["id", "data"])
+    # Union{String, Int, Nothing} should also be optional when auto_optional_nothing! is enabled
+    @test Set(schema["required"]) == Set(["id"])
+    @test "data" ∉ schema["required"]
 end
 
 @testset "Optional fields - nested structs" begin
@@ -404,8 +406,9 @@ end
     defs = result.doc["\$defs"]
     schema = defs[optional_key(MixedNullTypes)]
 
-    @test Set(schema["required"]) == Set(["id", "field_both"])
+    # All fields with Nothing or Missing should be optional
+    @test Set(schema["required"]) == Set(["id"])
     @test "field_nothing" ∉ schema["required"]
     @test "field_missing" ∉ schema["required"]
-    @test "field_both" ∈ schema["required"]
+    @test "field_both" ∉ schema["required"]
 end

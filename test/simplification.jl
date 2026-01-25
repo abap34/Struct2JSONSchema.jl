@@ -739,7 +739,7 @@ end
                                 "\$ref" => "#/\$defs/CustomType",
                                 "description" => "Custom value type"
                             ),
-                            Dict("type" => "null")
+                            Dict("type" => "null"),
                         ]
                     )
                 )

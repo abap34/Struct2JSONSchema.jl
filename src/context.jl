@@ -1,5 +1,4 @@
 const RepresentableScalar = Union{String, Int, Float64, Bool, Nothing}
-const RepresentableValue = Union{String, Int, Float64, Bool, Nothing, Vector, Dict{String,Any}}
 const SymbolPath = Tuple{Vararg{Symbol}}
 
 """
@@ -66,7 +65,7 @@ mutable struct SchemaContext
     options::GenerationOptions
     current::CurrentState
     overrides::Vector{Function}
-    default_serializers::Vector{Function}
+    defaultvalue_custom_serializers::Vector{Function}
 end
 
 """
@@ -113,7 +112,7 @@ function clone_context(ctx::SchemaContext)
         ctx.options,
         CurrentState(),
         ctx.overrides,
-        ctx.default_serializers
+        ctx.defaultvalue_custom_serializers
     )
 end
 
@@ -167,5 +166,26 @@ function with_path(f::Function, ctx::SchemaContext, sym::Symbol)
         return f()
     finally
         pop!(ctx.path)
+    end
+end
+
+# Helper to manage field context during serialization
+# Executes `f` with the proper context updated and
+# restores the previous context afterwards
+function with_field_context(f::Function, ctx::SchemaContext, T::Type, field::Symbol)
+    old_path = copy(ctx.path)
+    old_parent = current_parent(ctx)
+    old_field = current_field(ctx)
+
+    push!(ctx.path, field)
+    set_current_parent!(ctx, T)
+    set_current_field!(ctx, field)
+
+    try
+        return f()
+    finally
+        ctx.path = old_path
+        set_current_parent!(ctx, old_parent)
+        set_current_field!(ctx, old_field)
     end
 end

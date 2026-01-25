@@ -90,12 +90,12 @@ end
 
     ctx = SchemaContext()
 
-    # Override で default を設定
+    # Set default through override
     override_field!(ctx, ConfigValue, :port) do ctx
         Dict("type" => "integer", "minimum" => 1024, "default" => 8080)
     end
 
-    # defaultvalue! で別の値を登録
+    # Register a different default via defaultvalue!
     default_val = ConfigValue(3000, "localhost")
     defaultvalue!(ctx, default_val)
 
@@ -103,9 +103,9 @@ end
     defs = result.doc["\$defs"]
     schema = defs[default_key(ConfigValue)]
 
-    # Override の default が優先される
+    # Override-provided default takes precedence
     @test schema["properties"]["port"]["default"] == 8080
-    # host は defaultvalue! の値が使われる
+    # Host uses the value registered by defaultvalue!
     @test schema["properties"]["host"]["default"] == "localhost"
 end
 
@@ -116,12 +116,12 @@ end
 
     ctx = SchemaContext()
 
-    # Override で制約のみ設定（default なし）
+    # Override only adds constraints (no default)
     override_field!(ctx, SimpleConfig, :timeout) do ctx
         Dict("type" => "number", "minimum" => 0)
     end
 
-    # defaultvalue! で設定
+    # Provide default via defaultvalue!
     default_val = SimpleConfig(30.0)
     defaultvalue!(ctx, default_val)
 
@@ -129,7 +129,7 @@ end
     defs = result.doc["\$defs"]
     schema = defs[default_key(SimpleConfig)]
 
-    # defaultvalue! の値が設定される
+    # The default from defaultvalue! is applied
     @test schema["properties"]["timeout"]["default"] == 30.0
     @test schema["properties"]["timeout"]["minimum"] == 0
 end
@@ -473,7 +473,7 @@ end
     @test schema["properties"]["name"]["default"] == "test"
 end
 
-# ===== 複合的なテスト =====
+# ===== Integrated tests =====
 
 @testset "Complex - defaults with abstract types and discriminator" begin
     abstract type Vehicle end
@@ -495,7 +495,7 @@ end
 
     ctx = SchemaContext()
 
-    # 抽象型の登録
+    # Register abstract type behavior
     override_abstract!(
         ctx, Vehicle;
         variants = [Car, Bike],
@@ -506,26 +506,26 @@ end
         )
     )
 
-    # 各バリアントのデフォルト値を登録
+    # Register defaults for each variant
     defaultvalue!(ctx, Car("Toyota", 5))
     defaultvalue!(ctx, Bike("Giant", 21))
     defaultvalue!(ctx, Garage("My Garage", Vehicle[]))
 
-    # Garage のスキーマを生成
+    # Generate the Garage schema
     result = generate_schema(Garage; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
 
-    # Garage のデフォルト値を確認
+    # Validate Garage defaults
     garage_schema = defs[default_key(Garage)]
     @test garage_schema["properties"]["name"]["default"] == "My Garage"
     @test garage_schema["properties"]["vehicles"]["default"] == []
 
-    # Car のデフォルト値を確認
+    # Validate Car defaults
     car_schema = defs[default_key(Car)]
     @test car_schema["properties"]["brand"]["default"] == "Toyota"
     @test car_schema["properties"]["seats"]["default"] == 5
 
-    # Bike のデフォルト値を確認
+    # Validate Bike defaults
     bike_schema = defs[default_key(Bike)]
     @test bike_schema["properties"]["brand"]["default"] == "Giant"
     @test bike_schema["properties"]["gears"]["default"] == 21
@@ -545,7 +545,7 @@ end
 
     ctx = SchemaContext()
 
-    # Point をカスタムフォーマットにシリアライズ（配列として）
+    # Serialize Point as custom array format
     defaultvalue_type_serializer!(ctx, Point) do value, ctx
         [value.x, value.y]
     end
@@ -559,7 +559,7 @@ end
         )
     end
 
-    # デフォルト値を登録
+    # Register default values
     default_rect = Rectangle(
         Point(0.0, 100.0),
         Point(100.0, 0.0),
@@ -571,7 +571,7 @@ end
     defs = result.doc["\$defs"]
     rect_schema = defs[default_key(Rectangle)]
 
-    # ネストした構造体のデフォルト値が正しくシリアライズされているか確認
+    # Ensure nested structs serialize defaults correctly
     @test rect_schema["properties"]["top_left"]["default"] == [0.0, 100.0]
     @test rect_schema["properties"]["bottom_right"]["default"] == [100.0, 0.0]
     @test rect_schema["properties"]["color"]["default"] == "#FF0000"
@@ -579,25 +579,25 @@ end
 
 @testset "Complex - defaults with skip, optional, override, and description" begin
     struct ComplexConfig
-        # 通常のフィールド（デフォルト値あり）
+        # Regular field with a default
         app_name::String
-        # オプショナルフィールド（デフォルト値 = nothing）
+        # Optional field defaulting to nothing
         database_url::Union{String, Nothing}
-        # スキップするフィールド（スキーマに含まれない）
+        # Field skipped entirely from the schema
         internal_state::Int
-        # オーバーライド + デフォルト値
+        # Override + default value
         port::Int
-        # 説明 + デフォルト値
+        # Description + default value
         timeout::Float64
     end
 
     ctx = SchemaContext()
     auto_optional_nothing!(ctx)
 
-    # フィールドのスキップ
+    # Skip specific fields
     skip!(ctx, ComplexConfig, :internal_state)
 
-    # ポートのオーバーライド（制約を追加）
+    # Add constraints to port via override
     override_field!(ctx, ComplexConfig, :port) do ctx
         Dict(
             "type" => "integer",
@@ -606,14 +606,14 @@ end
         )
     end
 
-    # タイムアウトの説明
+    # Add description for timeout
     describe!(ctx, ComplexConfig, :timeout, "Request timeout in seconds")
 
-    # デフォルト値を登録
+    # Register default values
     default_config = ComplexConfig(
         "MyApp",
         nothing,
-        12345,  # このフィールドはスキップされる
+        12345,  # This field is skipped
         8080,
         30.0
     )
@@ -623,22 +623,22 @@ end
     defs = result.doc["\$defs"]
     schema = defs[default_key(ComplexConfig)]
 
-    # 通常のフィールド
+    # Regular field
     @test schema["properties"]["app_name"]["default"] == "MyApp"
 
-    # オプショナルフィールド
+    # Optional field
     @test schema["properties"]["database_url"]["default"] === nothing
     @test "database_url" ∉ schema["required"]
 
-    # スキップしたフィールドはスキーマに存在しない
+    # Skipped field should not appear in schema
     @test !haskey(schema["properties"], "internal_state")
 
-    # オーバーライド + デフォルト値
+    # Override + default value
     @test schema["properties"]["port"]["default"] == 8080
     @test schema["properties"]["port"]["minimum"] == 1024
     @test schema["properties"]["port"]["maximum"] == 65535
 
-    # 説明 + デフォルト値
+    # Description + default value
     @test schema["properties"]["timeout"]["default"] == 30.0
     @test schema["properties"]["timeout"]["description"] == "Request timeout in seconds"
 end
@@ -651,7 +651,7 @@ end
 
     ctx = SchemaContext()
 
-    # 再帰的な構造のデフォルト値
+    # Default for recursive structure
     default_tree = TreeNode(1, TreeNode[])
     defaultvalue!(ctx, default_tree)
 
@@ -659,11 +659,11 @@ end
     defs = result.doc["\$defs"]
     schema = defs[default_key(TreeNode)]
 
-    # デフォルト値が設定されているか確認
+    # Verify defaults were written
     @test schema["properties"]["value"]["default"] == 1
     @test schema["properties"]["children"]["default"] == []
 
-    # 再帰的な参照が正しく処理されているか確認
+    # Ensure recursive references stay valid
     @test haskey(result.doc, "\$defs")
     @test !isempty(result.doc["\$defs"])
 end
@@ -683,12 +683,12 @@ end
 
     ctx = SchemaContext()
 
-    # id フィールドは大文字のUUIDとして
+    # Serialize id as uppercase UUID
     defaultvalue_field_serializer!(ctx, LogEntry, :id) do value, ctx
         uppercase(string(value))
     end
 
-    # created は Unix タイムスタンプとして
+    # Serialize created as Unix timestamp
     defaultvalue_field_serializer!(ctx, LogEntry, :created) do value, ctx
         Int(datetime2unix(value))
     end
@@ -697,7 +697,7 @@ end
         Dict("type" => "integer", "description" => "Unix timestamp")
     end
 
-    # modified は ISO 8601 のまま（デフォルトシリアライザ）
+    # Keep modified as ISO 8601 (fallback serializer)
 
     default_entry = LogEntry(
         UUID("550e8400-e29b-41d4-a716-446655440000"),
@@ -712,7 +712,7 @@ end
     defs = result.doc["\$defs"]
     schema = defs[default_key(LogEntry)]
 
-    # フィールド固有のシリアライザが適用されているか確認
+    # Ensure field-specific serializers applied
     @test schema["properties"]["id"]["default"] == "550E8400-E29B-41D4-A716-446655440000"
     @test schema["properties"]["message"]["default"] == "System started"
     @test schema["properties"]["created"]["default"] == 1704067200  # Unix timestamp
@@ -743,7 +743,7 @@ end
     ctx = SchemaContext()
     auto_optional_nothing!(ctx)
 
-    # Address をカンマ区切り文字列としてシリアライズ
+    # Serialize Address as comma-separated string
     defaultvalue_type_serializer!(ctx, Address) do value, ctx
         "$(value.street), $(value.city), $(value.zip)"
     end
@@ -752,7 +752,7 @@ end
         Dict("type" => "string", "description" => "Address in format: street, city, zip")
     end
 
-    # Contact をJSON文字列としてシリアライズ
+    # Serialize Contact as JSON-like string
     defaultvalue_type_serializer!(ctx, Contact) do value, ctx
         parts = String[]
         if value.email !== nothing
@@ -768,7 +768,7 @@ end
         Dict("type" => "string", "description" => "Contact info")
     end
 
-    # Person のデフォルト値を登録
+    # Register Person defaults
     default_person = Person(
         "Guest",
         0,
@@ -781,15 +781,15 @@ end
     result = generate_schema(Person; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
 
-    # Person のデフォルト値を確認
+    # Validate Person defaults
     person_schema = defs[default_key(Person)]
     @test person_schema["properties"]["name"]["default"] == "Guest"
     @test person_schema["properties"]["age"]["default"] == 0
-    @test person_schema["properties"]["address"]["default"] == ", , "  # カスタムシリアライザ
-    @test person_schema["properties"]["contact"]["default"] == "no contact"  # カスタムシリアライザ
+    @test person_schema["properties"]["address"]["default"] == ", , "  # Custom serializer
+    @test person_schema["properties"]["contact"]["default"] == "no contact"  # Custom serializer
     @test person_schema["properties"]["tags"]["default"] == []
 
-    # 別の Person のデフォルト値を登録して確認
+    # Register and verify another Person default
     default_person2 = Person(
         "Alice",
         30,
@@ -820,21 +820,21 @@ end
     ctx = SchemaContext()
     defaultvalue!(ctx, Config("app", 8080, true))
 
-    # simplify=true でもデフォルト値が保持されるか
+    # Ensure defaults survive simplify=true
     result = generate_schema(Config; ctx = ctx, simplify = true)
 
-    # simplify により $defs が削除されインライン化される可能性がある
-    # デフォルト値が正しく保持されているか確認
+    # Simplify may inline schemas and drop $defs
+    # Verify defaults remain after simplification
     @test haskey(result.doc, "properties") || haskey(result.doc, "\$defs")
 
-    # トップレベルまたは $defs 内のスキーマを確認
+    # Inspect top-level or $defs schema
     if haskey(result.doc, "properties")
-        # インライン化された場合
+        # When schema is inlined
         @test result.doc["properties"]["name"]["default"] == "app"
         @test result.doc["properties"]["port"]["default"] == 8080
         @test result.doc["properties"]["enabled"]["default"] == true
     else
-        # $defs に残っている場合
+        # When schema stays under $defs
         @test !isempty(result.doc["\$defs"])
     end
 end
@@ -855,12 +855,12 @@ end
 
     ctx = SchemaContext()
 
-    # Enum 型のカスタムシリアライザー
+    # Custom serializer for enum type
     defaultvalue_type_serializer!(ctx, Status) do value, ctx
         string(value)
     end
 
-    # Enum 型を含む構造体のデフォルト値
+    # Struct defaults involving enum
     default_task = Task("My Task", PENDING, 1)
     defaultvalue!(ctx, default_task)
 
@@ -872,7 +872,7 @@ end
     @test task_schema["properties"]["status"]["default"] == "PENDING"
     @test task_schema["properties"]["priority"]["default"] == 1
 
-    # Status の enum スキーマが正しく生成されているか
+    # Ensure Status enum schema is generated
     status_key = k(Status, ctx)
     @test haskey(defs, status_key)
     @test defs[status_key]["enum"] == ["PENDING", "RUNNING", "COMPLETED", "FAILED"]
@@ -886,7 +886,7 @@ end
 
     ctx = SchemaContext()
 
-    # Tuple と NamedTuple のカスタムシリアライザー
+    # Custom serializer for Tuple and NamedTuple
     defaultvalue_field_serializer!(ctx, Coordinate, :point) do value, ctx
         [value[1], value[2]]
     end
@@ -905,10 +905,10 @@ end
     defs = result.doc["\$defs"]
     schema = defs[default_key(Coordinate)]
 
-    # Tuple のデフォルト値
+    # Default for Tuple field
     @test schema["properties"]["point"]["default"] == [1.5, 2.5]
 
-    # NamedTuple のデフォルト値
+    # Default for NamedTuple field
     @test schema["properties"]["meta"]["default"] == Dict("label" => "origin", "color" => "red")
 end
 
@@ -921,7 +921,7 @@ end
     ctx = SchemaContext()
     defaultvalue!(ctx, Service("api", 3000))
 
-    # コンテキストをクローンしてもデフォルト値が保持されるか
+    # Ensure cloned contexts preserve defaults
     result1 = generate_schema(Service; ctx = ctx, simplify = false)
     result2 = generate_schema(Service; ctx = ctx, simplify = false)
 
@@ -931,7 +931,7 @@ end
     schema1 = defs1[default_key(Service)]
     schema2 = defs2[default_key(Service)]
 
-    # 両方のスキーマが同じデフォルト値を持つ
+    # Both schemas should share identical defaults
     @test schema1["properties"]["name"]["default"] == "api"
     @test schema2["properties"]["name"]["default"] == "api"
     @test schema1["properties"]["port"]["default"] == 3000
@@ -946,7 +946,7 @@ end
 
     ctx = SchemaContext(verbose = false)
 
-    # エラーを投げるシリアライザーを登録
+    # Register serializer that throws
     defaultvalue_serializer!(ctx) do field_type, value, ctx
         if field_type == Int
             error("Intentional error")
@@ -954,7 +954,7 @@ end
         return nothing
     end
 
-    # エラーが発生してもクラッシュせず、フォールバックする
+    # Even with errors we should fall back safely
     default_data = Data(42, DateTime(2024, 1, 1))
     defaultvalue!(ctx, default_data)
 
@@ -962,7 +962,7 @@ end
     defs = result.doc["\$defs"]
     schema = defs[default_key(Data)]
 
-    # エラーが発生したフィールドはフォールバックシリアライザーを使用
+    # Errored field should fall back to default serializer
     @test schema["properties"]["value"]["default"] == 42
     @test schema["properties"]["timestamp"]["default"] == "2024-01-01T00:00:00"
 end
@@ -987,7 +987,7 @@ end
 
     ctx = SchemaContext()
 
-    # 複数の型オーバーライド
+    # Multiple type overrides
     override_type!(ctx, Point2D) do ctx
         Dict("type" => "array", "items" => Dict("type" => "number"), "minItems" => 2, "maxItems" => 2)
     end
@@ -996,7 +996,7 @@ end
         Dict("type" => "array", "items" => Dict("type" => "number"), "minItems" => 3, "maxItems" => 3)
     end
 
-    # カスタムシリアライザー
+    # Custom serializerー
     defaultvalue_type_serializer!(ctx, Point2D) do value, ctx
         [value.x, value.y]
     end
@@ -1039,7 +1039,7 @@ end
     ctx = SchemaContext()
     auto_optional_nothing!(ctx)
 
-    # ネストした optional フィールド
+    # Nested optional fields
     default_outer = Outer(
         Middle(
             Inner(42),
@@ -1049,22 +1049,22 @@ end
     )
     defaultvalue!(ctx, default_outer)
 
-    # Inner のデフォルト値も登録
+    # Register Inner defaults as well
     defaultvalue!(ctx, Inner(nothing))
 
-    # Middle のデフォルト値も登録
+    # Register Middle defaults as well
     defaultvalue!(ctx, Middle(nothing, nothing))
 
     result = generate_schema(Outer; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
 
-    # Outer のデフォルト値確認
+    # Validate Outer defaults
     outer_schema = defs[default_key(Outer)]
     @test outer_schema["properties"]["id"]["default"] == 1
-    # middle フィールドは optional
+    # middle field stays optional
     @test "middle" ∉ outer_schema["required"]
 
-    # Inner のデフォルト値確認
+    # Validate Inner defaults
     inner_schema = defs[default_key(Inner)]
     @test inner_schema["properties"]["value"]["default"] === nothing
     @test "value" ∉ inner_schema["required"]
@@ -1079,7 +1079,7 @@ end
 
     ctx = SchemaContext()
 
-    # Rational のカスタムシリアライザー（浮動小数点数に変換）
+    # Custom serializer for Rational (convert to float)
     defaultvalue_type_serializer!(ctx, Rational{Int}) do value, ctx
         Float64(value)
     end
@@ -1102,28 +1102,28 @@ end
 
 @testset "Complex - mixed skip and defaults" begin
     struct FullConfig
-        # 通常フィールド（デフォルト値あり）
+        # Regular field with a default
         name::String
         port::Int
-        # スキップするフィールド（デフォルト値も無視される）
+        # Skipped fields (defaults ignored)
         internal_cache::Dict{String, Any}
         internal_state::Int
-        # オプショナル（デフォルト値あり）
+        # Optional field with a default
         description::Union{String, Nothing}
     end
 
     ctx = SchemaContext()
     auto_optional_nothing!(ctx)
 
-    # スキップするフィールドを登録
+    # Register fields to skip
     skip!(ctx, FullConfig, :internal_cache, :internal_state)
 
-    # すべてのフィールドのデフォルト値を登録
+    # Register defaults for all fields
     default_config = FullConfig(
         "MyApp",
         8080,
-        Dict("key" => "value"),  # このフィールドはスキップされる
-        12345,                    # このフィールドもスキップされる
+        Dict("key" => "value"),  # This field is skipped
+        12345,                    # This field is skipped as well
         "A description"
     )
     defaultvalue!(ctx, default_config)
@@ -1132,21 +1132,21 @@ end
     defs = result.doc["\$defs"]
     schema = defs[default_key(FullConfig)]
 
-    # 通常フィールドにデフォルト値がある
+    # Regular fields get defaults
     @test schema["properties"]["name"]["default"] == "MyApp"
     @test schema["properties"]["port"]["default"] == 8080
 
-    # スキップしたフィールドはスキーマに存在しない
+    # Skipped field should not appear in schema
     @test !haskey(schema["properties"], "internal_cache")
     @test !haskey(schema["properties"], "internal_state")
 
-    # オプショナルフィールドにデフォルト値がある
+    # Optional field has a default
     @test schema["properties"]["description"]["default"] == "A description"
     @test "description" ∉ schema["required"]
 end
 
 @testset "Complex - circular type dependencies" begin
-    # Node -> NodeList -> Node の循環参照
+    # Circular reference Node -> NodeList -> Node
     struct Node
         value::Int
         children::Vector{Node}
@@ -1154,7 +1154,7 @@ end
 
     ctx = SchemaContext()
 
-    # 空の子ノードリストを持つノード
+    # Node with an empty children list
     default_node = Node(1, Node[])
     defaultvalue!(ctx, default_node)
 
@@ -1162,16 +1162,16 @@ end
     defs = result.doc["\$defs"]
     schema = defs[default_key(Node)]
 
-    # デフォルト値が正しく設定されている
+    # Defaults are set correctly
     @test schema["properties"]["value"]["default"] == 1
     @test schema["properties"]["children"]["default"] == []
 
-    # 循環参照が正しく処理されている（$ref が使われている）
+    # Circular references resolved via $ref
     @test haskey(result.doc, "\$defs")
 end
 
 @testset "Complex - all features combined" begin
-    # すべての機能を組み合わせた総合テスト
+    # Comprehensive scenario with every feature
 
     abstract type Asset end
 
@@ -1200,7 +1200,7 @@ end
     ctx = SchemaContext(auto_fielddoc = true)
     auto_optional_nothing!(ctx)
 
-    # 抽象型の登録
+    # Register abstract type behavior
     override_abstract!(
         ctx, Asset;
         variants = [Stock, Bond],
@@ -1211,14 +1211,14 @@ end
         )
     )
 
-    # risk_level にオーバーライドと説明を追加
+    # Override + describe risk_level
     override_field!(ctx, Portfolio, :risk_level) do ctx
         Dict("type" => "integer", "minimum" => 1, "maximum" => 10)
     end
 
     describe!(ctx, Portfolio, :risk_level, "Risk level from 1 (low) to 10 (high)")
 
-    # Date をカスタムフォーマットでシリアライズ
+    # Serialize Date with custom format
     defaultvalue_field_serializer!(ctx, Stock, :purchased) do value, ctx
         Dates.format(value, "yyyy/mm/dd")
     end
@@ -1227,7 +1227,7 @@ end
         Dict("type" => "string", "pattern" => "^\\d{4}/\\d{2}/\\d{2}\$")
     end
 
-    # デフォルト値を登録
+    # Register default values
     defaultvalue!(ctx, Stock("AAPL", 100, 150.0, Date(2024, 1, 1)))
     defaultvalue!(ctx, Bond("US Treasury", 1000.0, Date(2034, 1, 1)))
     defaultvalue!(ctx, Portfolio(
@@ -1242,7 +1242,7 @@ end
     result = generate_schema(Portfolio; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
 
-    # Portfolio のデフォルト値確認
+    # Validate Portfolio defaults
     portfolio_schema = defs[default_key(Portfolio)]
     @test portfolio_schema["properties"]["name"]["default"] == "My Portfolio"
     @test portfolio_schema["properties"]["owner"]["default"] == "John Doe"
@@ -1254,19 +1254,19 @@ end
     @test portfolio_schema["properties"]["risk_level"]["maximum"] == 10
     @test portfolio_schema["properties"]["risk_level"]["description"] == "Risk level from 1 (low) to 10 (high)"
 
-    # notes は optional
+    # notes is optional
     @test "notes" ∉ portfolio_schema["required"]
 
-    # Stock のデフォルト値確認
+    # Validate Stock defaults
     stock_schema = defs[default_key(Stock)]
     @test stock_schema["properties"]["symbol"]["default"] == "AAPL"
     @test stock_schema["properties"]["shares"]["default"] == 100
     @test stock_schema["properties"]["price"]["default"] == 150.0
-    @test stock_schema["properties"]["purchased"]["default"] == "2024/01/01"  # カスタムフォーマット
+    @test stock_schema["properties"]["purchased"]["default"] == "2024/01/01"  # Custom format
 
-    # Bond のデフォルト値確認
+    # Validate Bond defaults
     bond_schema = defs[default_key(Bond)]
     @test bond_schema["properties"]["issuer"]["default"] == "US Treasury"
     @test bond_schema["properties"]["face_value"]["default"] == 1000.0
-    @test bond_schema["properties"]["maturity"]["default"] == "2034-01-01"  # デフォルトフォーマット
+    @test bond_schema["properties"]["maturity"]["default"] == "2034-01-01"  # Default format
 end

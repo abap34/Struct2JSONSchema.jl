@@ -1,4 +1,3 @@
-include("context.jl")
 using REPL
 
 # Normalize unions and `UnionAll` types before looking up schema definitions.
@@ -220,18 +219,16 @@ function struct_schema(T::Type, ctx::SchemaContext)
         end
 
         field_type = fieldtype(T, idx)
-        old_parent = current_parent(ctx)
-        old_field = current_field(ctx)
         old_type = current_type(ctx)
-        set_current_parent!(ctx, T)
-        set_current_field!(ctx, name)
         set_current_type!(ctx, field_type)
         try
-            prop = with_path(ctx, name) do
+            prop = with_field_context(ctx, T, name) do
                 override = apply_overrides(ctx; location = "$(repr(T)).$(name)")
                 if override !== nothing
                     return override
                 end
+
+                # Clear parent/field context for nested schema generation
                 saved_parent = current_parent(ctx)
                 saved_field = current_field(ctx)
                 set_current_parent!(ctx, nothing)
@@ -241,7 +238,10 @@ function struct_schema(T::Type, ctx::SchemaContext)
                     # generate schema for T only, not the full Union
                     schema_type = field_type
                     if should_be_optional(T, name, field_type, ctx)
-                        schema_type = unwrap_optional_union(field_type)
+                        if is_union_with_nothing(field_type) || is_union_with_missing(field_type)
+                            schema_type = unwrap_optional_union(field_type)
+                        end
+                        # Otherwise, schema_type remains field_type (for explicitly registered optional fields)
                     end
                     normalized = define!(schema_type, ctx)
                     reference(normalized, ctx)
@@ -275,8 +275,6 @@ function struct_schema(T::Type, ctx::SchemaContext)
                 push!(required, string(name))
             end
         finally
-            set_current_parent!(ctx, old_parent)
-            set_current_field!(ctx, old_field)
             set_current_type!(ctx, old_type)
         end
     end
@@ -307,32 +305,6 @@ function should_be_optional(T::DataType, field::Symbol, field_type::Type, ctx::S
     return false
 end
 
-function is_union_with_nothing(T::Type)::Bool
-    T isa Union || return false
-    types = Base.uniontypes(T)
-    return Nothing in types && length(types) == 2
-end
-
-function is_union_with_missing(T::Type)::Bool
-    T isa Union || return false
-    types = Base.uniontypes(T)
-    return Missing in types && length(types) == 2
-end
-
-function unwrap_optional_union(T::Type)::Type
-    # Extract T from Union{T, Nothing} or Union{T, Missing}
-    T isa Union || return T
-    types = Base.uniontypes(T)
-    length(types) == 2 || return T
-
-    if Nothing in types
-        return types[types .!== Nothing][1]
-    elseif Missing in types
-        return types[types .!== Missing][1]
-    end
-
-    return T
-end
 
 function primitive_schema(T::Type, _::SchemaContext)
     if T === Union{}

@@ -284,7 +284,7 @@ function extract_inlinable_ref_key(schema::Dict, inline_targets::Set{String}, de
     ref isa String && startswith(ref, "#/\$defs/") || return nothing
 
     ref_key = ref[9:end]
-    ref_key in inline_targets && haskey(defs, ref_key) ? ref_key : nothing
+    return ref_key in inline_targets && haskey(defs, ref_key) ? ref_key : nothing
 end
 
 # Inline a $ref and merge any additional metadata from the wrapper schema
@@ -295,7 +295,7 @@ function inline_ref_with_metadata(schema::Dict, ref_key::String, defs::AbstractD
     # Collect metadata: all properties except $ref, recursively processed
     metadata = Dict{String, Any}(
         k => inline_refs_in_schema(v, defs, inline_targets)
-        for (k, v) in schema if k != "\$ref"
+            for (k, v) in schema if k != "\$ref"
     )
 
     # Merge: metadata takes precedence over inlined properties

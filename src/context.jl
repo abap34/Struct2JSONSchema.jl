@@ -1,5 +1,22 @@
-const JSONScalar = Union{String, Int, Float64, Bool, Nothing}
+const RepresentableScalar = Union{String, Int, Float64, Bool, Nothing}
+const RepresentableValue = Union{String, Int, Float64, Bool, Nothing, Vector, Dict{String,Any}}
 const SymbolPath = Tuple{Vararg{Symbol}}
+
+"""
+    UnknownEntry
+
+Represents a type that could not be processed, with a reason.
+
+# Fields
+- `type::Any`: The type that could not be processed
+- `path::Tuple{Vararg{Symbol}}`: The path where the type was encountered
+- `reason::String`: The reason why processing failed
+"""
+struct UnknownEntry
+    type::Any
+    path::Tuple{Vararg{Symbol}}
+    reason::String
+end
 
 mutable struct GenerationOptions
     auto_fielddoc::Bool
@@ -12,12 +29,14 @@ struct FieldMetadata
     optional_fields::IdDict{DataType, Set{Symbol}}
     skip_fields::IdDict{DataType, Set{Symbol}}
     descriptions::IdDict{Tuple{DataType, Symbol}, String}
+    default_values::IdDict{Tuple{DataType, Symbol}, Any}
 end
 
 FieldMetadata() = FieldMetadata(
     IdDict{DataType, Set{Symbol}}(),
     IdDict{DataType, Set{Symbol}}(),
-    IdDict{Tuple{DataType, Symbol}, String}()
+    IdDict{Tuple{DataType, Symbol}, String}(),
+    IdDict{Tuple{DataType, Symbol}, Any}()
 )
 
 mutable struct CurrentState
@@ -42,11 +61,12 @@ mutable struct SchemaContext
     key_of::IdDict{Any, String}
     visited::Set{Any}
     path::Vector{Symbol}
-    unknowns::Set{Tuple{Any, SymbolPath}}
+    unknowns::Set{UnknownEntry}
     field_metadata::FieldMetadata
     options::GenerationOptions
     current::CurrentState
     overrides::Vector{Function}
+    default_serializers::Vector{Function}
 end
 
 """
@@ -73,10 +93,11 @@ function SchemaContext(;
         IdDict{Any, String}(),
         Set{Any}(),
         Symbol[],
-        Set{Tuple{Any, SymbolPath}}(),
+        Set{UnknownEntry}(),
         FieldMetadata(),
         GenerationOptions(auto_fielddoc, auto_optional_union_nothing, auto_optional_union_missing, verbose),
         CurrentState(),
+        Function[],
         Function[]
     )
 end
@@ -87,15 +108,16 @@ function clone_context(ctx::SchemaContext)
         ctx.key_of,
         Set{Any}(),
         Symbol[],
-        Set{Tuple{Any, SymbolPath}}(),
+        Set{UnknownEntry}(),
         ctx.field_metadata,
         ctx.options,
         CurrentState(),
-        ctx.overrides
+        ctx.overrides,
+        ctx.default_serializers
     )
 end
 
-# Accessor utilities for backward compatibility and convenience
+# Accessor utilities
 current_type(ctx::SchemaContext) = ctx.current.type
 current_parent(ctx::SchemaContext) = ctx.current.parent
 current_field(ctx::SchemaContext) = ctx.current.field
@@ -107,6 +129,7 @@ set_current_field!(ctx::SchemaContext, f) = (ctx.current.field = f)
 optional_fields(ctx::SchemaContext) = ctx.field_metadata.optional_fields
 skip_fields(ctx::SchemaContext) = ctx.field_metadata.skip_fields
 field_descriptions(ctx::SchemaContext) = ctx.field_metadata.descriptions
+default_values(ctx::SchemaContext) = ctx.field_metadata.default_values
 
 is_verbose(ctx::SchemaContext) = ctx.options.verbose
 auto_fielddoc(ctx::SchemaContext) = ctx.options.auto_fielddoc
@@ -115,19 +138,18 @@ auto_optional_union_missing(ctx::SchemaContext) = ctx.options.auto_optional_unio
 
 path_to_string(path::Union{Vector{Symbol}, SymbolPath}) = isempty(path) ? "<root>" : join(string.(path), ".")
 
-function record_unknown!(ctx::SchemaContext, T; message::Union{Nothing, String} = nothing)
+function record_unknown!(ctx::SchemaContext, T, reason::String; message::Union{Nothing, String} = nothing)
     if T === Any
         return
     end
-    push!(ctx.unknowns, (T, Tuple(ctx.path)))
-    return if message !== nothing && is_verbose(ctx)
+    entry = UnknownEntry(T, Tuple(ctx.path), reason)
+    push!(ctx.unknowns, entry)
+    if message !== nothing && is_verbose(ctx)
         msg = "$(message) at path $(path_to_string(ctx.path))"
         @info msg
     end
+    return nothing
 end
-
-# Check if a type has been recorded as unknown
-is_unknown_type(ctx::SchemaContext, T) = any(entry[1] === T for entry in ctx.unknowns)
 
 h(T::Type) = string(hash(T), base = 16, pad = 16)
 
@@ -137,7 +159,7 @@ function k(T::Type, ctx::SchemaContext)
     end
 end
 
-reference(T::Type, ctx::SchemaContext) = Dict("\$ref" => "#/\$defs/$(k(T, ctx))")
+reference(T::Type, ctx::SchemaContext) = Dict{String, Any}("\$ref" => "#/\$defs/$(k(T, ctx))")
 
 function with_path(f::Function, ctx::SchemaContext, sym::Symbol)
     push!(ctx.path, sym)

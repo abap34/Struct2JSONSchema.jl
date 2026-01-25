@@ -11,6 +11,7 @@ generate_schema!
 
 ```@docs
 SchemaContext
+UnknownEntry
 ```
 
 ## Type Registration
@@ -37,6 +38,16 @@ treat_null_as_optional!
 ```@docs
 register_skip_fields!
 register_only_fields!
+```
+
+## Default Values
+
+```@docs
+register_defaults!
+register_default_serializer!
+register_default_type_serializer!
+register_default_field_serializer!
+default_serialize_for_schema
 ```
 
 ## Index

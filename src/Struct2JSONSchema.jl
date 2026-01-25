@@ -5,7 +5,7 @@ using Logging
 using OrderedCollections: OrderedDict
 import Dates
 import Dates: Date, DateTime, Time, datetime2unix
-import Base: isstructtype
+import Base: isstructtype, UUID
 
 include("utils.jl")
 include("context.jl")

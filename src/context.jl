@@ -65,7 +65,7 @@ mutable struct SchemaContext
     options::GenerationOptions
     current::CurrentState
     overrides::Vector{Function}
-    defaultvalue_serializers::Vector{Function}
+    defaultvalue_custom_serializers::Vector{Function}
 end
 
 """
@@ -112,7 +112,7 @@ function clone_context(ctx::SchemaContext)
         ctx.options,
         CurrentState(),
         ctx.overrides,
-        ctx.defaultvalue_serializers
+        ctx.defaultvalue_custom_serializers
     )
 end
 

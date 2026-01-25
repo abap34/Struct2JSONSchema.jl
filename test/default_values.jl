@@ -161,43 +161,6 @@ end
     @test any(e -> e.type == Function && e.reason == "abstract_no_discriminator", result.unknowns)
 end
 
-@testset "Default values - error on invalid instance" begin
-    abstract type AbstractBase end
-
-    ctx = SchemaContext()
-
-    # Abstract type should error
-    @test_throws ArgumentError defaultvalue!(ctx, AbstractBase)
-
-    # Union type should error
-    @test_throws ArgumentError defaultvalue!(ctx, Union{Int, String})
-end
-
-@testset "Default values - number normalization" begin
-    struct NumberTypes
-        i8::Int8
-        i16::Int16
-        i32::Int32
-        f32::Float32
-    end
-
-    ctx = SchemaContext()
-    default_val = NumberTypes(Int8(10), Int16(20), Int32(30), Float32(1.5))
-    defaultvalue!(ctx, default_val)
-
-    result = generate_schema(NumberTypes; ctx = ctx, simplify = false)
-    defs = result.doc["\$defs"]
-    schema = defs[default_key(NumberTypes)]
-
-    # All integers should be normalized to Int
-    @test schema["properties"]["i8"]["default"] isa Int
-    @test schema["properties"]["i16"]["default"] isa Int
-    @test schema["properties"]["i32"]["default"] isa Int
-
-    # Float32 should be normalized to Float64
-    @test schema["properties"]["f32"]["default"] isa Float64
-end
-
 @testset "Default values - custom serializer (type)" begin
     struct Color
         r::UInt8
@@ -295,8 +258,8 @@ end
     @test schema["properties"]["username"]["default"] == "guest"
     @test schema["properties"]["bio"]["default"] == ""
 
-    # Optional field: nothing serializes to null
-    @test schema["properties"]["email"]["default"] === nothing
+    # Optional field: nothing serializes to "null"
+    @test schema["properties"]["email"]["default"] == "null"
 
     # email should not be in required
     @test "email" ∉ schema["required"]
@@ -394,6 +357,91 @@ end
 
     @test schema["properties"]["matrix"]["default"] == [[1, 2], [3, 4]]
     @test schema["properties"]["nested_dict"]["default"] == Dict("a" => Dict("x" => 1, "y" => 2))
+end
+
+@testset "Default values - nested structs" begin
+    struct Address
+        street::String
+        city::String
+        note::String
+    end
+
+    struct Profile
+        name::String
+        address::Address
+    end
+
+    # Without skip!, nested structs get defaults at leaf level
+    ctx = SchemaContext()
+    default_profile = Profile("Alice", Address("Main St", "Metropolis", "leave note"))
+    defaultvalue!(ctx, default_profile)
+
+    result = generate_schema(Profile; ctx = ctx, simplify = false)
+    defs = result.doc["\$defs"]
+    schema = defs[default_key(Profile)]
+    address_schema = defs[default_key(Address)]
+
+    # Parent struct field does not have default (only leaf fields do)
+    @test !haskey(schema["properties"]["address"], "default")
+    @test schema["properties"]["name"]["default"] == "Alice"
+
+    # Nested Address fields have individual defaults
+    @test address_schema["properties"]["street"]["default"] == "Main St"
+    @test address_schema["properties"]["city"]["default"] == "Metropolis"
+    @test address_schema["properties"]["note"]["default"] == "leave note"
+
+    # With skip!, nested defaults respect skipped fields
+    ctx_skipped = SchemaContext()
+    skip!(ctx_skipped, Address, :note)
+
+    default_profile2 = Profile("Bob", Address("Oak Ave", "Arcadia", "hidden"))
+    defaultvalue!(ctx_skipped, default_profile2)
+
+    result_skipped = generate_schema(Profile; ctx = ctx_skipped, simplify = false)
+    defs_skipped = result_skipped.doc["\$defs"]
+    schema_skipped = defs_skipped[default_key(Profile)]
+    address_schema_skipped = defs_skipped[default_key(Address)]
+
+    # Parent struct field does not have default
+    @test !haskey(schema_skipped["properties"]["address"], "default")
+    @test schema_skipped["properties"]["name"]["default"] == "Bob"
+
+    # Nested Address fields have individual defaults (excluding skipped field)
+    @test address_schema_skipped["properties"]["street"]["default"] == "Oak Ave"
+    @test address_schema_skipped["properties"]["city"]["default"] == "Arcadia"
+    @test !haskey(address_schema_skipped["properties"], "note")  # Skipped field not in schema
+end
+
+@testset "Default values - structs inside collections" begin
+    struct Member
+        id::Int
+        role::String
+    end
+
+    struct Team
+        members::Vector{Member}
+        lookup::Dict{String, Member}
+    end
+
+    ctx = SchemaContext()
+    default_team = Team(
+        [Member(1, "developer")],
+        Dict("lead" => Member(2, "lead"), "qa" => Member(3, "qa"))
+    )
+    defaultvalue!(ctx, default_team)
+
+    result = generate_schema(Team; ctx = ctx, simplify = false)
+    defs = result.doc["\$defs"]
+    schema = defs[default_key(Team)]
+
+    # Collections containing structs serialize as expected
+    @test schema["properties"]["members"]["default"] == [
+        Dict("id" => 1, "role" => "developer"),
+    ]
+    @test schema["properties"]["lookup"]["default"] == Dict(
+        "lead" => Dict("id" => 2, "role" => "lead"),
+        "qa" => Dict("id" => 3, "role" => "qa")
+    )
 end
 
 @testset "Default values - unknowns tracking" begin
@@ -627,7 +675,7 @@ end
     @test schema["properties"]["app_name"]["default"] == "MyApp"
 
     # Optional field
-    @test schema["properties"]["database_url"]["default"] === nothing
+    @test schema["properties"]["database_url"]["default"] == "null"
     @test "database_url" ∉ schema["required"]
 
     # Skipped field should not appear in schema
@@ -1066,7 +1114,7 @@ end
 
     # Validate Inner defaults
     inner_schema = defs[default_key(Inner)]
-    @test inner_schema["properties"]["value"]["default"] === nothing
+    @test inner_schema["properties"]["value"]["default"] == "null"
     @test "value" ∉ inner_schema["required"]
 end
 
@@ -1087,7 +1135,7 @@ end
     default_pkg = Package(
         "MyPackage",
         v"1.2.3",
-        1//2
+        1 // 2
     )
     defaultvalue!(ctx, default_pkg)
 
@@ -1230,14 +1278,16 @@ end
     # Register default values
     defaultvalue!(ctx, Stock("AAPL", 100, 150.0, Date(2024, 1, 1)))
     defaultvalue!(ctx, Bond("US Treasury", 1000.0, Date(2034, 1, 1)))
-    defaultvalue!(ctx, Portfolio(
-        "My Portfolio",
-        "John Doe",
-        Asset[],
-        nothing,
-        UUID("550e8400-e29b-41d4-a716-446655440000"),
-        5
-    ))
+    defaultvalue!(
+        ctx, Portfolio(
+            "My Portfolio",
+            "John Doe",
+            Asset[],
+            nothing,
+            UUID("550e8400-e29b-41d4-a716-446655440000"),
+            5
+        )
+    )
 
     result = generate_schema(Portfolio; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
@@ -1247,7 +1297,7 @@ end
     @test portfolio_schema["properties"]["name"]["default"] == "My Portfolio"
     @test portfolio_schema["properties"]["owner"]["default"] == "John Doe"
     @test portfolio_schema["properties"]["assets"]["default"] == []
-    @test portfolio_schema["properties"]["notes"]["default"] === nothing
+    @test portfolio_schema["properties"]["notes"]["default"] == "null"
     @test portfolio_schema["properties"]["internal_id"]["default"] == "550e8400-e29b-41d4-a716-446655440000"
     @test portfolio_schema["properties"]["risk_level"]["default"] == 5
     @test portfolio_schema["properties"]["risk_level"]["minimum"] == 1

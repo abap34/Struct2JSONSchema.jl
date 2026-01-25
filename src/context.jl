@@ -170,7 +170,7 @@ function with_path(f::Function, ctx::SchemaContext, sym::Symbol)
 end
 
 # Helper to manage field context during serialization
-# Executes `f` with the properly context updated and
+# Executes `f` with the proper context updated and
 # restores the previous context afterwards
 function with_field_context(f::Function, ctx::SchemaContext, T::Type, field::Symbol)
     old_path = copy(ctx.path)

@@ -7,6 +7,8 @@ import Dates
 import Dates: Date, DateTime, Time, datetime2unix
 import Base: isstructtype
 
+include("utils.jl")
+include("context.jl")
 include("generation.jl")
 include("api.jl")
 include("defaults.jl")
@@ -26,6 +28,6 @@ export optional!, describe!, skip!, only!
 export auto_optional_nothing!, auto_optional_missing!, auto_optional_null!
 
 # Default values
-export defaultvalue!, defaultvalue_serializer!, defaultvalue_type_serializer!, defaultvalue_field_serializer!, defaultvalue_serialize
+export defaultvalue!, defaultvalue_serializer!, defaultvalue_type_serializer!, defaultvalue_field_serializer!
 
 end

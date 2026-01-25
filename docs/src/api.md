@@ -47,7 +47,6 @@ defaultvalue!
 defaultvalue_serializer!
 defaultvalue_type_serializer!
 defaultvalue_field_serializer!
-defaultvalue_serialize
 ```
 
 ## Index

@@ -17,12 +17,12 @@ end
 
 # By default, auto_fielddoc=true, so docstrings are automatically extracted
 ctx1 = SchemaContext()
-schema1 = generate_schema(User, ctx = ctx1)
+doc1, _ = generate_schema(User; ctx = ctx1)
 println("=== Auto-extraction from docstrings ===")
-println(JSON.json(schema1.doc, 4))
+println(JSON.json(doc1, 4))
 println()
 
-# Example 2: Manual registration with register_field_description!
+# Example 2: Manual registration with describe!
 struct Product
     id::Int
     name::String
@@ -30,13 +30,13 @@ struct Product
 end
 
 ctx2 = SchemaContext()
-register_field_description!(ctx2, Product, :id, "Product unique identifier")
-register_field_description!(ctx2, Product, :name, "Product display name")
-register_field_description!(ctx2, Product, :price, "Product price in USD")
+describe!(ctx2, Product, :id, "Product unique identifier")
+describe!(ctx2, Product, :name, "Product display name")
+describe!(ctx2, Product, :price, "Product price in USD")
 
-schema2 = generate_schema(Product, ctx = ctx2)
+doc2, _ = generate_schema(Product; ctx = ctx2)
 println("=== Manual registration ===")
-println(JSON.json(schema2.doc, 4))
+println(JSON.json(doc2, 4))
 println()
 
 # Example 3: Manual registration overrides docstring
@@ -52,8 +52,8 @@ struct Event
 end
 
 ctx3 = SchemaContext()
-register_field_description!(ctx3, Event, :id, "Event unique ID (overridden)")
+describe!(ctx3, Event, :id, "Event unique ID (overridden)")
 
-schema3 = generate_schema(Event, ctx = ctx3)
+doc3, _ = generate_schema(Event; ctx = ctx3)
 println("=== Manual registration overrides docstring ===")
-println(JSON.json(schema3.doc, 4))
+println(JSON.json(doc3, 4))

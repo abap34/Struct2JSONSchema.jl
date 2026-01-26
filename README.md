@@ -55,8 +55,8 @@ end
 ctx = SchemaContext()
 
 # Hooking into the generation process
-register_override!(ctx) do ctx
-    if ctx.current_parent == User && ctx.current_field == :id
+override!(ctx) do ctx
+    if current_parent(ctx) == User && current_field(ctx) == :id
         return Dict("type" => "string", "format" => "uuid")
     else
         return nothing
@@ -75,17 +75,18 @@ end
 ctx = SchemaContext()
 
 # Using a convenience utility function
-register_field_override!(ctx, User, :email) do ctx
+override_field!(ctx, User, :email) do ctx
     Dict("type" => "string", "format" => "email")
 end
 ```
 
 Additional utilities are provided for tasks such as:
 
-* Marking specific fields as optional.
+* Marking specific fields as optional or skipped.
 * Treating `Union{T, Nothing}` and `Union{T, Missing}` as optional fields.
 * Registering custom expansion strategies for abstract types.
 * Adding field descriptions from docstrings or manual registration.
+* Setting default values for fields.
 
 For detailed customization options, see
 [https://abap34.github.io/Struct2JSONSchema.jl/dev/#Customization](https://abap34.github.io/Struct2JSONSchema.jl/dev/#Customization)

@@ -15,8 +15,8 @@ struct UserProfile
 end
 
 ctx = SchemaContext()
-treat_union_nothing_as_optional!(ctx)
-treat_union_missing_as_optional!(ctx)
+auto_optional_nothing!(ctx)
+auto_optional_missing!(ctx)
 
-schema = generate_schema(UserProfile, ctx = ctx)
-println(JSON.json(schema.doc, 4))
+doc, _ = generate_schema(UserProfile; ctx = ctx)
+println(JSON.json(doc, 4))

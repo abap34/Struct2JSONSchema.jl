@@ -23,11 +23,11 @@ end
 
 ctx = SchemaContext()
 
-register_type_override!(ctx, UUID) do _
+override_type!(ctx, UUID) do _
     Dict("type" => "string", "format" => "uuid")
 end
 
-register_field_override!(ctx, Alert, :severity) do _
+override_field!(ctx, Alert, :severity) do _
     Dict(
         "type" => "integer",
         "minimum" => 1,
@@ -36,9 +36,9 @@ register_field_override!(ctx, Alert, :severity) do _
     )
 end
 
-treat_union_nothing_as_optional!(ctx)
+auto_optional_nothing!(ctx)
 
-register_abstract!(
+override_abstract!(
     ctx,
     Event;
     variants = [Deployment, Alert],
@@ -49,5 +49,5 @@ register_abstract!(
     )
 )
 
-schema = generate_schema(EventEnvelope; ctx = ctx)
-println(JSON.json(schema.doc, 4))
+doc, _ = generate_schema(EventEnvelope; ctx = ctx)
+println(JSON.json(doc, 4))

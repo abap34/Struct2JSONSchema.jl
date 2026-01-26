@@ -8,5 +8,5 @@ struct TodoItem
     tags::Vector{String}
 end
 
-schema = generate_schema(TodoItem)
-println(JSON.json(schema.doc, 4))
+doc, unknowns = generate_schema(TodoItem)
+println(JSON.json(doc, 4))

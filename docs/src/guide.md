@@ -558,3 +558,73 @@ result = generate_schema(User; ctx=ctx)
 # }
 # - not in required array (from optional_fields)
 ```
+
+## Inline Expansion Mode
+
+For use cases where you need a completely flat schema without any `$defs` section, (e.g., Visual Studio Code's JSON Schema support), Struct2JSONSchema.jl provides an `inline_all_defs` option:
+
+
+```julia
+struct Address
+    street::String
+    city::String
+end
+
+struct Person
+    name::String
+    address::Address
+end
+
+# Standard mode: uses $defs with references
+doc, _ = generate_schema(Person)
+# {
+#   "$schema": "...",
+#   "$ref": "#/$defs/Person__...",
+#   "$defs": {
+#     "Person__...": {...},
+#     "Address__...": {...}
+#   }
+# }
+
+# Inline expansion mode: everything is inlined
+doc, _ = generate_schema(Person; inline_all_defs=true)
+# {
+#   "$schema": "...",
+#   "type": "object",
+#   "properties": {
+#     "name": {"type": "string"},
+#     "address": {
+#       "type": "object",
+#       "properties": {
+#         "street": {"type": "string"},
+#         "city": {"type": "string"}
+#       }
+#     }
+#   }
+# }
+```
+
+
+!!! warning "Recursive Types and Inline Expansion"
+    Recursive definitions remain in `$defs` to avoid infinite expansion.
+
+    ```julia
+    struct Node
+        value::Int
+        next::Union{Node, Nothing}
+    end
+
+    # Recursive types must remain in $defs
+    doc, _ = generate_schema(Node; inline_all_defs=true)
+    # {
+    #   "$ref": "#/$defs/Node__...",
+    #   "$defs": {
+    #     "Node__...": {  # Cannot be inlined due to recursion
+    #       "anyOf": [
+    #         {"$ref": "#/$defs/Node__..."},
+    #         {"type": "null"}
+    #       ]
+    #     }
+    #   }
+    # }
+    ```

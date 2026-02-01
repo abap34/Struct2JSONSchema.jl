@@ -52,6 +52,10 @@ end
     include("simplification.jl")
 end
 
+@testset "expand_all_defs" begin
+    include("expand_all_defs.jl")
+end
+
 @testset "field descriptions" begin
     include("field_descriptions.jl")
 end

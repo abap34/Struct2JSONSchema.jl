@@ -180,15 +180,7 @@ function count_refs_in_schema!(schema::Any, counts::Dict{String, Int})
 end
 
 function find_recursive_defs(defs::AbstractDict)::Set{String}
-    recursive = Set{String}()
-
-    for key in keys(defs)
-        if is_recursive(key, defs, Set{String}())
-            push!(recursive, key)
-        end
-    end
-
-    return recursive
+    return Set(key for key in keys(defs) if is_recursive(key, defs, Set{String}()))
 end
 
 function is_recursive(key::String, defs::AbstractDict, visiting::Set{String})::Bool
@@ -197,12 +189,50 @@ function is_recursive(key::String, defs::AbstractDict, visiting::Set{String})::B
 
     push!(visiting, key)
     schema = defs[key]
-    result = check_refs_for_key(schema, key, defs, visiting)
+    # Check if any $ref in this schema leads to a cycle
+    result = has_cycle_in_refs(schema, defs, visiting)
     delete!(visiting, key)
 
     return result
 end
 
+function has_cycle_in_refs(schema::Any, defs::AbstractDict, visiting::Set{String})::Bool
+    if schema isa Dict
+        for (k, v) in schema
+            if k == "\$ref" && v isa String && startswith(v, "#/\$defs/")
+                ref_key = v[9:end]
+                # If ref_key is currently being visited, we have a cycle
+                if ref_key in visiting
+                    return true
+                end
+                # Only follow the reference to check for cycles in the same path
+                # Don't mark a type as recursive just because it references another recursive type
+                if haskey(defs, ref_key)
+                    # Temporarily add ref_key to visiting and check its schema
+                    push!(visiting, ref_key)
+                    if has_cycle_in_refs(defs[ref_key], defs, visiting)
+                        delete!(visiting, ref_key)
+                        return true
+                    end
+                    delete!(visiting, ref_key)
+                end
+            else
+                if has_cycle_in_refs(v, defs, visiting)
+                    return true
+                end
+            end
+        end
+    elseif schema isa Vector
+        for item in schema
+            if has_cycle_in_refs(item, defs, visiting)
+                return true
+            end
+        end
+    end
+    return false
+end
+
+# Legacy function kept for backwards compatibility
 function check_refs_for_key(schema::Any, target_key::String, defs::AbstractDict, visiting::Set{String})::Bool
     if schema isa Dict
         for (k, v) in schema
@@ -329,18 +359,8 @@ end
 function sort_defs_keys(defs::AbstractDict)::Vector{String}
     keys_list = collect(keys(defs))
 
-    primitive_keys = String[]
-    non_primitive_keys = String[]
-
-    for key in keys_list
-        if is_primitive_def(defs[key])
-            push!(primitive_keys, key)
-        else
-            push!(non_primitive_keys, key)
-        end
-    end
-
-    sort!(primitive_keys)
+    primitive_keys = sort!(filter(key -> is_primitive_def(defs[key]), keys_list))
+    non_primitive_keys = filter(key -> !is_primitive_def(defs[key]), keys_list)
 
     if !isempty(non_primitive_keys)
         sorted_non_primitives = topological_sort_keys(non_primitive_keys, defs)
@@ -439,4 +459,61 @@ function find_dependencies_recursive!(schema::Any, deps::Vector{String}, valid_k
             find_dependencies_recursive!(item, deps, valid_keys)
         end
     end
+end
+
+# Expand all $refs inline, removing the $defs section entirely
+# Recursive definitions remain in $defs; others are fully inlined
+function expand_all_defs(doc::Dict)::Dict
+    defs = get(doc, "\$defs", Dict())
+    if isempty(defs)
+        # Remove empty $defs if it exists
+        result = copy(doc)
+        delete!(result, "\$defs")
+        return result
+    end
+
+    # Find recursive definitions - these must stay in $defs
+    recursive_keys = find_recursive_defs(defs)
+
+    # All non-recursive keys can be inlined
+    inline_targets = Set(key for key in keys(defs) if !(key in recursive_keys))
+
+    # Inline all non-recursive refs
+    result = inline_refs_in_doc(doc, defs, inline_targets)
+
+    # Expand root $ref if it's non-recursive
+    if haskey(result, "\$ref")
+        ref = result["\$ref"]
+        if ref isa String && startswith(ref, "#/\$defs/")
+            ref_key = ref[9:end]
+            if ref_key in inline_targets && haskey(defs, ref_key)
+                # Replace root $ref with the expanded definition
+                expanded = inline_refs_in_schema(defs[ref_key], defs, inline_targets)
+                delete!(result, "\$ref")
+                # Merge expanded schema into result (preserving $schema and other metadata)
+                for (k, v) in expanded
+                    if k != "\$defs"
+                        result[k] = v
+                    end
+                end
+            end
+        end
+    end
+
+    # Remove inlined definitions from $defs
+    if haskey(result, "\$defs")
+        new_defs = Dict{String, Any}()
+        for (k, v) in result["\$defs"]
+            if !(k in inline_targets)
+                new_defs[k] = v
+            end
+        end
+        if isempty(new_defs)
+            delete!(result, "\$defs")
+        else
+            result["\$defs"] = new_defs
+        end
+    end
+
+    return result
 end

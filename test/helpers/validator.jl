@@ -4,8 +4,14 @@ function resolve_schema_entry(schema::AbstractDict, doc::AbstractDict)
         ref = current["\$ref"]
         parts = split(ref, '/')
         key = parts[end]
-        defs = doc["\$defs"]
-        current = defs[key]
+        defs = get(doc, "\$defs", Dict())
+        if haskey(defs, key)
+            current = defs[key]
+        else
+            # If $defs doesn't exist or doesn't have the key,
+            # the schema might be inlined - return current
+            return current
+        end
     end
     return current
 end
@@ -151,4 +157,11 @@ function validate_number(schema::AbstractDict, data)
     return true
 end
 
-validate_payload(doc, data) = validate_schema_entry(Dict("\$ref" => doc["\$ref"]), data, doc)
+function validate_payload(doc, data)
+    # If doc has a $ref at root, use it; otherwise validate against the root schema directly
+    if haskey(doc, "\$ref")
+        return validate_schema_entry(Dict("\$ref" => doc["\$ref"]), data, doc)
+    else
+        return validate_schema_entry(doc, data, doc)
+    end
+end

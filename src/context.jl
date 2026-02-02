@@ -158,7 +158,7 @@ function k(T::Type, ctx::SchemaContext)
     end
 end
 
-reference(T::Type, ctx::SchemaContext) = Dict{String, Any}("\$ref" => "#/\$defs/$(k(T, ctx))")
+reference(T::Type, ctx::SchemaContext) = Dict{String, Any}(SCHEMA_REF_KEY => make_ref(k(T, ctx)))
 
 function with_path(f::Function, ctx::SchemaContext, sym::Symbol)
     push!(ctx.path, sym)

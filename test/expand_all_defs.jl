@@ -230,7 +230,7 @@ end
                     "value" => Dict(
                         "anyOf" => [
                             Dict("\$ref" => "#/\$defs/StringType"),
-                            Dict("\$ref" => "#/\$defs/IntType")
+                            Dict("\$ref" => "#/\$defs/IntType"),
                         ]
                     )
                 )
@@ -249,7 +249,7 @@ end
             "value" => Dict(
                 "anyOf" => [
                     Dict("type" => "string"),
-                    Dict("type" => "integer")
+                    Dict("type" => "integer"),
                 ]
             )
         )
@@ -452,7 +452,7 @@ end
                             "value" => Dict("type" => "integer"),
                             "next" => Dict("\$ref" => "#/\$defs/Node")
                         )
-                    )
+                    ),
                 ]
             )
         )
@@ -474,7 +474,7 @@ end
         value::Int
     end
 
-    doc, _ = generate_schema(SimpleStruct; inline_all_defs=true)
+    doc, _ = generate_schema(SimpleStruct; inline_all_defs = true)
 
     # Should have no $defs section
     @test !haskey(doc, "\$defs")
@@ -499,7 +499,7 @@ end
         count::Int
     end
 
-    doc, _ = generate_schema(OuterStruct; inline_all_defs=true)
+    doc, _ = generate_schema(OuterStruct; inline_all_defs = true)
 
     # Should have no $defs section
     @test !haskey(doc, "\$defs")
@@ -517,7 +517,7 @@ end
         value::Union{String, Int}
     end
 
-    doc, _ = generate_schema(ConfigStruct; inline_all_defs=true)
+    doc, _ = generate_schema(ConfigStruct; inline_all_defs = true)
 
     # Should have no $defs section
     @test !haskey(doc, "\$defs")
@@ -531,7 +531,7 @@ end
         members::Vector{String}
     end
 
-    doc, _ = generate_schema(TeamStruct; inline_all_defs=true)
+    doc, _ = generate_schema(TeamStruct; inline_all_defs = true)
 
     # Should have no $defs section
     @test !haskey(doc, "\$defs")

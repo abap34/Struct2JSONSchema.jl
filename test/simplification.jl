@@ -832,4 +832,3 @@ end
     @test status_schema["description"] == "Current status"
     @test status_schema["default"] == "pending"
 end
-

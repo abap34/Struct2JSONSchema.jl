@@ -561,7 +561,7 @@ result = generate_schema(User; ctx=ctx)
 
 ## Inline Expansion Mode
 
-For use cases where you need a completely flat schema without any `$defs` section, (e.g., Visual Studio Code's JSON Schema support), Struct2JSONSchema.jl provides an `inline_all_defs` option:
+For use cases where you need a completely flat schema without any `$defs` section (e.g., Visual Studio Code's JSON Schema support), Struct2JSONSchema.jl provides an `inline_all_defs` option:
 
 
 ```julia

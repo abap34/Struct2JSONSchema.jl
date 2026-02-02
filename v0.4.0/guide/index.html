@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>User Guide · Struct2JSONSchema.jl</title><meta name="title" content="User Guide · Struct2JSONSchema.jl"/><meta property="og:title" content="User Guide · Struct2JSONSchema.jl"/><meta property="twitter:title" content="User Guide · Struct2JSONSchema.jl"/><meta name="description" content="Documentation for Struct2JSONSchema.jl."/><meta property="og:description" content="Documentation for Struct2JSONSchema.jl."/><meta property="twitter:description" content="Documentation for Struct2JSONSchema.jl."/><meta property="og:url" content="https://abap34.github.io/Struct2JSONSchema.jl/guide/"/><meta property="twitter:url" content="https://abap34.github.io/Struct2JSONSchema.jl/guide/"/><link rel="canonical" href="https://abap34.github.io/Struct2JSONSchema.jl/guide/"/><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../search_index.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../">Struct2JSONSchema.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../">Home</a></li><li class="is-active"><a class="tocitem" href>User Guide</a><ul class="internal"><li><a class="tocitem" href="#Customization"><span>Customization</span></a></li><li><a class="tocitem" href="#Optional-Fields"><span>Optional Fields</span></a></li><li><a class="tocitem" href="#Skipping-Fields"><span>Skipping Fields</span></a></li><li><a class="tocitem" href="#Field-Descriptions"><span>Field Descriptions</span></a></li><li><a class="tocitem" href="#Default-Values"><span>Default Values</span></a></li><li><a class="tocitem" href="#Registration-Priorities"><span>Registration Priorities</span></a></li><li><a class="tocitem" href="#Inline-Expansion-Mode"><span>Inline Expansion Mode</span></a></li></ul></li><li><a class="tocitem" href="../reference/">Reference</a></li><li><a class="tocitem" href="../api/">API Reference</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>User Guide</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>User Guide</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/abap34/Struct2JSONSchema.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/abap34/Struct2JSONSchema.jl/blob/main/docs/src/guide.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="User-Guide"><a class="docs-heading-anchor" href="#User-Guide">User Guide</a><a id="User-Guide-1"></a><a class="docs-heading-anchor-permalink" href="#User-Guide" title="Permalink"></a></h1><p>This guide covers customization options and advanced features of Struct2JSONSchema.jl.</p><h2 id="Customization"><a class="docs-heading-anchor" href="#Customization">Customization</a><a id="Customization-1"></a><a class="docs-heading-anchor-permalink" href="#Customization" title="Permalink"></a></h2><p><a href="../api/#Struct2JSONSchema.generate_schema"><code>generate_schema</code></a> recursively generates schemas while updating a <a href="../api/#Struct2JSONSchema.SchemaContext"><code>SchemaContext</code></a>. By using <a href="../api/#Struct2JSONSchema.override!"><code>override!</code></a>, users can hook into this process and customize the generated schema.</p><pre><code class="language-julia hljs"># Customize the generation so that UUID is represented as a string with format: uuid
+using UUIDs
+using JSON
+
+struct User
+    id::UUID
+    name::String
+end
+
+ctx = SchemaContext()
+override!(ctx) do ctx
+    if current_type(ctx) === UUID
+        return Dict(&quot;type&quot; =&gt; &quot;string&quot;, &quot;format&quot; =&gt; &quot;uuid&quot;)
+    end
+    return nothing
+end
+
+result = generate_schema(User; ctx=ctx)
+println(JSON.json(result.doc, 4))</code></pre><p><a href="../api/#Struct2JSONSchema.SchemaContext"><code>SchemaContext</code></a> provides the following accessor functions for customization:</p><ul><li><code>current_type(ctx)</code> — the type currently being generated</li><li><code>current_parent(ctx)</code> — the parent struct, when generating a field</li><li><code>current_field(ctx)</code> — the field name, when generating a field</li></ul><p><a href="../api/#Struct2JSONSchema.override!"><code>override!</code></a> accepts a hook function that takes a <code>SchemaContext</code> object and returns either a schema <code>Dict</code>, or <code>nothing</code> to indicate that default generation should continue.</p><p>In practice, most customizations follow common patterns. For this reason, several helper functions are provided. Following customization are can be achieved using <code>override!</code>, but are more conveniently done using helper functions.</p><h3 id="Whole-type-overrides:-[override_type!](@ref)"><a class="docs-heading-anchor" href="#Whole-type-overrides:-[override_type!](@ref)">Whole-type overrides: <a href="../api/#Struct2JSONSchema.override_type!"><code>override_type!</code></a></a><a id="Whole-type-overrides:-[override_type!](@ref)-1"></a><a class="docs-heading-anchor-permalink" href="#Whole-type-overrides:-[override_type!](@ref)" title="Permalink"></a></h3><p>Using <a href="../api/#Struct2JSONSchema.override_type!"><code>override_type!</code></a>, a specific type can always be overridden for generation with the given <code>ctx</code>. The following code is equivalent to the previous example.</p><pre><code class="language-julia hljs">using UUIDs
+
+struct User
+    id::UUID
+    name::String
+end
+
+ctx = SchemaContext()
+override_type!(ctx, UUID) do ctx
+    Dict(&quot;type&quot; =&gt; &quot;string&quot;, &quot;format&quot; =&gt; &quot;uuid&quot;)
+end
+
+result = generate_schema(User; ctx=ctx)</code></pre><h3 id="Field-specific-overrides:-[override_field!](@ref)"><a class="docs-heading-anchor" href="#Field-specific-overrides:-[override_field!](@ref)">Field-specific overrides: <a href="../api/#Struct2JSONSchema.override_field!"><code>override_field!</code></a></a><a id="Field-specific-overrides:-[override_field!](@ref)-1"></a><a class="docs-heading-anchor-permalink" href="#Field-specific-overrides:-[override_field!](@ref)" title="Permalink"></a></h3><p>Using <a href="../api/#Struct2JSONSchema.override_field!"><code>override_field!</code></a>, an override can be applied only to a specific field of a specific struct.</p><pre><code class="language-julia hljs">struct User
+    id::Int
+    email::String
+end
+
+ctx = SchemaContext()
+override_field!(ctx, User, :email) do ctx
+    Dict(&quot;type&quot; =&gt; &quot;string&quot;, &quot;format&quot; =&gt; &quot;email&quot;)
+end
+
+result = generate_schema(User; ctx=ctx)</code></pre><h3 id="Abstract-types:-[override_abstract!](@ref)"><a class="docs-heading-anchor" href="#Abstract-types:-[override_abstract!](@ref)">Abstract types: <a href="../api/#Struct2JSONSchema.override_abstract!"><code>override_abstract!</code></a></a><a id="Abstract-types:-[override_abstract!](@ref)-1"></a><a class="docs-heading-anchor-permalink" href="#Abstract-types:-[override_abstract!](@ref)" title="Permalink"></a></h3><p>Using <a href="../api/#Struct2JSONSchema.override_abstract!"><code>override_abstract!</code></a>, an identifier-based schema can be generated for abstract types with concrete subtypes.</p><pre><code class="language-julia hljs">abstract type Event end
+
+struct Deployment &lt;: Event
+    id::Int
+    started_at::DateTime
+end
+
+struct Alert &lt;: Event
+    id::Int
+    acknowledged::Bool
+end
+
+struct EventEnvelope
+    event::Event
+    received_at::DateTime
+end</code></pre><p>In this situation, an abstract type may appear as a field type. A commonly desired schema is one where the <code>event</code> field of <code>EventEnvelope</code> takes the following form.</p><p><strong>valid:</strong></p><pre><code class="language-json hljs">[
+    { &quot;kind&quot;: &quot;deployment&quot;, &quot;id&quot;: 123, &quot;started_at&quot;: &quot;2024-01-01T12:00:00Z&quot; },
+    { &quot;kind&quot;: &quot;alert&quot;, &quot;id&quot;: 456, &quot;acknowledged&quot;: false }
+]</code></pre><p><strong>invalid:</strong></p><pre><code class="language-json hljs">[
+    { &quot;id&quot;: 123, &quot;started_at&quot;: &quot;2024-01-01T12:00:00Z&quot; },
+    { &quot;id&quot;: 456, &quot;acknowledged&quot;: false }
+]</code></pre><p><a href="../api/#Struct2JSONSchema.override_abstract!"><code>override_abstract!</code></a> automatically generates such identifier-based schemas.</p><pre><code class="language-julia hljs">ctx = SchemaContext()
+
+override_abstract!(
+    ctx,
+    Event;
+    variants = [Deployment, Alert],
+    discr_key = &quot;kind&quot;,
+    tag_value = Dict(
+        Deployment =&gt; &quot;deployment&quot;,
+        Alert =&gt; &quot;alert&quot;
+    )
+)
+
+schema = generate_schema(EventEnvelope; ctx = ctx)
+println(JSON.json(schema.doc, 4))</code></pre><h2 id="Optional-Fields"><a class="docs-heading-anchor" href="#Optional-Fields">Optional Fields</a><a id="Optional-Fields-1"></a><a class="docs-heading-anchor-permalink" href="#Optional-Fields" title="Permalink"></a></h2><p><strong>By default, Struct2JSONSchema.jl treats all fields as required.</strong></p><p>However, many users want fields of the following types to be treated as optional:</p><ul><li><code>Union{T, Nothing}</code></li><li><code>Union{T, Missing}</code></li></ul><p>For this purpose, the following helper functions are provided:</p><ul><li><a href="../api/#Struct2JSONSchema.optional!"><code>optional!</code></a> — explicitly mark fields as optional regardless of their type</li><li><a href="../api/#Struct2JSONSchema.auto_optional_nothing!"><code>auto_optional_nothing!</code></a> — treat <code>Union{T, Nothing}</code> fields as optional</li><li><a href="../api/#Struct2JSONSchema.auto_optional_missing!"><code>auto_optional_missing!</code></a> — treat <code>Union{T, Missing}</code> fields as optional</li><li><a href="../api/#Struct2JSONSchema.auto_optional_null!"><code>auto_optional_null!</code></a> — treat both <code>Union{T, Nothing}</code> and <code>Union{T, Missing}</code> fields as optional</li></ul><pre><code class="language-julia hljs">struct User
+    id::Int
+    name::String
+    birthdate::Union{Date, Nothing}
+    nickname::String
+end
+
+ctx = SchemaContext()
+optional!(ctx, User, :nickname)
+auto_optional_nothing!(ctx)
+generate_schema(User; ctx=ctx)</code></pre><p>With this configuration, both <code>birthdate</code> and <code>nickname</code> are treated as optional.</p><h3 id="Understanding-Optional-vs-Nullable"><a class="docs-heading-anchor" href="#Understanding-Optional-vs-Nullable">Understanding Optional vs Nullable</a><a id="Understanding-Optional-vs-Nullable-1"></a><a class="docs-heading-anchor-permalink" href="#Understanding-Optional-vs-Nullable" title="Permalink"></a></h3><p>There is an important distinction between <strong>optional fields</strong> and <strong>nullable fields</strong>:</p><p><strong>Without <code>auto_optional_nothing!</code></strong> (default behavior):</p><pre><code class="language-julia hljs">struct User
+    name::String
+    email::Union{String, Nothing}
+end
+
+result = generate_schema(User)</code></pre><p>Generated schema:</p><ul><li><code>email</code> is <strong>required</strong> (in <code>required</code> array)</li><li><code>email</code> accepts <strong>both <code>String</code> and <code>null</code></strong> (via <code>anyOf</code>)</li></ul><p>Valid JSON:</p><pre><code class="language-json hljs">{&quot;name&quot;: &quot;Alice&quot;, &quot;email&quot;: &quot;alice@example.com&quot;}
+{&quot;name&quot;: &quot;Bob&quot;, &quot;email&quot;: null}</code></pre><p>Invalid JSON:</p><pre><code class="language-json hljs">{&quot;name&quot;: &quot;Charlie&quot;}  // email is missing</code></pre><p><strong>With <code>auto_optional_nothing!</code></strong>:</p><pre><code class="language-julia hljs">ctx = SchemaContext()
+auto_optional_nothing!(ctx)
+result = generate_schema(User; ctx=ctx)</code></pre><p>Generated schema:</p><ul><li><code>email</code> is <strong>not required</strong> (not in <code>required</code> array)</li><li><code>email</code> accepts <strong>only <code>String</code></strong> (no <code>null</code>, no <code>anyOf</code>)</li></ul><p>Valid JSON:</p><pre><code class="language-json hljs">{&quot;name&quot;: &quot;Alice&quot;, &quot;email&quot;: &quot;alice@example.com&quot;}
+{&quot;name&quot;: &quot;Bob&quot;}  // email can be omitted</code></pre><p>Invalid JSON:</p><pre><code class="language-json hljs">{&quot;name&quot;: &quot;Charlie&quot;, &quot;email&quot;: null}  // null is not allowed when field is present</code></pre><p>In other words, when using <code>auto_optional_nothing!</code>, the <code>Nothing</code> in <code>Union{T, Nothing}</code> is treated as a marker for optionality in Julia, not as a nullable value in JSON.</p><h2 id="Skipping-Fields"><a class="docs-heading-anchor" href="#Skipping-Fields">Skipping Fields</a><a id="Skipping-Fields-1"></a><a class="docs-heading-anchor-permalink" href="#Skipping-Fields" title="Permalink"></a></h2><p>Use <a href="../api/#Struct2JSONSchema.skip!"><code>skip!</code></a> to exclude fields or <a href="../api/#Struct2JSONSchema.only!"><code>only!</code></a> to include only specified fields:</p><pre><code class="language-julia hljs">struct User
+    id::Int
+    name::String
+    _cache::Dict
+end
+
+ctx = SchemaContext()
+skip!(ctx, User, :_cache)
+# or equivalently:
+# only!(ctx, User, :id, :name)
+
+result = generate_schema(User; ctx=ctx)</code></pre><p>Skipped fields are excluded from both <code>properties</code> and <code>required</code>.</p><h2 id="Field-Descriptions"><a class="docs-heading-anchor" href="#Field-Descriptions">Field Descriptions</a><a id="Field-Descriptions-1"></a><a class="docs-heading-anchor-permalink" href="#Field-Descriptions" title="Permalink"></a></h2><p>Struct2JSONSchema.jl can automatically extract field docstrings and add them as <code>description</code> properties in the JSON Schema.</p><h3 id="Automatic-Extraction-from-Docstrings"><a class="docs-heading-anchor" href="#Automatic-Extraction-from-Docstrings">Automatic Extraction from Docstrings</a><a id="Automatic-Extraction-from-Docstrings-1"></a><a class="docs-heading-anchor-permalink" href="#Automatic-Extraction-from-Docstrings" title="Permalink"></a></h3><p>By default, field docstrings are automatically extracted:</p><pre><code class="language-julia hljs">&quot;&quot;&quot;
+User information
+&quot;&quot;&quot;
+struct User
+    &quot;&quot;&quot;User&#39;s unique identifier&quot;&quot;&quot;
+    id::Int
+
+    &quot;&quot;&quot;User&#39;s full name&quot;&quot;&quot;
+    name::String
+
+    email::String  # No docstring
+end
+
+result = generate_schema(User)
+# id and name fields will have &quot;description&quot; in the schema</code></pre><p>This feature is controlled by the <code>auto_fielddoc</code> parameter in <code>SchemaContext</code> (default: <code>true</code>).</p><p>Note: Field docstrings can only be extracted if the struct itself also has a docstring. Without a docstring on the struct definition, field docstrings are not stored by Julia and cannot be automatically extracted.</p><h3 id="Manual-Registration"><a class="docs-heading-anchor" href="#Manual-Registration">Manual Registration</a><a id="Manual-Registration-1"></a><a class="docs-heading-anchor-permalink" href="#Manual-Registration" title="Permalink"></a></h3><p>You can manually register field descriptions using <a href="../api/#Struct2JSONSchema.describe!"><code>describe!</code></a>:</p><pre><code class="language-julia hljs">struct Product
+    id::Int
+    name::String
+    price::Float64
+end
+
+ctx = SchemaContext()
+describe!(ctx, Product, :price, &quot;Product price in USD&quot;)
+
+result = generate_schema(Product; ctx=ctx)</code></pre><h3 id="Integration-with-Field-Overrides"><a class="docs-heading-anchor" href="#Integration-with-Field-Overrides">Integration with Field Overrides</a><a id="Integration-with-Field-Overrides-1"></a><a class="docs-heading-anchor-permalink" href="#Integration-with-Field-Overrides" title="Permalink"></a></h3><p>Field descriptions work together with field overrides:</p><pre><code class="language-julia hljs">struct Product
+    id::Int
+    price::Float64
+end
+
+ctx = SchemaContext()
+
+# Override adds constraint
+override_field!(ctx, Product, :price) do ctx
+    Dict(&quot;type&quot; =&gt; &quot;number&quot;, &quot;minimum&quot; =&gt; 0)
+end
+
+# Description is added to the overridden schema
+describe!(ctx, Product, :price, &quot;Product price in USD&quot;)
+
+result = generate_schema(Product; ctx=ctx)
+# price field will be:
+# {
+#   &quot;type&quot;: &quot;number&quot;,
+#   &quot;minimum&quot;: 0,
+#   &quot;description&quot;: &quot;Product price in USD&quot;
+# }</code></pre><h2 id="Default-Values"><a class="docs-heading-anchor" href="#Default-Values">Default Values</a><a id="Default-Values-1"></a><a class="docs-heading-anchor-permalink" href="#Default-Values" title="Permalink"></a></h2><p>Use <a href="../api/#Struct2JSONSchema.defaultvalue!"><code>defaultvalue!</code></a> to register default values for struct fields from an instance:</p><pre><code class="language-julia hljs">using Dates
+
+struct ServerConfig
+    host::String
+    port::Int
+    timeout::Float64
+    started_at::DateTime
+end
+
+ctx = SchemaContext()
+
+default_config = ServerConfig(
+    &quot;localhost&quot;,
+    8080,
+    30.0,
+    DateTime(2024, 1, 1)
+)
+
+defaultvalue!(ctx, default_config)
+
+result = generate_schema(ServerConfig; ctx=ctx)
+# Each field will have a &quot;default&quot; property:
+# - host: &quot;localhost&quot;
+# - port: 8080
+# - timeout: 30.0
+# - started_at: &quot;2024-01-01T00:00:00&quot;</code></pre><p>Nested structs are processed recursively, registering defaults at the leaf level:</p><pre><code class="language-julia hljs">struct Address
+    street::String
+    city::String
+end
+
+struct Profile
+    name::String
+    address::Address
+end
+
+ctx = SchemaContext()
+default_profile = Profile(&quot;Alice&quot;, Address(&quot;Main St&quot;, &quot;Metropolis&quot;))
+defaultvalue!(ctx, default_profile)
+
+# Profile.name has default: &quot;Alice&quot;
+# Profile.address does NOT have a default (it&#39;s a nested struct)
+# Address.street has default: &quot;Main St&quot;
+# Address.city has default: &quot;Metropolis&quot;</code></pre><p>This ensures that default values are only set at the deepest level (leaf fields), which is the correct behavior according to JSON Schema semantics.</p><h3 id="Custom-Serializers"><a class="docs-heading-anchor" href="#Custom-Serializers">Custom Serializers</a><a id="Custom-Serializers-1"></a><a class="docs-heading-anchor-permalink" href="#Custom-Serializers" title="Permalink"></a></h3><p>For custom types, register a serializer:</p><pre><code class="language-julia hljs">struct Color
+    r::UInt8
+    g::UInt8
+    b::UInt8
+end
+
+struct Theme
+    primary::Color
+    secondary::Color
+end
+
+ctx = SchemaContext()
+
+# Serialize Color as hex string
+defaultvalue_type_serializer!(ctx, Color) do value, ctx
+    r = string(value.r, base=16, pad=2)
+    g = string(value.g, base=16, pad=2)
+    b = string(value.b, base=16, pad=2)
+    &quot;#$(r)$(g)$(b)&quot;
+end
+
+# Also customize the schema
+override_type!(ctx, Color) do ctx
+    Dict(&quot;type&quot; =&gt; &quot;string&quot;, &quot;pattern&quot; =&gt; &quot;^#[0-9a-f]{6}\$&quot;)
+end
+
+default_theme = Theme(
+    Color(0x00, 0x7b, 0xff),
+    Color(0x6c, 0x75, 0x7d)
+)
+
+defaultvalue!(ctx, default_theme)
+# primary.default: &quot;#007bff&quot;
+# secondary.default: &quot;#6c757d&quot;</code></pre><h3 id="Override-Priority-for-Default-Values"><a class="docs-heading-anchor" href="#Override-Priority-for-Default-Values">Override Priority for Default Values</a><a id="Override-Priority-for-Default-Values-1"></a><a class="docs-heading-anchor-permalink" href="#Override-Priority-for-Default-Values" title="Permalink"></a></h3><p>When an override sets a <code>&quot;default&quot;</code> property, it takes precedence over <code>defaultvalue!</code>:</p><pre><code class="language-julia hljs">struct Config
+    formatter::String
+end
+
+ctx = SchemaContext()
+
+# Override sets default
+override_field!(ctx, Config, :formatter) do ctx
+    Dict(
+        &quot;type&quot; =&gt; &quot;string&quot;,
+        &quot;enum&quot; =&gt; [&quot;JuliaFormatter&quot;, &quot;Runic&quot;],
+        &quot;default&quot; =&gt; &quot;JuliaFormatter&quot;  # Override sets default
+    )
+end
+
+# This will be ignored because override already set default
+defaultvalue!(ctx, Config(&quot;Runic&quot;))
+
+result = generate_schema(Config; ctx=ctx)
+# formatter.default: &quot;JuliaFormatter&quot; (from override, not &quot;Runic&quot;)</code></pre><h2 id="Registration-Priorities"><a class="docs-heading-anchor" href="#Registration-Priorities">Registration Priorities</a><a id="Registration-Priorities-1"></a><a class="docs-heading-anchor-permalink" href="#Registration-Priorities" title="Permalink"></a></h2><h3 id="Priority-Summary"><a class="docs-heading-anchor" href="#Priority-Summary">Priority Summary</a><a id="Priority-Summary-1"></a><a class="docs-heading-anchor-permalink" href="#Priority-Summary" title="Permalink"></a></h3><p>When multiple features are used together, the following priorities apply:</p><table><tr><th style="text-align: right">Feature</th><th style="text-align: right">Priority</th></tr><tr><td style="text-align: right">Schema structure</td><td style="text-align: right">Override &gt; Default generation</td></tr><tr><td style="text-align: right"><code>&quot;default&quot;</code> property</td><td style="text-align: right">Override &gt; <code>defaultvalue!</code></td></tr><tr><td style="text-align: right"><code>&quot;description&quot;</code> property</td><td style="text-align: right">Override &gt; <code>describe!</code> &gt; Auto-extraction</td></tr><tr><td style="text-align: right"><code>required</code> array</td><td style="text-align: right">Independent: <code>optional!</code> &gt; Auto-detection</td></tr></table><h3 id="Field-Description-Priority"><a class="docs-heading-anchor" href="#Field-Description-Priority">Field Description Priority</a><a id="Field-Description-Priority-1"></a><a class="docs-heading-anchor-permalink" href="#Field-Description-Priority" title="Permalink"></a></h3><p>Manual registration takes priority over automatic extraction:</p><ol><li>Manual registration via <code>describe!</code> (highest priority)</li><li>Automatic extraction from field docstrings (if <code>auto_fielddoc=true</code>)</li><li>None (no description added)</li></ol><p>Example:</p><pre><code class="language-julia hljs">&quot;&quot;&quot;
+Event data
+&quot;&quot;&quot;
+struct Event
+    &quot;&quot;&quot;Event ID from docstring&quot;&quot;&quot;
+    id::Int
+end
+
+ctx = SchemaContext()
+describe!(ctx, Event, :id, &quot;Event unique ID (overridden)&quot;)
+
+result = generate_schema(Event; ctx=ctx)
+# id will have &quot;Event unique ID (overridden)&quot; as description</code></pre><h3 id="Override-Evaluation-Order"><a class="docs-heading-anchor" href="#Override-Evaluation-Order">Override Evaluation Order</a><a id="Override-Evaluation-Order-1"></a><a class="docs-heading-anchor-permalink" href="#Override-Evaluation-Order" title="Permalink"></a></h3><p>All <code>register_*_override!</code> functions internally call <a href="../api/#Struct2JSONSchema.override!"><code>override!</code></a>, adding functions to <code>ctx.overrides</code> in FIFO (first-in, first-out) order.</p><pre><code class="language-julia hljs">ctx = SchemaContext()
+
+override_type!(ctx, TypeA, gen1)      # 1st
+override_field!(ctx, TypeB, :f, gen2) # 2nd
+override_abstract!(ctx, AbstractType, ...)     # 3rd</code></pre><p>When generating a schema:</p><ol><li>The first registered function is evaluated<ul><li>If it returns a <code>Dict</code>: use that result (stop evaluation)</li><li>If it returns <code>nothing</code>: continue to next</li></ul></li><li>The second function is evaluated, and so on</li><li>First match wins</li></ol><h3 id="How-Different-Systems-Interact"><a class="docs-heading-anchor" href="#How-Different-Systems-Interact">How Different Systems Interact</a><a id="How-Different-Systems-Interact-1"></a><a class="docs-heading-anchor-permalink" href="#How-Different-Systems-Interact" title="Permalink"></a></h3><p>The following are separate systems that can be used together:</p><ul><li><code>ctx.overrides</code> — override mechanism</li><li><code>optional_fields(ctx)</code> — optional field management</li><li><code>field_descriptions(ctx)</code> — field description management</li><li><code>default_values(ctx)</code> — default value management</li></ul><p>During field generation, they are processed in the following order:</p><ol><li>Override evaluation → determines the field schema structure</li><li>Default value addition → adds <code>&quot;default&quot;</code> property if available and not set by override</li><li>Description addition → adds <code>&quot;description&quot;</code> property if available and not set by override</li><li>Optional fields check → determines if the field goes in <code>required</code> array (independent system)</li></ol><h3 id="Example:-All-Features-Combined"><a class="docs-heading-anchor" href="#Example:-All-Features-Combined">Example: All Features Combined</a><a id="Example:-All-Features-Combined-1"></a><a class="docs-heading-anchor-permalink" href="#Example:-All-Features-Combined" title="Permalink"></a></h3><pre><code class="language-julia hljs">struct User
+    id::Int
+    email::String
+end
+
+ctx = SchemaContext()
+
+# All four systems work together:
+override_field!(ctx, User, :email) do ctx
+    Dict(&quot;type&quot; =&gt; &quot;string&quot;, &quot;format&quot; =&gt; &quot;email&quot;)
+end
+
+defaultvalue!(ctx, User(1, &quot;user@example.com&quot;))
+
+optional!(ctx, User, :email)
+
+describe!(ctx, User, :email, &quot;User&#39;s email address&quot;)
+
+result = generate_schema(User; ctx=ctx)
+# email field will be:
+# {
+#   &quot;type&quot;: &quot;string&quot;,
+#   &quot;format&quot;: &quot;email&quot;,           // from override
+#   &quot;default&quot;: &quot;user@example.com&quot;, // from defaultvalue!
+#   &quot;description&quot;: &quot;User&#39;s email address&quot; // from describe!
+# }
+# - not in required array (from optional_fields)</code></pre><h2 id="Inline-Expansion-Mode"><a class="docs-heading-anchor" href="#Inline-Expansion-Mode">Inline Expansion Mode</a><a id="Inline-Expansion-Mode-1"></a><a class="docs-heading-anchor-permalink" href="#Inline-Expansion-Mode" title="Permalink"></a></h2><p>For use cases where you need a completely flat schema without any <code>$defs</code> section (e.g., Visual Studio Code&#39;s JSON Schema support), Struct2JSONSchema.jl provides an <code>inline_all_defs</code> option:</p><pre><code class="language-julia hljs">struct Address
+    street::String
+    city::String
+end
+
+struct Person
+    name::String
+    address::Address
+end
+
+# Standard mode: uses $defs with references
+doc, _ = generate_schema(Person)
+# {
+#   &quot;$schema&quot;: &quot;...&quot;,
+#   &quot;$ref&quot;: &quot;#/$defs/Person__...&quot;,
+#   &quot;$defs&quot;: {
+#     &quot;Person__...&quot;: {...},
+#     &quot;Address__...&quot;: {...}
+#   }
+# }
+
+# Inline expansion mode: everything is inlined
+doc, _ = generate_schema(Person; inline_all_defs=true)
+# {
+#   &quot;$schema&quot;: &quot;...&quot;,
+#   &quot;type&quot;: &quot;object&quot;,
+#   &quot;properties&quot;: {
+#     &quot;name&quot;: {&quot;type&quot;: &quot;string&quot;},
+#     &quot;address&quot;: {
+#       &quot;type&quot;: &quot;object&quot;,
+#       &quot;properties&quot;: {
+#         &quot;street&quot;: {&quot;type&quot;: &quot;string&quot;},
+#         &quot;city&quot;: {&quot;type&quot;: &quot;string&quot;}
+#       }
+#     }
+#   }
+# }</code></pre><div class="admonition is-warning" id="Recursive-Types-and-Inline-Expansion-6bd5623bd82140a7"><header class="admonition-header">Recursive Types and Inline Expansion<a class="admonition-anchor" href="#Recursive-Types-and-Inline-Expansion-6bd5623bd82140a7" title="Permalink"></a></header><div class="admonition-body"><p>Recursive definitions remain in <code>$defs</code> to avoid infinite expansion.</p><pre><code class="language-julia hljs">struct Node
+    value::Int
+    next::Union{Node, Nothing}
+end
+
+# Recursive types must remain in $defs
+doc, _ = generate_schema(Node; inline_all_defs=true)
+# {
+#   &quot;$ref&quot;: &quot;#/$defs/Node__...&quot;,
+#   &quot;$defs&quot;: {
+#     &quot;Node__...&quot;: {  # Cannot be inlined due to recursion
+#       &quot;anyOf&quot;: [
+#         {&quot;$ref&quot;: &quot;#/$defs/Node__...&quot;},
+#         {&quot;type&quot;: &quot;null&quot;}
+#       ]
+#     }
+#   }
+# }</code></pre></div></div></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Home</a><a class="docs-footer-nextpage" href="../reference/">Reference »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.16.1 on <span class="colophon-date" title="Monday 2 February 2026 06:47">Monday 2 February 2026</span>. Using Julia version 1.12.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

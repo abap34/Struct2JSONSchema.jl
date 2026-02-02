@@ -227,8 +227,8 @@ function generate_schema!(T::Type; ctx::SchemaContext = SchemaContext(), simplif
     key = k(Tn, ctx)
     doc = Dict(
         "\$schema" => "https://json-schema.org/draft/2020-12/schema",
-        "\$ref" => "#/\$defs/$key",
-        "\$defs" => deepcopy(ctx.defs)
+        SCHEMA_REF_KEY => make_ref(key),
+        SCHEMA_DEFS_KEY => deepcopy(ctx.defs)
     )
     if inline_all_defs
         doc = expand_all_defs(doc)
@@ -255,6 +255,3 @@ function generate_schema(T::Type; ctx::SchemaContext = SchemaContext(), simplify
     ctx_clone = clone_context(ctx)
     return generate_schema!(T; ctx = ctx_clone, simplify = simplify, inline_all_defs = inline_all_defs)
 end
-
-# ===== Default Values API =====
-# See src/defaults.jl for implementation details

@@ -5,15 +5,15 @@ end
 
 # Remove definitions from $defs that are not referenced from the root or other definitions
 function remove_unused_defs(doc::Dict)::Dict
-    defs = get(doc, "\$defs", Dict())
+    defs = get(doc, SCHEMA_DEFS_KEY, Dict())
     isempty(defs) && return doc
 
     used_keys = Set{String}()
 
-    if haskey(doc, "\$ref")
-        ref = doc["\$ref"]
-        if ref isa String && startswith(ref, "#/\$defs/")
-            key = ref[9:end]
+    if haskey(doc, SCHEMA_REF_KEY)
+        ref = doc[SCHEMA_REF_KEY]
+        if ref isa String && is_schema_ref(ref)
+            key = extract_ref_key(ref)
             collect_used_keys!(key, defs, used_keys)
         end
     end
@@ -24,9 +24,9 @@ function remove_unused_defs(doc::Dict)::Dict
 
     result = copy(doc)
     if isempty(new_defs)
-        delete!(result, "\$defs")
+        delete!(result, SCHEMA_DEFS_KEY)
     else
-        result["\$defs"] = new_defs
+        result[SCHEMA_DEFS_KEY] = new_defs
     end
     return result
 end
@@ -44,8 +44,8 @@ end
 function collect_refs_in_schema!(schema::Any, defs::AbstractDict, used::Set{String})
     return if schema isa Dict
         for (k, v) in schema
-            if k == "\$ref" && v isa String && startswith(v, "#/\$defs/")
-                ref_key = v[9:end]
+            if k == SCHEMA_REF_KEY && v isa String && is_schema_ref(v)
+                ref_key = extract_ref_key(v)
                 collect_used_keys!(ref_key, defs, used)
             else
                 collect_refs_in_schema!(v, defs, used)
@@ -94,14 +94,14 @@ end
 
 # Inline definitions that are referenced exactly once, are not recursive, and are not simple primitive types
 function inline_single_use_refs(doc::Dict)::Dict
-    defs = get(doc, "\$defs", Dict())
+    defs = get(doc, SCHEMA_DEFS_KEY, Dict())
     isempty(defs) && return doc
 
     root_ref_key = nothing
-    if haskey(doc, "\$ref")
-        ref = doc["\$ref"]
-        if ref isa String && startswith(ref, "#/\$defs/")
-            root_ref_key = ref[9:end]
+    if haskey(doc, SCHEMA_REF_KEY)
+        ref = doc[SCHEMA_REF_KEY]
+        if ref isa String && is_schema_ref(ref)
+            root_ref_key = extract_ref_key(ref)
         end
     end
 
@@ -119,14 +119,14 @@ function inline_single_use_refs(doc::Dict)::Dict
 
     result = inline_refs_in_doc(doc, defs, inline_targets)
 
-    if haskey(result, "\$defs")
+    if haskey(result, SCHEMA_DEFS_KEY)
         new_defs = Dict{String, Any}(
-            k => v for (k, v) in result["\$defs"] if !(k in inline_targets)
+            k => v for (k, v) in result[SCHEMA_DEFS_KEY] if !(k in inline_targets)
         )
         if isempty(new_defs)
-            delete!(result, "\$defs")
+            delete!(result, SCHEMA_DEFS_KEY)
         else
-            result["\$defs"] = new_defs
+            result[SCHEMA_DEFS_KEY] = new_defs
         end
     end
 
@@ -145,8 +145,8 @@ end
 function count_refs_in_schema!(schema::Any, counts::Dict{String, Int})
     return if schema isa Dict
         for (k, v) in schema
-            if k == "\$ref" && v isa String && startswith(v, "#/\$defs/")
-                ref_key = v[9:end]
+            if k == SCHEMA_REF_KEY && v isa String && is_schema_ref(v)
+                ref_key = extract_ref_key(v)
                 if haskey(counts, ref_key)
                     counts[ref_key] += 1
                 end
@@ -181,8 +181,8 @@ end
 function has_cycle_in_refs(schema::Any, defs::AbstractDict, visiting::Set{String})::Bool
     if schema isa Dict
         for (k, v) in schema
-            if k == "\$ref" && v isa String && startswith(v, "#/\$defs/")
-                ref_key = v[9:end]
+            if k == SCHEMA_REF_KEY && v isa String && is_schema_ref(v)
+                ref_key = extract_ref_key(v)
                 # If ref_key is currently being visited, we have a cycle
                 if ref_key in visiting
                     return true
@@ -218,8 +218,8 @@ end
 function check_refs_for_key(schema::Any, target_key::String, defs::AbstractDict, visiting::Set{String})::Bool
     if schema isa Dict
         for (k, v) in schema
-            if k == "\$ref" && v isa String && startswith(v, "#/\$defs/")
-                ref_key = v[9:end]
+            if k == SCHEMA_REF_KEY && v isa String && is_schema_ref(v)
+                ref_key = extract_ref_key(v)
                 if ref_key == target_key
                     return true
                 end
@@ -258,7 +258,7 @@ function inline_refs_in_doc(doc::Dict, defs::AbstractDict, inline_targets::Set{S
     result = Dict{String, Any}()
 
     for (k, v) in doc
-        if k == "\$defs"
+        if k == SCHEMA_DEFS_KEY
             result[k] = Dict{String, Any}(
                 def_key => inline_refs_in_schema(def_schema, defs, inline_targets)
                     for (def_key, def_schema) in v
@@ -288,12 +288,12 @@ end
 
 # Extract the ref key if this schema contains an inlinable $ref
 function extract_inlinable_ref_key(schema::Dict, inline_targets::Set{String}, defs::AbstractDict)::Union{String, Nothing}
-    haskey(schema, "\$ref") || return nothing
+    haskey(schema, SCHEMA_REF_KEY) || return nothing
 
-    ref = schema["\$ref"]
-    ref isa String && startswith(ref, "#/\$defs/") || return nothing
+    ref = schema[SCHEMA_REF_KEY]
+    ref isa String && is_schema_ref(ref) || return nothing
 
-    ref_key = ref[9:end]
+    ref_key = extract_ref_key(ref)
     return ref_key in inline_targets && haskey(defs, ref_key) ? ref_key : nothing
 end
 
@@ -305,7 +305,7 @@ function inline_ref_with_metadata(schema::Dict, ref_key::String, defs::AbstractD
     # Collect metadata: all properties except $ref, recursively processed
     metadata = Dict{String, Any}(
         k => inline_refs_in_schema(v, defs, inline_targets)
-            for (k, v) in schema if k != "\$ref"
+            for (k, v) in schema if k != SCHEMA_REF_KEY
     )
 
     # Merge: metadata takes precedence over inlined properties
@@ -314,8 +314,8 @@ end
 
 # Sort $defs keys: primitives first (alphabetically), then by dependency order, then alphabetically
 function sort_defs(doc::Dict)::Dict
-    haskey(doc, "\$defs") || return doc
-    defs = doc["\$defs"]
+    haskey(doc, SCHEMA_DEFS_KEY) || return doc
+    defs = doc[SCHEMA_DEFS_KEY]
     isempty(defs) && return doc
 
     sorted_keys = sort_defs_keys(defs)
@@ -323,7 +323,7 @@ function sort_defs(doc::Dict)::Dict
     sorted_defs = OrderedDict{String, Any}(key => defs[key] for key in sorted_keys)
 
     return Dict{String, Any}(
-        k => (k == "\$defs" ? sorted_defs : v) for (k, v) in doc
+        k => (k == SCHEMA_DEFS_KEY ? sorted_defs : v) for (k, v) in doc
     )
 end
 
@@ -403,8 +403,8 @@ end
 function find_dependencies_recursive!(schema::Any, deps::Vector{String}, valid_keys::Vector{String})
     return if schema isa Dict
         for (k, v) in schema
-            if k == "\$ref" && v isa String && startswith(v, "#/\$defs/")
-                ref_key = v[9:end]
+            if k == SCHEMA_REF_KEY && v isa String && is_schema_ref(v)
+                ref_key = extract_ref_key(v)
                 if ref_key in valid_keys
                     push!(deps, ref_key)
                 end
@@ -422,11 +422,11 @@ end
 # Expand all $refs inline, removing the $defs section entirely
 # Recursive definitions remain in $defs; others are fully inlined
 function expand_all_defs(doc::Dict)::Dict
-    defs = get(doc, "\$defs", Dict())
+    defs = get(doc, SCHEMA_DEFS_KEY, Dict())
     if isempty(defs)
         # Remove empty $defs if it exists
         result = copy(doc)
-        delete!(result, "\$defs")
+        delete!(result, SCHEMA_DEFS_KEY)
         return result
     end
 
@@ -440,17 +440,17 @@ function expand_all_defs(doc::Dict)::Dict
     result = inline_refs_in_doc(doc, defs, inline_targets)
 
     # Expand root $ref if it's non-recursive
-    if haskey(result, "\$ref")
-        ref = result["\$ref"]
-        if ref isa String && startswith(ref, "#/\$defs/")
-            ref_key = ref[9:end]
+    if haskey(result, SCHEMA_REF_KEY)
+        ref = result[SCHEMA_REF_KEY]
+        if ref isa String && is_schema_ref(ref)
+            ref_key = extract_ref_key(ref)
             if ref_key in inline_targets && haskey(defs, ref_key)
                 # Replace root $ref with the expanded definition
                 expanded = inline_refs_in_schema(defs[ref_key], defs, inline_targets)
-                delete!(result, "\$ref")
+                delete!(result, SCHEMA_REF_KEY)
                 # Merge expanded schema into result (preserving $schema and other metadata)
                 for (k, v) in expanded
-                    if k != "\$defs"
+                    if k != SCHEMA_DEFS_KEY
                         result[k] = v
                     end
                 end
@@ -459,14 +459,14 @@ function expand_all_defs(doc::Dict)::Dict
     end
 
     # Remove inlined definitions from $defs
-    if haskey(result, "\$defs")
+    if haskey(result, SCHEMA_DEFS_KEY)
         new_defs = Dict{String, Any}(
-            k => v for (k, v) in result["\$defs"] if !(k in inline_targets)
+            k => v for (k, v) in result[SCHEMA_DEFS_KEY] if !(k in inline_targets)
         )
         if isempty(new_defs)
-            delete!(result, "\$defs")
+            delete!(result, SCHEMA_DEFS_KEY)
         else
-            result["\$defs"] = new_defs
+            result[SCHEMA_DEFS_KEY] = new_defs
         end
     end
 

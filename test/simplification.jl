@@ -1,7 +1,7 @@
 using Test
 using Struct2JSONSchema: SchemaContext, generate_schema
 using Struct2JSONSchema: Struct2JSONSchema.simplify_schema, Struct2JSONSchema.remove_unused_defs, Struct2JSONSchema.simplify_single_element_combinators,
-    Struct2JSONSchema.remove_empty_required, Struct2JSONSchema.inline_single_use_refs, Struct2JSONSchema.sort_defs
+    Struct2JSONSchema.remove_empty_required, Struct2JSONSchema.inline_single_use_refs, Struct2JSONSchema.sort_defs, Struct2JSONSchema.expand_all_defs
 
 
 @testset "remove_unused_defs - basic" begin

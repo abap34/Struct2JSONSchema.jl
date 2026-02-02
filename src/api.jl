@@ -30,10 +30,7 @@ function override_abstract!(
         end
     end
 
-    provided = Set{DataType}()
-    for key in keys(tag_value)
-        push!(provided, key)
-    end
+    provided = Set{DataType}(keys(tag_value))
     if provided != Set(variants)
         throw(ArgumentError("tag_value keys must match provided variants"))
     end
@@ -209,7 +206,7 @@ function auto_optional_null!(ctx::SchemaContext)
 end
 
 """
-    generate_schema!(T; ctx=SchemaContext(), simplify=true)
+    generate_schema!(T; ctx=SchemaContext(), simplify=true, inline_all_defs=false)
 
 Materialize a schema for `T` using the provided mutable context.
 `ctx` is updated in-place and the function returns a named tuple
@@ -218,8 +215,12 @@ with `doc` (the JSON schema document) and `unknowns`
 
 If `simplify=true` (default), the schema is simplified by removing unused definitions,
 inlining single-use references, and sorting definitions.
+
+If `inline_all_defs=true`, all `\$ref` references are expanded inline and the `\$defs`
+section is removed entirely (except for recursive definitions which must remain in `\$defs`).
+This option takes precedence over `simplify`.
 """
-function generate_schema!(T::Type; ctx::SchemaContext = SchemaContext(), simplify::Bool = true)
+function generate_schema!(T::Type; ctx::SchemaContext = SchemaContext(), simplify::Bool = true, inline_all_defs::Bool = false)
     unknowns_before = copy(ctx.unknowns)
     Tn = normalize_type(T, ctx)
     define!(Tn, ctx)
@@ -229,24 +230,30 @@ function generate_schema!(T::Type; ctx::SchemaContext = SchemaContext(), simplif
         "\$ref" => "#/\$defs/$key",
         "\$defs" => deepcopy(ctx.defs)
     )
-    if simplify
+    if inline_all_defs
+        doc = expand_all_defs(doc)
+    elseif simplify
         doc = simplify_schema(doc)
     end
     return (doc = doc, unknowns = setdiff(ctx.unknowns, unknowns_before))
 end
 
 """
-    generate_schema(T; ctx=SchemaContext(), simplify=true)
+    generate_schema(T; ctx=SchemaContext(), simplify=true, inline_all_defs=false)
 
 Variant of [`generate_schema!`](@ref) that clones the
 provided context before generation. The original `ctx` is unaffected.
 
 If `simplify=true` (default), the schema is simplified by removing unused definitions,
 inlining single-use references, and sorting definitions.
+
+If `inline_all_defs=true`, all `\$ref` references are expanded inline and the `\$defs`
+section is removed entirely (except for recursive definitions which must remain in `\$defs`).
+This option takes precedence over `simplify`.
 """
-function generate_schema(T::Type; ctx::SchemaContext = SchemaContext(), simplify::Bool = true)
+function generate_schema(T::Type; ctx::SchemaContext = SchemaContext(), simplify::Bool = true, inline_all_defs::Bool = false)
     ctx_clone = clone_context(ctx)
-    return generate_schema!(T; ctx = ctx_clone, simplify = simplify)
+    return generate_schema!(T; ctx = ctx_clone, simplify = simplify, inline_all_defs = inline_all_defs)
 end
 
 # ===== Default Values API =====

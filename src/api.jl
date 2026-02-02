@@ -30,10 +30,7 @@ function override_abstract!(
         end
     end
 
-    provided = Set{DataType}()
-    for key in keys(tag_value)
-        push!(provided, key)
-    end
+    provided = Set{DataType}(keys(tag_value))
     if provided != Set(variants)
         throw(ArgumentError("tag_value keys must match provided variants"))
     end

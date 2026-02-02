@@ -18,12 +18,9 @@ function remove_unused_defs(doc::Dict)::Dict
         end
     end
 
-    new_defs = Dict{String, Any}()
-    for key in used_keys
-        if haskey(defs, key)
-            new_defs[key] = defs[key]
-        end
-    end
+    new_defs = Dict{String, Any}(
+        key => defs[key] for key in used_keys if haskey(defs, key)
+    )
 
     result = copy(doc)
     if isempty(new_defs)
@@ -67,10 +64,9 @@ function simplify_single_element_combinators(schema::Any)::Any
         return schema
     end
 
-    result = Dict{String, Any}()
-    for (k, v) in schema
-        result[k] = simplify_single_element_combinators(v)
-    end
+    result = Dict{String, Any}(
+        k => simplify_single_element_combinators(v) for (k, v) in schema
+    )
 
     if length(result) == 1
         if haskey(result, "anyOf") && result["anyOf"] isa Vector && length(result["anyOf"]) == 1
@@ -89,15 +85,11 @@ function remove_empty_required(schema::Any)::Any
         return schema
     end
 
-    result = Dict{String, Any}()
-    for (k, v) in schema
-        if k == "required" && v isa Vector && isempty(v)
-            continue
-        end
-        result[k] = remove_empty_required(v)
-    end
-
-    return result
+    return Dict{String, Any}(
+        k => remove_empty_required(v)
+            for (k, v) in schema
+            if !(k == "required" && v isa Vector && isempty(v))
+    )
 end
 
 # Inline definitions that are referenced exactly once, are not recursive, and are not simple primitive types
@@ -117,27 +109,20 @@ function inline_single_use_refs(doc::Dict)::Dict
 
     recursive_keys = find_recursive_defs(defs)
 
-    inline_targets = Set{String}()
-    for (key, count) in ref_counts
-        if key == root_ref_key
-            continue
-        end
-        if count == 1 &&
-                !(key in recursive_keys) &&
-                !is_simple_primitive(get(defs, key, Dict()))
-            push!(inline_targets, key)
-        end
-    end
+    inline_targets = Set(
+        key for (key, count) in ref_counts
+            if key != root_ref_key &&
+            count == 1 &&
+            !(key in recursive_keys) &&
+            !is_simple_primitive(get(defs, key, Dict()))
+    )
 
     result = inline_refs_in_doc(doc, defs, inline_targets)
 
     if haskey(result, "\$defs")
-        new_defs = Dict{String, Any}()
-        for (k, v) in result["\$defs"]
-            if !(k in inline_targets)
-                new_defs[k] = v
-            end
-        end
+        new_defs = Dict{String, Any}(
+            k => v for (k, v) in result["\$defs"] if !(k in inline_targets)
+        )
         if isempty(new_defs)
             delete!(result, "\$defs")
         else
@@ -149,10 +134,7 @@ function inline_single_use_refs(doc::Dict)::Dict
 end
 
 function count_references_in_defs(defs::AbstractDict)::Dict{String, Int}
-    counts = Dict{String, Int}()
-    for key in keys(defs)
-        counts[key] = 0
-    end
+    counts = Dict{String, Int}(key => 0 for key in keys(defs))
 
     for (_, schema) in defs
         count_refs_in_schema!(schema, counts)
@@ -266,9 +248,8 @@ function is_simple_primitive(schema::Dict)::Bool
         "minLength", "maxLength", "minimum", "maximum", "pattern",
         "format", "minItems", "maxItems", "items", "enum", "const",
     ]
-    for key in constraint_keys
-        haskey(schema, key) && return false
-    end
+
+    any(key -> haskey(schema, key), constraint_keys) && return false
 
     return length(schema) == 1
 end
@@ -278,11 +259,10 @@ function inline_refs_in_doc(doc::Dict, defs::AbstractDict, inline_targets::Set{S
 
     for (k, v) in doc
         if k == "\$defs"
-            new_defs = Dict{String, Any}()
-            for (def_key, def_schema) in v
-                new_defs[def_key] = inline_refs_in_schema(def_schema, defs, inline_targets)
-            end
-            result[k] = new_defs
+            result[k] = Dict{String, Any}(
+                def_key => inline_refs_in_schema(def_schema, defs, inline_targets)
+                    for (def_key, def_schema) in v
+            )
         else
             result[k] = inline_refs_in_schema(v, defs, inline_targets)
         end
@@ -340,20 +320,11 @@ function sort_defs(doc::Dict)::Dict
 
     sorted_keys = sort_defs_keys(defs)
 
-    sorted_defs = OrderedDict{String, Any}()
-    for key in sorted_keys
-        sorted_defs[key] = defs[key]
-    end
+    sorted_defs = OrderedDict{String, Any}(key => defs[key] for key in sorted_keys)
 
-    result = Dict{String, Any}()
-    for (k, v) in doc
-        if k == "\$defs"
-            result[k] = sorted_defs
-        else
-            result[k] = v
-        end
-    end
-    return result
+    return Dict{String, Any}(
+        k => (k == "\$defs" ? sorted_defs : v) for (k, v) in doc
+    )
 end
 
 function sort_defs_keys(defs::AbstractDict)::Vector{String}
@@ -386,15 +357,11 @@ function is_primitive_def(schema::Dict)::Bool
 end
 
 function topological_sort_keys(keys::Vector{String}, defs::AbstractDict)::Vector{String}
-    deps = Dict{String, Vector{String}}()
-    for key in keys
-        deps[key] = find_dependencies(defs[key], keys)
-    end
+    deps = Dict{String, Vector{String}}(
+        key => find_dependencies(defs[key], keys) for key in keys
+    )
 
-    reverse_deps = Dict{String, Vector{String}}()
-    for key in keys
-        reverse_deps[key] = String[]
-    end
+    reverse_deps = Dict{String, Vector{String}}(key => String[] for key in keys)
 
     for (from_key, dep_list) in deps
         for dep_key in dep_list
@@ -404,18 +371,9 @@ function topological_sort_keys(keys::Vector{String}, defs::AbstractDict)::Vector
         end
     end
 
-    in_degree = Dict{String, Int}()
-    for key in keys
-        in_degree[key] = length(deps[key])
-    end
+    in_degree = Dict{String, Int}(key => length(deps[key]) for key in keys)
 
-    queue = String[]
-    for key in keys
-        if in_degree[key] == 0
-            push!(queue, key)
-        end
-    end
-    sort!(queue)
+    queue = sort!([key for key in keys if in_degree[key] == 0])
 
     result = String[]
     while !isempty(queue)
@@ -502,12 +460,9 @@ function expand_all_defs(doc::Dict)::Dict
 
     # Remove inlined definitions from $defs
     if haskey(result, "\$defs")
-        new_defs = Dict{String, Any}()
-        for (k, v) in result["\$defs"]
-            if !(k in inline_targets)
-                new_defs[k] = v
-            end
-        end
+        new_defs = Dict{String, Any}(
+            k => v for (k, v) in result["\$defs"] if !(k in inline_targets)
+        )
         if isempty(new_defs)
             delete!(result, "\$defs")
         else

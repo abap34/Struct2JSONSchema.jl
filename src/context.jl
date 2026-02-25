@@ -150,11 +150,18 @@ function record_unknown!(ctx::SchemaContext, T, reason::String; message::Union{N
     return nothing
 end
 
-h(T::Type) = string(hash(T), base = 16, pad = 16)
+_qualified_name(T::DataType)::String =
+    if isempty(T.parameters)
+        string(parentmodule(T), '.', nameof(T))
+    else
+        string(parentmodule(T), '.', nameof(T), '{', join((_qualified_name(p) for p in T.parameters), ", "), '}')
+    end
+_qualified_name(T::UnionAll)::String = _qualified_name(Base.unwrap_unionall(T))
+_qualified_name(x)::String = repr(x)
 
 function k(T::Type, ctx::SchemaContext)
     return get!(ctx.key_of, T) do
-        "$(repr(T))__$(h(T)[1:16])"
+        _qualified_name(T)
     end
 end
 

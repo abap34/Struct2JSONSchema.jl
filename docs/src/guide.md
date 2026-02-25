@@ -579,10 +579,10 @@ end
 doc, _ = generate_schema(Person)
 # {
 #   "$schema": "...",
-#   "$ref": "#/$defs/Person__...",
+#   "$ref": "#/$defs/Main.Person",
 #   "$defs": {
-#     "Person__...": {...},
-#     "Address__...": {...}
+#     "Main.Person": {...},
+#     "Main.Address": {...}
 #   }
 # }
 
@@ -617,11 +617,11 @@ doc, _ = generate_schema(Person; inline_all_defs=true)
     # Recursive types must remain in $defs
     doc, _ = generate_schema(Node; inline_all_defs=true)
     # {
-    #   "$ref": "#/$defs/Node__...",
+    #   "$ref": "#/$defs/Main.Node",
     #   "$defs": {
-    #     "Node__...": {  # Cannot be inlined due to recursion
+    #     "Main.Node": {  # Cannot be inlined due to recursion
     #       "anyOf": [
-    #         {"$ref": "#/$defs/Node__..."},
+    #         {"$ref": "#/$defs/Main.Node"},
     #         {"type": "null"}
     #       ]
     #     }

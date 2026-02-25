@@ -32,7 +32,7 @@ doc, unknowns = generate_schema(User)
 println(JSON.json(doc, 4))
 # {
 #    "$schema": "https://json-schema.org/draft/2020-12/schema",
-#    "$ref": "#/$defs/User__2fe39a6325a38198",
+#    "$ref": "#/$defs/Main.User",
 #  ...
 ```
 

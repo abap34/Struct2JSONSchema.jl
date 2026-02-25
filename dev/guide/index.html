@@ -298,10 +298,10 @@ end
 doc, _ = generate_schema(Person)
 # {
 #   &quot;$schema&quot;: &quot;...&quot;,
-#   &quot;$ref&quot;: &quot;#/$defs/Person__...&quot;,
+#   &quot;$ref&quot;: &quot;#/$defs/Main.Person&quot;,
 #   &quot;$defs&quot;: {
-#     &quot;Person__...&quot;: {...},
-#     &quot;Address__...&quot;: {...}
+#     &quot;Main.Person&quot;: {...},
+#     &quot;Main.Address&quot;: {...}
 #   }
 # }
 
@@ -320,7 +320,7 @@ doc, _ = generate_schema(Person; inline_all_defs=true)
 #       }
 #     }
 #   }
-# }</code></pre><div class="admonition is-warning" id="Recursive-Types-and-Inline-Expansion-6bd5623bd82140a7"><header class="admonition-header">Recursive Types and Inline Expansion<a class="admonition-anchor" href="#Recursive-Types-and-Inline-Expansion-6bd5623bd82140a7" title="Permalink"></a></header><div class="admonition-body"><p>Recursive definitions remain in <code>$defs</code> to avoid infinite expansion.</p><pre><code class="language-julia hljs">struct Node
+# }</code></pre><div class="admonition is-warning" id="Recursive-Types-and-Inline-Expansion-96f7b4f82b18bf3c"><header class="admonition-header">Recursive Types and Inline Expansion<a class="admonition-anchor" href="#Recursive-Types-and-Inline-Expansion-96f7b4f82b18bf3c" title="Permalink"></a></header><div class="admonition-body"><p>Recursive definitions remain in <code>$defs</code> to avoid infinite expansion.</p><pre><code class="language-julia hljs">struct Node
     value::Int
     next::Union{Node, Nothing}
 end
@@ -328,13 +328,13 @@ end
 # Recursive types must remain in $defs
 doc, _ = generate_schema(Node; inline_all_defs=true)
 # {
-#   &quot;$ref&quot;: &quot;#/$defs/Node__...&quot;,
+#   &quot;$ref&quot;: &quot;#/$defs/Main.Node&quot;,
 #   &quot;$defs&quot;: {
-#     &quot;Node__...&quot;: {  # Cannot be inlined due to recursion
+#     &quot;Main.Node&quot;: {  # Cannot be inlined due to recursion
 #       &quot;anyOf&quot;: [
-#         {&quot;$ref&quot;: &quot;#/$defs/Node__...&quot;},
+#         {&quot;$ref&quot;: &quot;#/$defs/Main.Node&quot;},
 #         {&quot;type&quot;: &quot;null&quot;}
 #       ]
 #     }
 #   }
-# }</code></pre></div></div></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Home</a><a class="docs-footer-nextpage" href="../reference/">Reference »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.16.1 on <span class="colophon-date" title="Monday 2 February 2026 06:21">Monday 2 February 2026</span>. Using Julia version 1.12.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+# }</code></pre></div></div></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Home</a><a class="docs-footer-nextpage" href="../reference/">Reference »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.16.1 on <span class="colophon-date" title="Wednesday 25 February 2026 09:24">Wednesday 25 February 2026</span>. Using Julia version 1.12.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

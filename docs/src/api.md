@@ -12,6 +12,7 @@ generate_schema!
 ```@docs
 SchemaContext
 UnknownEntry
+JavaScriptCompatibilityError
 ```
 
 ## Type Registration

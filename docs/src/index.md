@@ -32,8 +32,9 @@ Struct2JSONSchema.jl is designed to be customizable, allowing users to represent
 
 ### Robustness
 
-Struct2JSONSchema.jl generates JSON Schema for all types.
-If a type cannot be represented, it falls back to `Any`, but it never raises an error.
+In the default profile, Struct2JSONSchema.jl records unsupported field types in
+`unknowns` and falls back to `Any`. API validation and opt-in compatibility
+profiles may raise errors when their documented requirements are violated.
 
 ### Long-term maintainability
 

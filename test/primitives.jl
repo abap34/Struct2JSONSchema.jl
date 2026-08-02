@@ -198,6 +198,8 @@ end
 
     int128_def = def_for(defs, Int128)
     @test int128_def["type"] == "integer"
+    @test int128_def["minimum"] == typemin(Int128)
+    @test int128_def["maximum"] == typemax(Int128)
 end
 
 struct PrimitiveRecord3
@@ -229,11 +231,14 @@ end
     @test int16_def["maximum"] == typemax(Int16)
 
     uint64_def = def_for(defs, UInt64)
+    @test uint64_def["type"] == "integer"
     @test uint64_def["minimum"] == typemin(UInt64)
     @test uint64_def["maximum"] == typemax(UInt64)
 
     uint128_def = def_for(defs, UInt128)
     @test uint128_def["type"] == "integer"
+    @test uint128_def["minimum"] == typemin(UInt128)
+    @test uint128_def["maximum"] == typemax(UInt128)
 end
 
 struct StringVariations
@@ -495,4 +500,40 @@ end
 
     ptr_def = def_for(defs, Ptr{Nothing})
     @test isempty(ptr_def)
+end
+
+struct JSSafeIntegerBounds
+    i64::Int64
+    u64::UInt64
+    i128::Int128
+    u128::UInt128
+    i32::Int32
+    u32::UInt32
+end
+
+@testset "JS-safe integer bound emission" begin
+    ctx = SchemaContext(javascript_safe_numbers = true)
+    result = generate_schema(JSSafeIntegerBounds; ctx = ctx, simplify = false)
+    defs = result.doc["\$defs"]
+
+    for T in (Int64, Int128)
+        d = def_for(defs, T)
+        @test d["type"] == "integer"
+        @test !haskey(d, "minimum")
+        @test !haskey(d, "maximum")
+    end
+
+    for T in (UInt64, UInt128)
+        d = def_for(defs, T)
+        @test d["minimum"] === Int64(0)
+        @test !haskey(d, "maximum")
+    end
+
+    for T in (Int32, UInt32)
+        d = def_for(defs, T)
+        @test d["minimum"] == typemin(T)
+        @test d["maximum"] == typemax(T)
+        @test d["minimum"] isa Int64
+        @test d["maximum"] isa Int64
+    end
 end

@@ -35,18 +35,34 @@ function override_abstract!(
         throw(ArgumentError("tag_value keys must match provided variants"))
     end
 
-    values_seen = Set{RepresentableScalar}()
+    values_seen = Set{StoredRepresentableScalar}()
+    tags = Dict{DataType, StoredRepresentableScalar}()
     for (variant, val) in tag_value
-        if !(val isa RepresentableScalar)
-            throw(ArgumentError("Discriminator value for $variant must be a representable scalar"))
+        if javascript_safe_numbers(ctx)
+            if !(val isa JavaScriptRepresentableScalar)
+                throw(ArgumentError(
+                    "Discriminator value for $variant must be a representable scalar"
+                ))
+            end
+            normalized = normalize_javascript_scalar(
+                val,
+                ["tag_value", string(variant)]
+            )
+        else
+            if !(val isa RepresentableScalar)
+                throw(ArgumentError(
+                    "Discriminator value for $variant must be a representable scalar"
+                ))
+            end
+            normalized = val
         end
-        push!(values_seen, val)
+        push!(values_seen, normalized)
+        tags[variant] = normalized
     end
     if length(values_seen) != length(tag_value)
         throw(ArgumentError("tag_value contains duplicate discriminator values"))
     end
 
-    tags = Dict{DataType, RepresentableScalar}(tag_value)
     variants_copy = copy(variants)
 
     override!(ctx) do ctx
@@ -230,6 +246,9 @@ function generate_schema!(T::Type; ctx::SchemaContext = SchemaContext(), simplif
         SCHEMA_REF_KEY => make_ref(key),
         SCHEMA_DEFS_KEY => deepcopy(ctx.defs)
     )
+    if javascript_safe_numbers(ctx)
+        doc = normalize_javascript_schema(doc)
+    end
     if inline_all_defs
         doc = expand_all_defs(doc)
     elseif simplify

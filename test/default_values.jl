@@ -1334,4 +1334,24 @@ end
     @test bond_schema["properties"]["maturity"]["default"] == "2034-01-01"  # Default format
 end
 
+@testset "Default values - whole-number float normalization" begin
+    ctx = SchemaContext(javascript_safe_numbers = true)
+    defaultvalue!(ctx, FloatDefaults(1.0, 1.5, 0.0, -2.0, Float32(3.0)))
+
+    result = generate_schema(FloatDefaults; ctx = ctx, simplify = false)
+    schema = result.doc["\$defs"][default_key(FloatDefaults)]
+    props = schema["properties"]
+
+    # Whole-number floats are emitted as integers so the JSON output is
+    # stable across consumers that don't distinguish int vs float (e.g.
+    # JavaScript's `Number`).
+    @test props["whole"]["default"] === 1
+    @test props["zero"]["default"] === 0
+    @test props["negative"]["default"] === -2
+    @test props["f32"]["default"] === 3
+
+    # Non-integer floats are preserved as-is.
+    @test props["fractional"]["default"] === 1.5
+end
+
 end # module test_default_values

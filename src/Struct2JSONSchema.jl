@@ -9,13 +9,14 @@ import Base: isstructtype, UUID
 
 include("utils.jl")
 include("context.jl")
+include("javascript_compatibility.jl")
 include("generation.jl")
 include("api.jl")
 include("defaults.jl")
 include("simplification.jl")
 
 # Core types and generation
-export SchemaContext, UnknownEntry
+export JavaScriptCompatibilityError, SchemaContext, UnknownEntry
 export generate_schema, generate_schema!
 
 # Override system

@@ -87,6 +87,19 @@ function number_schema()::Dict{String, Any}
     return Dict{String, Any}("type" => "number")
 end
 
+function integer_type_schema(T::Type, ctx::SchemaContext)::Dict{String, Any}
+    schema = Dict{String, Any}("type" => "integer")
+    minimum = typemin(T)
+    maximum = typemax(T)
+    if !javascript_safe_numbers(ctx) || is_javascript_safe_integer(minimum)
+        schema["minimum"] = minimum
+    end
+    if !javascript_safe_numbers(ctx) || is_javascript_safe_integer(maximum)
+        schema["maximum"] = maximum
+    end
+    return schema
+end
+
 function schema_for_array(elem_type::Type, ctx::SchemaContext; unique::Bool = false)
     items_schema = with_path(ctx, Symbol("<items>")) do
         normalized = define!(elem_type, ctx)
@@ -306,7 +319,7 @@ function should_be_optional(T::DataType, field::Symbol, field_type::Type, ctx::S
 end
 
 
-function primitive_schema(T::Type, _::SchemaContext)
+function primitive_schema(T::Type, ctx::SchemaContext)
     if T === Union{}
         return Dict("not" => Dict{String, Any}())
     elseif T === Tuple{}
@@ -316,11 +329,7 @@ function primitive_schema(T::Type, _::SchemaContext)
     elseif T === Bool
         return Dict("type" => "boolean")
     elseif T <: Integer && T !== Integer && T !== BigInt
-        return Dict(
-            "type" => "integer",
-            "minimum" => typemin(T),
-            "maximum" => typemax(T)
-        )
+        return integer_type_schema(T, ctx)
     elseif T === BigInt || T === Integer
         return Dict("type" => "integer")
     elseif T <: AbstractFloat && !(T isa UnionAll)
@@ -404,7 +413,7 @@ end
 function generate_abstract_schema(
         variants::Vector{DataType},
         discr_key::String,
-        tag_value::Dict{DataType, RepresentableScalar},
+        tag_value::Dict{DataType, StoredRepresentableScalar},
         require_discr::Bool,
         ctx::SchemaContext
     )

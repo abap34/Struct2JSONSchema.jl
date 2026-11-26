@@ -10,7 +10,7 @@ Struct2JSONSchema.jl is a Julia package that converts Julia structs into JSON Sc
 
 * **Non-invasive**: Generate JSON Schema without modifying existing struct definitions.
 * **Extensibility**: Allow customization of schema generation for user-defined types and constraints.
-* **Robustness**: Never raises an error; unrepresentable types are conservatively handled as `Any`.
+* **Robustness**: Unsupported field types are conservatively handled as `Any` in the default profile.
 * **Long-term maintainability**: Simple implementation with minimal dependencies.
 
 For the design principles behind this package, see
@@ -90,6 +90,20 @@ Additional utilities are provided for tasks such as:
 
 For detailed customization options, see
 [https://abap34.github.io/Struct2JSONSchema.jl/dev/#Customization](https://abap34.github.io/Struct2JSONSchema.jl/dev/#Customization)
+
+## JavaScript-compatible numbers
+
+Use `SchemaContext(; javascript_safe_numbers = true)` when the generated
+schema will be consumed by JavaScript. This profile validates the complete
+schema document, including defaults and overrides, and rejects values that
+would require numeric rounding as ECMAScript `Number` values.
+
+The profile normalizes safe integers and floating-point values, canonicalizes
+signed zero to zero, and omits built-in integer bounds that exceed JavaScript's
+safe integer range. It does not control the lexical formatting chosen by an
+external JSON writer.
+
+See the user guide for the complete normalization and error policy.
 
 ## Examples
 

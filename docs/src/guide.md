@@ -2,6 +2,48 @@
 
 This guide covers customization options and advanced features of Struct2JSONSchema.jl.
 
+## JavaScript-compatible numbers
+
+JSON itself does not restrict numbers to IEEE 754 binary64, but JavaScript
+represents every JSON number as an ECMAScript `Number`. Use the optional
+JavaScript-safe number profile when the generated schema will be processed by
+Node.js, VS Code, or another JavaScript consumer:
+
+```julia
+ctx = SchemaContext(; javascript_safe_numbers = true)
+result = generate_schema(MyConfig; ctx = ctx)
+```
+
+The profile applies to the complete generated document, including values from
+custom default serializers, overrides, and discriminator tags. It applies the
+following policy:
+
+* Integers in the safe range `-(2^53 - 1)` through `2^53 - 1` are normalized
+  to `Int64`. Other integer values raise a
+  [`JavaScriptCompatibilityError`](@ref).
+* `Float16` and `Float32` values are widened to `Float64` without rounding their
+  binary value. Finite `Float64` values are preserved, while safe whole-number
+  values are normalized to `Int64`. Signed zero is intentionally canonicalized
+  to zero because JSON Schema numeric semantics do not distinguish them.
+* `BigFloat` and `Rational` values are accepted only when they can be converted
+  to `Float64` exactly.
+* `NaN`, infinities, unsupported number types, non-string object keys, and
+  other non-JSON values raise a [`JavaScriptCompatibilityError`](@ref). Errors
+  in generated documents contain a JSON Pointer to the incompatible value;
+  discriminator registration errors use a corresponding registration path.
+* Automatically generated integer bounds are emitted independently. For
+  example, `UInt64` keeps its safe `minimum = 0` while its unsafe maximum is
+  omitted.
+
+The default profile preserves Julia integer bounds exactly and does not apply
+these restrictions.
+
+This option prevents silent numeric rounding in the in-memory schema document,
+with the documented canonicalization of signed zero. It does not control
+whether an external JSON writer emits a number as `1.0`, `1`, fixed notation,
+or exponent notation. Byte-for-byte stability with a specific tool such as npm
+must be checked where the final JSON file is written.
+
 ## Customization
 
 [`generate_schema`](@ref) recursively generates schemas while updating a [`SchemaContext`](@ref).

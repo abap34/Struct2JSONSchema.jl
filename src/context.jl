@@ -1,4 +1,6 @@
 const RepresentableScalar = Union{String, Int, Float64, Bool, Nothing}
+const StoredRepresentableScalar = Union{RepresentableScalar, Int64}
+const JavaScriptRepresentableScalar = Union{AbstractString, Number, Bool, Nothing}
 const SymbolPath = Tuple{Vararg{Symbol}}
 
 """
@@ -21,6 +23,7 @@ mutable struct GenerationOptions
     auto_fielddoc::Bool
     auto_optional_union_nothing::Bool
     auto_optional_union_missing::Bool
+    javascript_safe_numbers::Bool
     verbose::Bool
 end
 
@@ -72,19 +75,24 @@ end
     SchemaContext(; auto_optional_union_nothing=false,
                     auto_optional_union_missing=false,
                     auto_fielddoc=true,
+                    javascript_safe_numbers=false,
                     verbose=false)
 
 Create a fresh schema generation context. Optional fields can
 be inferred when `auto_optional_union_nothing` or
 `auto_optional_union_missing` is true. When `auto_fielddoc` is true
 (default), field docstrings are automatically extracted using
-`REPL.fielddoc`. When `verbose` is true the generator emits
+`REPL.fielddoc`. When `javascript_safe_numbers` is true, numbers in the
+generated document are normalized to avoid ECMAScript `Number` rounding;
+signed zero is intentionally canonicalized to zero. When `verbose` is true
+the generator emits
 `@info`/`@warn` logs for unknown types and failed overrides.
 """
 function SchemaContext(;
         auto_optional_union_nothing::Bool = false,
         auto_optional_union_missing::Bool = false,
         auto_fielddoc::Bool = true,
+        javascript_safe_numbers::Bool = false,
         verbose::Bool = false
     )
     return SchemaContext(
@@ -94,7 +102,13 @@ function SchemaContext(;
         Symbol[],
         Set{UnknownEntry}(),
         FieldMetadata(),
-        GenerationOptions(auto_fielddoc, auto_optional_union_nothing, auto_optional_union_missing, verbose),
+        GenerationOptions(
+            auto_fielddoc,
+            auto_optional_union_nothing,
+            auto_optional_union_missing,
+            javascript_safe_numbers,
+            verbose
+        ),
         CurrentState(),
         Function[],
         Function[]
@@ -134,6 +148,7 @@ is_verbose(ctx::SchemaContext) = ctx.options.verbose
 auto_fielddoc(ctx::SchemaContext) = ctx.options.auto_fielddoc
 auto_optional_union_nothing(ctx::SchemaContext) = ctx.options.auto_optional_union_nothing
 auto_optional_union_missing(ctx::SchemaContext) = ctx.options.auto_optional_union_missing
+javascript_safe_numbers(ctx::SchemaContext) = ctx.options.javascript_safe_numbers
 
 path_to_string(path::Union{Vector{Symbol}, SymbolPath}) = isempty(path) ? "<root>" : join(string.(path), ".")
 

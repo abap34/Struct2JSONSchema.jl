@@ -1,6 +1,6 @@
 using Test
-using Struct2JSONSchema: SchemaContext, generate_schema, generate_schema!, override_type!, k, UnknownEntry
-import Struct2JSONSchema: clone_context
+using Struct2JSONSchema: SchemaContext, UnknownEntry,
+    clone_context, generate_schema, generate_schema!, k, override_type!
 
 struct VerboseCheck
     items::Vector
@@ -42,9 +42,10 @@ end
     @test override_def["description"] == "overridden schema"
     @test override_def["required"] == ["field"]
 
-    verbose_ctx = SchemaContext(verbose = true)
+    verbose_ctx = SchemaContext(verbose = true, javascript_safe_numbers = true)
     cloned = clone_context(verbose_ctx)
     @test cloned.options.verbose
+    @test cloned.options.javascript_safe_numbers
 end
 
 struct TestRecord1
@@ -141,9 +142,10 @@ struct CloneTestStruct
 end
 
 @testset "API behavior tests - context cloning" begin
-    original = SchemaContext(verbose = true)
+    original = SchemaContext(verbose = true, javascript_safe_numbers = true)
     cloned = clone_context(original)
 
     @test cloned.options.verbose == original.options.verbose
+    @test cloned.options.javascript_safe_numbers == original.options.javascript_safe_numbers
     @test cloned !== original
 end

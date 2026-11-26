@@ -37,6 +37,8 @@ include("find_python_validator.jl")
 
     @testset "default values" include("default_values.jl")
 
+    @testset "JavaScript compatibility" include("javascript_compatibility.jl")
+
     if isempty(find_python_validator())
         if get(ENV, "CI", "") == "true"
             error("Python with jsonschema is required in CI. Run `python3 -m pip install jsonschema`.")

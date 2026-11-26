@@ -1,19 +1,326 @@
+module test_default_values
+
 using Test
-using Struct2JSONSchema: SchemaContext, generate_schema, defaultvalue!, k, override_field!, override_type!, describe!, defaultvalue_field_serializer!, defaultvalue_type_serializer!, defaultvalue_serializer!, auto_optional_nothing!, override_abstract!, skip!, RepresentableScalar
+using Struct2JSONSchema: RepresentableScalar, SchemaContext,
+    auto_optional_nothing!, defaultvalue!, defaultvalue_field_serializer!,
+    defaultvalue_serializer!, defaultvalue_type_serializer!, describe!, generate_schema, k,
+    override_abstract!, override_field!, override_type!, skip!
 using Dates
 import Base: UUID
 
 const _DEFAULT_KEY_CTX = SchemaContext()
 default_key(T) = k(T, _DEFAULT_KEY_CTX)
 
-@testset "Default values - basic primitives" begin
-    struct BasicTypes
-        str::String
-        num::Int
-        flt::Float64
-        flag::Bool
-    end
+struct BasicTypes
+    str::String
+    num::Int
+    flt::Float64
+    flag::Bool
+end
 
+struct StandardTypes
+    dt::DateTime
+    d::Date
+    t::Time
+    u::UUID
+    s::Symbol
+    c::Char
+end
+
+struct CollectionTypes
+    vec::Vector{Int}
+    dict::Dict{String, Int}
+end
+
+struct ConfigValue
+    port::Int
+    host::String
+end
+
+struct SimpleConfig
+    timeout::Float64
+end
+
+struct MixedTypes
+    name::String
+    value::Int
+    callback::Function
+end
+
+struct Color
+    r::UInt8
+    g::UInt8
+    b::UInt8
+end
+
+struct Theme
+    primary::Color
+    secondary::Color
+end
+
+struct Metrics
+    created_at::DateTime
+    updated_at::DateTime
+end
+
+struct UserConfig
+    username::String
+    email::Union{String, Nothing}
+    bio::String
+end
+
+struct Product
+    name::String
+    price::Float64
+end
+
+struct Settings
+    timeout::Int
+end
+
+struct EmptyCollections
+    items::Vector{String}
+    metadata::Dict{String, Int}
+end
+
+struct NestedData
+    matrix::Vector{Vector{Int}}
+    nested_dict::Dict{String, Dict{String, Int}}
+end
+
+struct NestedProfileAddress
+    street::String
+    city::String
+    note::String
+end
+
+struct Profile
+    name::String
+    address::NestedProfileAddress
+end
+
+struct Member
+    id::Int
+    role::String
+end
+
+struct Team
+    members::Vector{Member}
+    lookup::Dict{String, Member}
+end
+
+struct WithUnknown
+    name::String
+    func::Function
+    type_ref::Type
+end
+
+struct OrderTest
+    value::Int
+end
+
+struct FallbackTest
+    name::String
+end
+
+abstract type Vehicle end
+
+struct Car <: Vehicle
+    brand::String
+    seats::Int
+end
+
+struct Bike <: Vehicle
+    brand::String
+    gears::Int
+end
+
+struct Garage
+    name::String
+    vehicles::Vector{Vehicle}
+end
+
+struct Point
+    x::Float64
+    y::Float64
+end
+
+struct Rectangle
+    top_left::Point
+    bottom_right::Point
+    color::String
+end
+
+struct ComplexConfig
+    # Regular field with a default
+    app_name::String
+    # Optional field defaulting to nothing
+    database_url::Union{String, Nothing}
+    # Field skipped entirely from the schema
+    internal_state::Int
+    # Override + default value
+    port::Int
+    # Description + default value
+    timeout::Float64
+end
+
+struct TreeNode
+    value::Int
+    children::Vector{TreeNode}
+end
+
+struct Timestamp
+    unix_time::Int
+end
+
+struct LogEntry
+    id::UUID
+    message::String
+    created::DateTime
+    modified::DateTime
+    metadata::Dict{String, String}
+end
+
+struct SerializedPersonAddress
+    street::String
+    city::String
+    zip::String
+end
+
+struct Contact
+    email::Union{String, Nothing}
+    phone::Union{String, Nothing}
+end
+
+struct Person
+    name::String
+    age::Int
+    address::SerializedPersonAddress
+    contact::Contact
+    tags::Vector{String}
+end
+
+struct Config
+    name::String
+    port::Int
+    enabled::Bool
+end
+
+@enum Status begin
+    PENDING
+    RUNNING
+    COMPLETED
+    FAILED
+end
+
+struct Task
+    name::String
+    status::Status
+    priority::Int
+end
+
+struct Coordinate
+    point::Tuple{Float64, Float64}
+    meta::NamedTuple{(:label, :color), Tuple{String, String}}
+end
+
+struct Service
+    name::String
+    port::Int
+end
+
+struct Data
+    value::Int
+    timestamp::DateTime
+end
+
+struct Point2D
+    x::Float64
+    y::Float64
+end
+
+struct Point3D
+    x::Float64
+    y::Float64
+    z::Float64
+end
+
+struct Shape
+    center2d::Point2D
+    center3d::Point3D
+    radius::Float64
+end
+
+struct Inner
+    value::Union{Int, Nothing}
+end
+
+struct Middle
+    inner::Union{Inner, Nothing}
+    name::Union{String, Nothing}
+end
+
+struct Outer
+    middle::Union{Middle, Nothing}
+    id::Int
+end
+
+struct Package
+    name::String
+    version::VersionNumber
+    ratio::Rational{Int}
+end
+
+struct FullConfig
+    # Regular field with a default
+    name::String
+    port::Int
+    # Skipped fields (defaults ignored)
+    internal_cache::Dict{String, Any}
+    internal_state::Int
+    # Optional field with a default
+    description::Union{String, Nothing}
+end
+
+# Circular reference Node -> NodeList -> Node
+struct Node
+    value::Int
+    children::Vector{Node}
+end
+
+abstract type Asset end
+
+struct Stock <: Asset
+    symbol::String
+    shares::Int
+    price::Float64
+    purchased::Date
+end
+
+struct Bond <: Asset
+    issuer::String
+    face_value::Float64
+    maturity::Date
+end
+
+struct Portfolio
+    name::String
+    owner::String
+    assets::Vector{Asset}
+    notes::Union{String, Nothing}
+    internal_id::UUID
+    risk_level::Int  # 1-10
+end
+
+struct FloatDefaults
+    whole::Float64
+    fractional::Float64
+    zero::Float64
+    negative::Float64
+    f32::Float32
+end
+
+@testset "Default values - basic primitives" begin
     ctx = SchemaContext()
     default_val = BasicTypes("hello", 42, 3.14, true)
     defaultvalue!(ctx, default_val)
@@ -29,15 +336,6 @@ default_key(T) = k(T, _DEFAULT_KEY_CTX)
 end
 
 @testset "Default values - standard types" begin
-    struct StandardTypes
-        dt::DateTime
-        d::Date
-        t::Time
-        u::UUID
-        s::Symbol
-        c::Char
-    end
-
     ctx = SchemaContext()
     default_val = StandardTypes(
         DateTime(2024, 1, 1, 12, 30, 45),
@@ -62,11 +360,6 @@ end
 end
 
 @testset "Default values - collections" begin
-    struct CollectionTypes
-        vec::Vector{Int}
-        dict::Dict{String, Int}
-    end
-
     ctx = SchemaContext()
     default_val = CollectionTypes(
         [1, 2, 3],
@@ -83,11 +376,6 @@ end
 end
 
 @testset "Default values - priority with override" begin
-    struct ConfigValue
-        port::Int
-        host::String
-    end
-
     ctx = SchemaContext()
 
     # Set default through override
@@ -110,10 +398,6 @@ end
 end
 
 @testset "Default values - no override on default" begin
-    struct SimpleConfig
-        timeout::Float64
-    end
-
     ctx = SchemaContext()
 
     # Override only adds constraints (no default)
@@ -135,12 +419,6 @@ end
 end
 
 @testset "Default values - partial fields" begin
-    struct MixedTypes
-        name::String
-        value::Int
-        callback::Function
-    end
-
     ctx = SchemaContext(verbose = false)
 
     default_val = MixedTypes("test", 123, () -> nothing)
@@ -162,17 +440,6 @@ end
 end
 
 @testset "Default values - custom serializer (type)" begin
-    struct Color
-        r::UInt8
-        g::UInt8
-        b::UInt8
-    end
-
-    struct Theme
-        primary::Color
-        secondary::Color
-    end
-
     ctx = SchemaContext()
 
     # Register custom serializer for Color
@@ -204,11 +471,6 @@ end
 end
 
 @testset "Default values - custom serializer (field)" begin
-    struct Metrics
-        created_at::DateTime
-        updated_at::DateTime
-    end
-
     ctx = SchemaContext()
 
     # created_at as Unix timestamp
@@ -238,12 +500,6 @@ end
 end
 
 @testset "Default values - with optional fields" begin
-    struct UserConfig
-        username::String
-        email::Union{String, Nothing}
-        bio::String
-    end
-
     ctx = SchemaContext()
     auto_optional_nothing!(ctx)
 
@@ -266,11 +522,6 @@ end
 end
 
 @testset "Default values - with field descriptions" begin
-    struct Product
-        name::String
-        price::Float64
-    end
-
     ctx = SchemaContext()
 
     describe!(ctx, Product, :price, "Product price in USD")
@@ -288,10 +539,6 @@ end
 end
 
 @testset "Default values - override with description priority" begin
-    struct Settings
-        timeout::Int
-    end
-
     ctx = SchemaContext()
 
     # Override with description
@@ -319,11 +566,6 @@ end
 end
 
 @testset "Default values - empty collections" begin
-    struct EmptyCollections
-        items::Vector{String}
-        metadata::Dict{String, Int}
-    end
-
     ctx = SchemaContext()
 
     default_val = EmptyCollections(String[], Dict{String, Int}())
@@ -338,11 +580,6 @@ end
 end
 
 @testset "Default values - nested collections" begin
-    struct NestedData
-        matrix::Vector{Vector{Int}}
-        nested_dict::Dict{String, Dict{String, Int}}
-    end
-
     ctx = SchemaContext()
 
     default_val = NestedData(
@@ -360,26 +597,15 @@ end
 end
 
 @testset "Default values - nested structs" begin
-    struct Address
-        street::String
-        city::String
-        note::String
-    end
-
-    struct Profile
-        name::String
-        address::Address
-    end
-
     # Without skip!, nested structs get defaults at leaf level
     ctx = SchemaContext()
-    default_profile = Profile("Alice", Address("Main St", "Metropolis", "leave note"))
+    default_profile = Profile("Alice", NestedProfileAddress("Main St", "Metropolis", "leave note"))
     defaultvalue!(ctx, default_profile)
 
     result = generate_schema(Profile; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
     schema = defs[default_key(Profile)]
-    address_schema = defs[default_key(Address)]
+    address_schema = defs[default_key(NestedProfileAddress)]
 
     # Parent struct field does not have default (only leaf fields do)
     @test !haskey(schema["properties"]["address"], "default")
@@ -392,15 +618,15 @@ end
 
     # With skip!, nested defaults respect skipped fields
     ctx_skipped = SchemaContext()
-    skip!(ctx_skipped, Address, :note)
+    skip!(ctx_skipped, NestedProfileAddress, :note)
 
-    default_profile2 = Profile("Bob", Address("Oak Ave", "Arcadia", "hidden"))
+    default_profile2 = Profile("Bob", NestedProfileAddress("Oak Ave", "Arcadia", "hidden"))
     defaultvalue!(ctx_skipped, default_profile2)
 
     result_skipped = generate_schema(Profile; ctx = ctx_skipped, simplify = false)
     defs_skipped = result_skipped.doc["\$defs"]
     schema_skipped = defs_skipped[default_key(Profile)]
-    address_schema_skipped = defs_skipped[default_key(Address)]
+    address_schema_skipped = defs_skipped[default_key(NestedProfileAddress)]
 
     # Parent struct field does not have default
     @test !haskey(schema_skipped["properties"]["address"], "default")
@@ -413,16 +639,6 @@ end
 end
 
 @testset "Default values - structs inside collections" begin
-    struct Member
-        id::Int
-        role::String
-    end
-
-    struct Team
-        members::Vector{Member}
-        lookup::Dict{String, Member}
-    end
-
     ctx = SchemaContext()
     default_team = Team(
         [Member(1, "developer")],
@@ -445,12 +661,6 @@ end
 end
 
 @testset "Default values - unknowns tracking" begin
-    struct WithUnknown
-        name::String
-        func::Function
-        type_ref::Type
-    end
-
     ctx = SchemaContext(verbose = false)
 
     default_val = WithUnknown("test", () -> nothing, Int)
@@ -466,10 +676,6 @@ end
 end
 
 @testset "Default values - serializer evaluation order" begin
-    struct OrderTest
-        value::Int
-    end
-
     ctx = SchemaContext()
 
     # Register multiple serializers in order
@@ -499,10 +705,6 @@ end
 end
 
 @testset "Default values - serializer fallback" begin
-    struct FallbackTest
-        name::String
-    end
-
     ctx = SchemaContext()
 
     # Register serializer that returns nothing
@@ -524,23 +726,6 @@ end
 # ===== Integrated tests =====
 
 @testset "Complex - defaults with abstract types and discriminator" begin
-    abstract type Vehicle end
-
-    struct Car <: Vehicle
-        brand::String
-        seats::Int
-    end
-
-    struct Bike <: Vehicle
-        brand::String
-        gears::Int
-    end
-
-    struct Garage
-        name::String
-        vehicles::Vector{Vehicle}
-    end
-
     ctx = SchemaContext()
 
     # Register abstract type behavior
@@ -580,17 +765,6 @@ end
 end
 
 @testset "Complex - nested structs with custom serializers and defaults" begin
-    struct Point
-        x::Float64
-        y::Float64
-    end
-
-    struct Rectangle
-        top_left::Point
-        bottom_right::Point
-        color::String
-    end
-
     ctx = SchemaContext()
 
     # Serialize Point as custom array format
@@ -626,19 +800,6 @@ end
 end
 
 @testset "Complex - defaults with skip, optional, override, and description" begin
-    struct ComplexConfig
-        # Regular field with a default
-        app_name::String
-        # Optional field defaulting to nothing
-        database_url::Union{String, Nothing}
-        # Field skipped entirely from the schema
-        internal_state::Int
-        # Override + default value
-        port::Int
-        # Description + default value
-        timeout::Float64
-    end
-
     ctx = SchemaContext()
     auto_optional_nothing!(ctx)
 
@@ -692,11 +853,6 @@ end
 end
 
 @testset "Complex - self-referencing type with defaults" begin
-    struct TreeNode
-        value::Int
-        children::Vector{TreeNode}
-    end
-
     ctx = SchemaContext()
 
     # Default for recursive structure
@@ -717,18 +873,6 @@ end
 end
 
 @testset "Complex - multiple field serializers with nested types" begin
-    struct Timestamp
-        unix_time::Int
-    end
-
-    struct LogEntry
-        id::UUID
-        message::String
-        created::DateTime
-        modified::DateTime
-        metadata::Dict{String, String}
-    end
-
     ctx = SchemaContext()
 
     # Serialize id as uppercase UUID
@@ -769,34 +913,15 @@ end
 end
 
 @testset "Complex - deeply nested structures with mixed serialization" begin
-    struct Address
-        street::String
-        city::String
-        zip::String
-    end
-
-    struct Contact
-        email::Union{String, Nothing}
-        phone::Union{String, Nothing}
-    end
-
-    struct Person
-        name::String
-        age::Int
-        address::Address
-        contact::Contact
-        tags::Vector{String}
-    end
-
     ctx = SchemaContext()
     auto_optional_nothing!(ctx)
 
     # Serialize Address as comma-separated string
-    defaultvalue_type_serializer!(ctx, Address) do value, ctx
+    defaultvalue_type_serializer!(ctx, SerializedPersonAddress) do value, ctx
         "$(value.street), $(value.city), $(value.zip)"
     end
 
-    override_type!(ctx, Address) do ctx
+    override_type!(ctx, SerializedPersonAddress) do ctx
         Dict("type" => "string", "description" => "Address in format: street, city, zip")
     end
 
@@ -820,7 +945,7 @@ end
     default_person = Person(
         "Guest",
         0,
-        Address("", "", ""),
+        SerializedPersonAddress("", "", ""),
         Contact(nothing, nothing),
         String[]
     )
@@ -841,7 +966,7 @@ end
     default_person2 = Person(
         "Alice",
         30,
-        Address("123 Main St", "Tokyo", "100-0001"),
+        SerializedPersonAddress("123 Main St", "Tokyo", "100-0001"),
         Contact("alice@example.com", "+81-90-1234-5678"),
         ["developer", "team-lead"]
     )
@@ -859,12 +984,6 @@ end
 end
 
 @testset "Complex - simplification with defaults" begin
-    struct Config
-        name::String
-        port::Int
-        enabled::Bool
-    end
-
     ctx = SchemaContext()
     defaultvalue!(ctx, Config("app", 8080, true))
 
@@ -888,19 +1007,6 @@ end
 end
 
 @testset "Complex - enum with defaults" begin
-    @enum Status begin
-        PENDING
-        RUNNING
-        COMPLETED
-        FAILED
-    end
-
-    struct Task
-        name::String
-        status::Status
-        priority::Int
-    end
-
     ctx = SchemaContext()
 
     # Custom serializer for enum type
@@ -927,11 +1033,6 @@ end
 end
 
 @testset "Complex - tuple and namedtuple with defaults" begin
-    struct Coordinate
-        point::Tuple{Float64, Float64}
-        meta::NamedTuple{(:label, :color), Tuple{String, String}}
-    end
-
     ctx = SchemaContext()
 
     # Custom serializer for Tuple and NamedTuple
@@ -961,11 +1062,6 @@ end
 end
 
 @testset "Complex - context cloning preserves defaults" begin
-    struct Service
-        name::String
-        port::Int
-    end
-
     ctx = SchemaContext()
     defaultvalue!(ctx, Service("api", 3000))
 
@@ -987,11 +1083,6 @@ end
 end
 
 @testset "Complex - serializer error handling" begin
-    struct Data
-        value::Int
-        timestamp::DateTime
-    end
-
     ctx = SchemaContext(verbose = false)
 
     # Register serializer that throws
@@ -1016,23 +1107,6 @@ end
 end
 
 @testset "Complex - multiple type overrides with defaults" begin
-    struct Point2D
-        x::Float64
-        y::Float64
-    end
-
-    struct Point3D
-        x::Float64
-        y::Float64
-        z::Float64
-    end
-
-    struct Shape
-        center2d::Point2D
-        center3d::Point3D
-        radius::Float64
-    end
-
     ctx = SchemaContext()
 
     # Multiple type overrides
@@ -1070,20 +1144,6 @@ end
 end
 
 @testset "Complex - deeply nested optionals with defaults" begin
-    struct Inner
-        value::Union{Int, Nothing}
-    end
-
-    struct Middle
-        inner::Union{Inner, Nothing}
-        name::Union{String, Nothing}
-    end
-
-    struct Outer
-        middle::Union{Middle, Nothing}
-        id::Int
-    end
-
     ctx = SchemaContext()
     auto_optional_nothing!(ctx)
 
@@ -1119,12 +1179,6 @@ end
 end
 
 @testset "Complex - versionnumber and rational defaults" begin
-    struct Package
-        name::String
-        version::VersionNumber
-        ratio::Rational{Int}
-    end
-
     ctx = SchemaContext()
 
     # Custom serializer for Rational (convert to float)
@@ -1149,17 +1203,6 @@ end
 end
 
 @testset "Complex - mixed skip and defaults" begin
-    struct FullConfig
-        # Regular field with a default
-        name::String
-        port::Int
-        # Skipped fields (defaults ignored)
-        internal_cache::Dict{String, Any}
-        internal_state::Int
-        # Optional field with a default
-        description::Union{String, Nothing}
-    end
-
     ctx = SchemaContext()
     auto_optional_nothing!(ctx)
 
@@ -1194,12 +1237,6 @@ end
 end
 
 @testset "Complex - circular type dependencies" begin
-    # Circular reference Node -> NodeList -> Node
-    struct Node
-        value::Int
-        children::Vector{Node}
-    end
-
     ctx = SchemaContext()
 
     # Node with an empty children list
@@ -1220,30 +1257,6 @@ end
 
 @testset "Complex - all features combined" begin
     # Comprehensive scenario with every feature
-
-    abstract type Asset end
-
-    struct Stock <: Asset
-        symbol::String
-        shares::Int
-        price::Float64
-        purchased::Date
-    end
-
-    struct Bond <: Asset
-        issuer::String
-        face_value::Float64
-        maturity::Date
-    end
-
-    struct Portfolio
-        name::String
-        owner::String
-        assets::Vector{Asset}
-        notes::Union{String, Nothing}
-        internal_id::UUID
-        risk_level::Int  # 1-10
-    end
 
     ctx = SchemaContext(auto_fielddoc = true)
     auto_optional_nothing!(ctx)
@@ -1320,3 +1333,5 @@ end
     @test bond_schema["properties"]["face_value"]["default"] == 1000.0
     @test bond_schema["properties"]["maturity"]["default"] == "2034-01-01"  # Default format
 end
+
+end # module test_default_values

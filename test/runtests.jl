@@ -2,78 +2,48 @@ using Struct2JSONSchema
 using Test
 using Dates
 
+include("find_python_validator.jl")
 
-@testset "primitive" begin
-    include("primitives.jl")
-end
+@testset "Struct2JSONSchema" begin
+    @testset "primitive" include("primitives.jl")
 
-@testset "collections" begin
-    include("collections.jl")
-end
+    @testset "collections" include("collections.jl")
 
-@testset "composite" begin
-    include("composites.jl")
-end
+    @testset "composite" include("composites.jl")
 
-@testset "context and overrides" begin
-    include("context_and_overrides.jl")
-end
+    @testset "context and overrides" include("context_and_overrides.jl")
 
-@testset "API behaviors" begin
-    include("api_behaviors.jl")
-end
+    @testset "API behaviors" include("api_behaviors.jl")
 
-@testset "doc structure" begin
-    include("doc_structure.jl")
-end
+    @testset "doc structure" include("doc_structure.jl")
 
-@testset "edge cases" begin
-    include("edge_cases.jl")
-end
+    @testset "edge cases" include("edge_cases.jl")
 
+    @testset "end to end" include("end_to_end.jl")
 
-@testset "end to end" begin
-    include("end_to_end.jl")
-end
+    @testset "optional fields" include("optional_fields.jl")
 
-@testset "optional fields" begin
-    include("optional_fields.jl")
-end
+    @testset "field overrides" include("field_overrides.jl")
 
-@testset "field overrides" begin
-    include("field_overrides.jl")
-end
+    @testset "error handling" include("error_handling.jl")
 
-@testset "error handling" begin
-    include("error_handling.jl")
-end
+    @testset "simplification" include("simplification.jl")
 
-@testset "simplification" begin
-    include("simplification.jl")
-end
+    @testset "expand_all_defs" include("expand_all_defs.jl")
 
-@testset "expand_all_defs" begin
-    include("expand_all_defs.jl")
-end
+    @testset "field descriptions" include("field_descriptions.jl")
 
-@testset "field descriptions" begin
-    include("field_descriptions.jl")
-end
+    @testset "skip fields" include("skip_fields.jl")
 
-@testset "skip fields" begin
-    include("skip_fields.jl")
-end
+    @testset "default values" include("default_values.jl")
 
-@testset "default values" begin
-    include("default_values.jl")
-end
-
-py_exec = Sys.which("python3") !== nothing ? "python3" : Sys.which("python") !== nothing ? "python" : nothing
-
-if py_exec !== nothing
-    @testset "python validator" begin
-        include("pyvalidtest.jl")
+    if isempty(find_python_validator())
+        if get(ENV, "CI", "") == "true"
+            error("Python with jsonschema is required in CI. Run `python3 -m pip install jsonschema`.")
+        end
+        @warn "Python with jsonschema not found; skipping python validator tests" install =
+            "python3 -m pip install jsonschema"
+    else
+        @testset "python validator" include("pyvalidtest.jl")
     end
-else
-    @warn "Python executable not found; skipping python validator tests"
 end

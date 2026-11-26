@@ -1,5 +1,9 @@
+module test_edge_cases
+
 using Test
-using Struct2JSONSchema: SchemaContext, generate_schema, k, UnknownEntry
+using Struct2JSONSchema: SchemaContext, UnknownEntry, generate_schema, k
+
+struct EmptyStruct end
 
 const _EDGE_CASES_KEY_CTX = SchemaContext()
 edge_case_key(T) = k(T, _EDGE_CASES_KEY_CTX)
@@ -18,8 +22,6 @@ edge_case_key(T) = k(T, _EDGE_CASES_KEY_CTX)
     end
 
     @testset "Empty struct" begin
-        struct EmptyStruct end
-
         ctx = SchemaContext()
         result = generate_schema(EmptyStruct; ctx = ctx, simplify = false)
         defs = result.doc["\$defs"]
@@ -56,3 +58,5 @@ edge_case_key(T) = k(T, _EDGE_CASES_KEY_CTX)
         @test !haskey(schema, "prefixItems")
     end
 end
+
+end # module test_edge_cases

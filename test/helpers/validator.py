@@ -1,8 +1,9 @@
 import json
 import sys
 from datetime import datetime
-from jsonschema import Draft202012Validator
 from urllib.parse import urlparse
+
+from jsonschema import Draft202012Validator
 
 format_checker = Draft202012Validator.FORMAT_CHECKER
 

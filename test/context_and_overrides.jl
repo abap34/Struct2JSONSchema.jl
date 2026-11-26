@@ -1,5 +1,9 @@
+module test_context_and_overrides
+
 using Test
-using Struct2JSONSchema: SchemaContext, generate_schema, generate_schema!, override_abstract!, override!, override_type!, override_field!, k, define!, current_type, current_parent, current_field, UnknownEntry
+using Struct2JSONSchema: SchemaContext, UnknownEntry, current_field, current_parent,
+    current_type, define!, generate_schema, generate_schema!, k, override!,
+    override_abstract!, override_field!, override_type!
 using Dates
 import Logging
 
@@ -19,6 +23,157 @@ end
 
 struct VerboseVectorHolder
     data::Vector
+end
+
+struct SimpleStruct1
+    value::Int
+end
+
+struct SimpleStruct2
+    name::String
+end
+
+struct BangTestStruct1
+    field::String
+end
+
+struct BangTestStruct2
+    field::Int
+end
+
+struct OverrideTarget1
+    value::Int
+end
+
+struct OverrideTarget2
+    data::String
+end
+
+struct CustomInt32
+    value::Int32
+end
+
+struct CustomInt64
+    value::Int64
+end
+
+struct UnknownHolder1
+    data::Vector
+end
+
+struct UnknownHolder2
+    items::Vector
+end
+
+struct URLContainer
+    homepage::String
+    api_endpoint::String
+end
+
+struct EmailContainer
+    primary::String
+    secondary::String
+end
+
+struct ScoreRecord
+    id::Int
+    score::Float64
+end
+
+struct StringLengthRecord
+    username::String
+    bio::String
+end
+
+struct DateTimeRecord
+    created_at::DateTime
+    updated_at::DateTime
+end
+
+struct FloatRecord
+    value1::Float64
+    value2::Float64
+end
+
+struct StringRecord
+    field1::String
+    field2::String
+end
+
+struct NestedOverride
+    inner::ScoreRecord
+    name::String
+end
+
+struct IntRangeRecord
+    small::Int8
+    medium::Int32
+    large::Int64
+end
+
+struct ArrayOverrideRecord
+    items::Vector{Int}
+end
+
+struct EnumOverrideRecord
+    color::String
+end
+
+struct PatternRecord
+    phone::String
+    zipcode::String
+end
+
+struct UnifiedFieldTarget
+    value::Int
+    label::String
+end
+
+struct UnifiedTypeTarget
+    data::String
+end
+
+struct ServiceConfig
+    endpoint::String
+    retries::Int
+end
+
+struct ConfigWrapper
+    config::ServiceConfig
+    label::String
+end
+
+struct TypeOverrideHolder
+    price::Float64
+end
+
+struct FieldOverrideHolder
+    email::String
+    name::String
+end
+
+abstract type UnifiedAnimal end
+
+struct UnifiedCat <: UnifiedAnimal
+    kind::String
+    name::String
+end
+
+struct UnifiedDog <: UnifiedAnimal
+    kind::String
+    name::String
+end
+
+struct PrecedenceHolder
+    value::Int
+end
+
+struct BrokenOverride
+    data::Int
+end
+
+struct OrderingTarget
+    x::Int
 end
 
 const _CTX_KEY_CTX = SchemaContext()
@@ -104,14 +259,6 @@ end
     end
 end
 
-struct SimpleStruct1
-    value::Int
-end
-
-struct SimpleStruct2
-    name::String
-end
-
 @testset "context isolation tests" begin
     ctx = SchemaContext()
     result1 = generate_schema(SimpleStruct1; ctx = ctx, simplify = false)
@@ -123,14 +270,6 @@ end
     @test isempty(ctx.unknowns)
 end
 
-struct BangTestStruct1
-    field::String
-end
-
-struct BangTestStruct2
-    field::Int
-end
-
 @testset "generate_schema! tests" begin
     bang_ctx = SchemaContext()
     result1 = generate_schema!(BangTestStruct1; ctx = bang_ctx, simplify = false)
@@ -138,14 +277,6 @@ end
 
     result2 = generate_schema!(BangTestStruct2; ctx = bang_ctx, simplify = false)
     @test length(bang_ctx.defs) > 1
-end
-
-struct OverrideTarget1
-    value::Int
-end
-
-struct OverrideTarget2
-    data::String
 end
 
 @testset "override tests" begin
@@ -168,14 +299,6 @@ end
     @test schema2["description"] == "Override 2"
 end
 
-struct CustomInt32
-    value::Int32
-end
-
-struct CustomInt64
-    value::Int64
-end
-
 @testset "primitive type override tests" begin
     ctx = SchemaContext()
 
@@ -196,14 +319,6 @@ end
     @test int64_def["description"] == "Custom Int64"
 end
 
-struct UnknownHolder1
-    data::Vector
-end
-
-struct UnknownHolder2
-    items::Vector
-end
-
 @testset "unknown type tracking tests" begin
     ctx = SchemaContext()
 
@@ -212,11 +327,6 @@ end
 
     result2 = generate_schema(UnknownHolder2; ctx = ctx, simplify = false)
     @test result2.unknowns == Set([UnknownEntry(Vector, (:items,), "unionall_type")])
-end
-
-struct URLContainer
-    homepage::String
-    api_endpoint::String
 end
 
 @testset "field override - multiple fields" begin
@@ -247,11 +357,6 @@ end
     @test schema["properties"]["api_endpoint"]["pattern"] == "^https://.*"
 end
 
-struct EmailContainer
-    primary::String
-    secondary::String
-end
-
 @testset "field override - same override for multiple fields" begin
     ctx = SchemaContext()
 
@@ -276,11 +381,6 @@ end
     @test schema["properties"]["secondary"]["format"] == "email"
 end
 
-struct ScoreRecord
-    id::Int
-    score::Float64
-end
-
 @testset "field override - numeric constraints" begin
     ctx = SchemaContext()
 
@@ -299,11 +399,6 @@ end
     @test schema["properties"]["score"]["minimum"] == 0.0
     @test schema["properties"]["score"]["maximum"] == 100.0
     @test schema["properties"]["score"]["description"] == "Score between 0 and 100"
-end
-
-struct StringLengthRecord
-    username::String
-    bio::String
 end
 
 @testset "field override - string length constraints" begin
@@ -334,11 +429,6 @@ end
     @test schema["properties"]["bio"]["maxLength"] == 500
 end
 
-struct DateTimeRecord
-    created_at::DateTime
-    updated_at::DateTime
-end
-
 @testset "type override - DateTime custom format" begin
     ctx = SchemaContext()
 
@@ -355,11 +445,6 @@ end
 
     @test datetime_def["format"] == "date-time"
     @test datetime_def["description"] == "ISO 8601 datetime"
-end
-
-struct FloatRecord
-    value1::Float64
-    value2::Float64
 end
 
 @testset "type override - Float64 custom representation" begin
@@ -379,11 +464,6 @@ end
     @test float_def["description"] == "Custom float representation"
 end
 
-struct StringRecord
-    field1::String
-    field2::String
-end
-
 @testset "type override - String custom constraints" begin
     ctx = SchemaContext()
 
@@ -400,11 +480,6 @@ end
 
     @test string_def["minLength"] == 1
     @test string_def["description"] == "Non-empty string"
-end
-
-struct NestedOverride
-    inner::ScoreRecord
-    name::String
 end
 
 @testset "field override - nested struct with overrides" begin
@@ -435,12 +510,6 @@ end
     @test score_schema["properties"]["score"]["maximum"] == 100.0
 end
 
-struct IntRangeRecord
-    small::Int8
-    medium::Int32
-    large::Int64
-end
-
 @testset "type override - multiple integer types" begin
     ctx = SchemaContext()
 
@@ -469,10 +538,6 @@ end
     @test int32_def["description"] == "32-bit integer"
 end
 
-struct ArrayOverrideRecord
-    items::Vector{Int}
-end
-
 @testset "field override - array constraints" begin
     ctx = SchemaContext()
 
@@ -492,10 +557,6 @@ end
     @test schema["properties"]["items"]["maxItems"] == 10
 end
 
-struct EnumOverrideRecord
-    color::String
-end
-
 @testset "field override - enum values" begin
     ctx = SchemaContext()
 
@@ -512,17 +573,7 @@ end
     @test schema["properties"]["color"]["enum"] == ["red", "green", "blue"]
 end
 
-struct PatternRecord
-    phone::String
-    zipcode::String
-end
-
 @testset "override contexts - field override" begin
-    struct UnifiedFieldTarget
-        value::Int
-        label::String
-    end
-
     ctx = SchemaContext()
 
     override!(ctx) do ctx
@@ -540,10 +591,6 @@ end
 end
 
 @testset "override contexts - type override" begin
-    struct UnifiedTypeTarget
-        data::String
-    end
-
     ctx = SchemaContext()
 
     override!(ctx) do ctx
@@ -561,16 +608,6 @@ end
 end
 
 @testset "override contexts - path aware" begin
-    struct ServiceConfig
-        endpoint::String
-        retries::Int
-    end
-
-    struct ConfigWrapper
-        config::ServiceConfig
-        label::String
-    end
-
     ctx = SchemaContext()
 
     override!(ctx) do ctx
@@ -591,10 +628,6 @@ end
 end
 
 @testset "override contexts - helper APIs" begin
-    struct TypeOverrideHolder
-        price::Float64
-    end
-
     ctx = SchemaContext()
 
     override_type!(ctx, Float64) do ctx
@@ -609,11 +642,6 @@ end
 end
 
 @testset "override contexts - field helper" begin
-    struct FieldOverrideHolder
-        email::String
-        name::String
-    end
-
     ctx = SchemaContext()
 
     override_field!(ctx, FieldOverrideHolder, :email) do ctx
@@ -628,18 +656,6 @@ end
 end
 
 @testset "override contexts - override_abstract!" begin
-    abstract type UnifiedAnimal end
-
-    struct UnifiedCat <: UnifiedAnimal
-        kind::String
-        name::String
-    end
-
-    struct UnifiedDog <: UnifiedAnimal
-        kind::String
-        name::String
-    end
-
     ctx = SchemaContext()
 
     override_abstract!(
@@ -662,10 +678,6 @@ end
 end
 
 @testset "override contexts - precedence and failures" begin
-    struct PrecedenceHolder
-        value::Int
-    end
-
     ctx = SchemaContext()
 
     override_type!(ctx, Int) do _
@@ -686,10 +698,6 @@ end
     int_schema = int_result.doc["\$defs"][ctx_key(Int)]
     @test int_schema["minimum"] == 5
 
-    struct BrokenOverride
-        data::Int
-    end
-
     verbose_ctx = SchemaContext(verbose = true)
     override!(verbose_ctx) do ctx
         if current_type(ctx) === BrokenOverride
@@ -698,7 +706,7 @@ end
         return nothing
     end
 
-    @test_logs (:warn, r"Override threw an error at type BrokenOverride") begin
+    @test_logs (:warn, r"Override threw an error at type Main\.test_context_and_overrides\.BrokenOverride") begin
         result = generate_schema(BrokenOverride; ctx = verbose_ctx, simplify = false)
         schema = result.doc["\$defs"][ctx_key(BrokenOverride)]
         @test haskey(schema["properties"], "data")
@@ -706,10 +714,6 @@ end
 end
 
 @testset "override contexts - ordering" begin
-    struct OrderingTarget
-        x::Int
-    end
-
     ctx = SchemaContext()
     first_hit = Ref(false)
     override!(ctx) do ctx
@@ -764,3 +768,5 @@ end
     @test schema["properties"]["phone"]["pattern"] == "^\\+?[1-9]\\d{1,14}\$"
     @test schema["properties"]["zipcode"]["pattern"] == "^\\d{5}(-\\d{4})?\$"
 end
+
+end # module test_context_and_overrides

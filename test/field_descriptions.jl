@@ -1,17 +1,117 @@
+module field_descriptions
+
 using Test
-using Struct2JSONSchema: SchemaContext, generate_schema, describe!, k
+using Struct2JSONSchema: SchemaContext, describe!, generate_schema, k, override_field!
+using Dates
 using REPL
 
 const _FIELD_DESC_KEY_CTX = SchemaContext()
 field_desc_key(T) = k(T, _FIELD_DESC_KEY_CTX)
 
-@testset "Field descriptions - basic registration" begin
-    struct BasicUser
-        id::Int
-        name::String
-        email::String
-    end
+struct BasicUser
+    id::Int
+    name::String
+    email::String
+end
 
+struct Product
+    id::Int
+    price::Float64
+end
+
+struct Article
+    id::Int
+    title::String
+    content::String
+    author::String
+end
+
+"""
+User information
+"""
+struct DocumentedUser
+    """User's unique identifier"""
+    id::Int
+
+    """User's full name"""
+    name::String
+
+    email::String  # No docstring
+end
+
+"""
+Event data
+"""
+struct EventData
+    """Event identifier from docstring"""
+    id::Int
+
+    """Event timestamp"""
+    timestamp::String
+end
+
+"""
+Configuration struct
+"""
+struct Config
+    """Port number"""
+    port::Int
+
+    """Host address"""
+    host::String
+end
+
+"""
+Server settings
+"""
+struct ServerSettings
+    """Server port"""
+    port::Int
+
+    timeout::Int
+end
+
+struct NoTypeDoc
+    """Field doc"""
+    value::Int
+end
+
+struct TestStruct
+    field1::Int
+end
+
+struct EventWithOverride
+    id::Int
+    timestamp::DateTime
+    description::String
+end
+
+struct EmptyDescTest
+    field1::Int
+end
+
+struct UnicodeTest
+    field1::String
+    field2::String
+end
+
+struct CloneTest
+    field1::Int
+end
+
+struct DiagnosticPattern
+    severity::Int
+end
+
+struct FlexibleField
+    value::Any
+end
+
+struct ValidatedString
+    code::String
+end
+
+@testset "Field descriptions - basic registration" begin
     ctx = SchemaContext()
     describe!(ctx, BasicUser, :email, "User's primary email address")
     describe!(ctx, BasicUser, :id, "Unique user identifier")
@@ -31,10 +131,6 @@ field_desc_key(T) = k(T, _FIELD_DESC_KEY_CTX)
 end
 
 @testset "Field descriptions - with \$ref" begin
-    struct Product
-        id::Int
-        price::Float64
-    end
 
     ctx = SchemaContext()
     describe!(ctx, Product, :id, "Product identifier")
@@ -51,13 +147,6 @@ end
 end
 
 @testset "Field descriptions - multiple fields" begin
-    struct Article
-        id::Int
-        title::String
-        content::String
-        author::String
-    end
-
     ctx = SchemaContext()
 
     descriptions = Dict(
@@ -81,19 +170,6 @@ end
 end
 
 @testset "Field descriptions - auto extraction from docstring" begin
-    """
-    User information
-    """
-    struct DocumentedUser
-        """User's unique identifier"""
-        id::Int
-
-        """User's full name"""
-        name::String
-
-        email::String  # No docstring
-    end
-
     ctx = SchemaContext(auto_fielddoc = true)
     result = generate_schema(DocumentedUser; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
@@ -110,17 +186,6 @@ end
 end
 
 @testset "Field descriptions - manual registration overrides docstring" begin
-    """
-    Event data
-    """
-    struct EventData
-        """Event identifier from docstring"""
-        id::Int
-
-        """Event timestamp"""
-        timestamp::String
-    end
-
     ctx = SchemaContext(auto_fielddoc = true)
     describe!(ctx, EventData, :id, "Event unique ID (overridden)")
 
@@ -135,17 +200,6 @@ end
 end
 
 @testset "Field descriptions - auto_fielddoc=false" begin
-    """
-    Configuration struct
-    """
-    struct Config
-        """Port number"""
-        port::Int
-
-        """Host address"""
-        host::String
-    end
-
     ctx = SchemaContext(auto_fielddoc = false)
     result = generate_schema(Config; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
@@ -157,16 +211,6 @@ end
 end
 
 @testset "Field descriptions - auto_fielddoc=false with manual registration" begin
-    """
-    Server settings
-    """
-    struct ServerSettings
-        """Server port"""
-        port::Int
-
-        timeout::Int
-    end
-
     ctx = SchemaContext(auto_fielddoc = false)
     describe!(ctx, ServerSettings, :port, "Manual port description")
 
@@ -181,11 +225,6 @@ end
 end
 
 @testset "Field descriptions - struct without type-level docstring" begin
-    struct NoTypeDoc
-        """Field doc"""
-        value::Int
-    end
-
     ctx = SchemaContext(auto_fielddoc = true)
     result = generate_schema(NoTypeDoc; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
@@ -197,10 +236,6 @@ end
 end
 
 @testset "Field descriptions - error on non-existent field" begin
-    struct TestStruct
-        field1::Int
-    end
-
     ctx = SchemaContext()
 
     @test_throws ArgumentError describe!(
@@ -217,14 +252,6 @@ end
 end
 
 @testset "Field descriptions - combined with field overrides" begin
-    using Dates
-
-    struct EventWithOverride
-        id::Int
-        timestamp::DateTime
-        description::String
-    end
-
     ctx = SchemaContext()
 
     # Register field override for timestamp
@@ -256,10 +283,6 @@ end
 end
 
 @testset "Field descriptions - empty description handling" begin
-    struct EmptyDescTest
-        field1::Int
-    end
-
     ctx = SchemaContext()
     describe!(ctx, EmptyDescTest, :field1, "")
 
@@ -273,11 +296,6 @@ end
 end
 
 @testset "Field descriptions - unicode and special characters" begin
-    struct UnicodeTest
-        field1::String
-        field2::String
-    end
-
     ctx = SchemaContext()
     describe!(ctx, UnicodeTest, :field1, "ユーザー名 (Japanese)")
     describe!(ctx, UnicodeTest, :field2, "Field with \"quotes\" and\nnewlines")
@@ -291,10 +309,6 @@ end
 end
 
 @testset "Field descriptions - clone_context preserves descriptions" begin
-    struct CloneTest
-        field1::Int
-    end
-
     ctx = SchemaContext()
     describe!(ctx, CloneTest, :field1, "Original description")
 
@@ -313,10 +327,6 @@ end
 # Test specification: When combining field_override with composition keywords (oneOf, anyOf, allOf)
 # and field_description, the description should be added directly alongside the composition keyword.
 @testset "Field descriptions - with composition keyword overrides (oneOf/anyOf/allOf)" begin
-    struct DiagnosticPattern
-        severity::Int
-    end
-
     ctx = SchemaContext()
 
     # Register field override that returns oneOf schema
@@ -346,10 +356,6 @@ end
 end
 
 @testset "Field descriptions - with anyOf override" begin
-    struct FlexibleField
-        value::Any
-    end
-
     ctx = SchemaContext()
 
     override_field!(ctx, FlexibleField, :value) do ctx
@@ -375,10 +381,6 @@ end
 end
 
 @testset "Field descriptions - with allOf override" begin
-    struct ValidatedString
-        code::String
-    end
-
     ctx = SchemaContext()
 
     override_field!(ctx, ValidatedString, :code) do ctx
@@ -402,4 +404,6 @@ end
     @test prop["description"] == "Validated code string"
     # Description should be added directly alongside existing allOf
     @test length(prop["allOf"]) == 2
+end
+
 end

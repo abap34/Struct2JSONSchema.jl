@@ -1,6 +1,30 @@
+module test_expand_all_defs
+
 using Test
 using Struct2JSONSchema: SchemaContext, generate_schema
 using Struct2JSONSchema: Struct2JSONSchema.expand_all_defs
+
+struct SimpleStruct
+    name::String
+    value::Int
+end
+
+struct InnerStruct
+    value::String
+end
+
+struct OuterStruct
+    inner::InnerStruct
+    count::Int
+end
+
+struct ConfigStruct
+    value::Union{String, Int}
+end
+
+struct TeamStruct
+    members::Vector{String}
+end
 
 # Tests for expand_all_defs function - complete inline expansion
 
@@ -469,11 +493,6 @@ end
 
 # Integration test with generate_schema
 @testset "expand_all_defs - integration with generate_schema" begin
-    struct SimpleStruct
-        name::String
-        value::Int
-    end
-
     doc, _ = generate_schema(SimpleStruct; inline_all_defs = true)
 
     # Should have no $defs section
@@ -490,15 +509,6 @@ end
 end
 
 @testset "expand_all_defs - integration with nested structs" begin
-    struct InnerStruct
-        value::String
-    end
-
-    struct OuterStruct
-        inner::InnerStruct
-        count::Int
-    end
-
     doc, _ = generate_schema(OuterStruct; inline_all_defs = true)
 
     # Should have no $defs section
@@ -513,10 +523,6 @@ end
 end
 
 @testset "expand_all_defs - integration with Union types" begin
-    struct ConfigStruct
-        value::Union{String, Int}
-    end
-
     doc, _ = generate_schema(ConfigStruct; inline_all_defs = true)
 
     # Should have no $defs section
@@ -527,10 +533,6 @@ end
 end
 
 @testset "expand_all_defs - integration with arrays" begin
-    struct TeamStruct
-        members::Vector{String}
-    end
-
     doc, _ = generate_schema(TeamStruct; inline_all_defs = true)
 
     # Should have no $defs section
@@ -541,3 +543,5 @@ end
     @test members_schema["type"] == "array"
     @test members_schema["items"]["type"] == "string"
 end
+
+end # module test_expand_all_defs

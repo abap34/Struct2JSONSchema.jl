@@ -1,17 +1,107 @@
+module field_overrides
+
 using Test
-using Struct2JSONSchema: SchemaContext, generate_schema, override_field!, override_type!, auto_optional_nothing!, k
+using Struct2JSONSchema: SchemaContext, auto_optional_nothing!, generate_schema, k,
+    override_field!, override_type!
 using Dates
 
 const _FIELD_OVERRIDE_KEY_CTX = SchemaContext()
 field_override_key(T) = k(T, _FIELD_OVERRIDE_KEY_CTX)
 
-@testset "Field-level overrides - basic usage" begin
-    struct EventWithTimestamp
-        id::Int
-        timestamp::DateTime
-        description::String
-    end
+struct EventWithTimestamp
+    id::Int
+    timestamp::DateTime
+    description::String
+end
 
+struct UserWithEmail
+    id::Int
+    email::String
+    name::String
+end
+
+struct FieldOverrideArticle
+    id::Int
+    created_at::DateTime
+    updated_at::DateTime
+    content::String
+end
+
+struct FieldOverrideProduct
+    id::Int
+    price::Float64
+    discounted_price::Float64
+end
+
+struct Metadata
+    version::String
+    author::String
+end
+
+struct Document
+    id::Int
+    metadata::Metadata
+    content::String
+end
+
+struct FieldOverrideConfig
+    timeout::Int
+    retries::Int
+end
+
+struct OptionalTimestampRecord
+    id::Int
+    timestamp::Union{DateTime, Nothing}
+    note::Union{String, Nothing}
+end
+
+struct MyCustomType
+    value::Int
+end
+
+struct ApiRequest
+    method::String
+    url::String
+    headers::Dict{String, String}
+    body::String
+end
+
+struct Coordinates
+    latitude::Float64
+    longitude::Float64
+end
+
+struct StringValidation
+    username::String
+    password::String
+    zipcode::String
+end
+
+struct Pagination
+    page::Int
+    page_size::Int
+    total::Int
+end
+
+struct MediaFile
+    filename::String
+    content_type::String
+    size_bytes::Int
+end
+
+struct AccountInfo
+    account_id::String
+    balance::Float64
+    currency::String
+end
+
+struct ReviewData
+    rating::Int
+    comment::String
+    created_at::String
+end
+
+@testset "Field-level overrides - basic usage" begin
     ctx = SchemaContext()
     override_field!(ctx, EventWithTimestamp, :timestamp) do ctx
         Dict(
@@ -31,12 +121,6 @@ field_override_key(T) = k(T, _FIELD_OVERRIDE_KEY_CTX)
 end
 
 @testset "Field-level overrides - email format" begin
-    struct UserWithEmail
-        id::Int
-        email::String
-        name::String
-    end
-
     ctx = SchemaContext()
     override_field!(ctx, UserWithEmail, :email) do ctx
         Dict(
@@ -56,17 +140,10 @@ end
 end
 
 @testset "Field-level overrides - multiple fields" begin
-    struct Article
-        id::Int
-        created_at::DateTime
-        updated_at::DateTime
-        content::String
-    end
-
     ctx = SchemaContext()
 
     for field in [:created_at, :updated_at]
-        override_field!(ctx, Article, field) do ctx
+        override_field!(ctx, FieldOverrideArticle, field) do ctx
             Dict(
                 "type" => "string",
                 "format" => "date-time"
@@ -74,9 +151,9 @@ end
         end
     end
 
-    result = generate_schema(Article; ctx = ctx, simplify = false)
+    result = generate_schema(FieldOverrideArticle; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
-    schema = defs[field_override_key(Article)]
+    schema = defs[field_override_key(FieldOverrideArticle)]
 
     @test schema["properties"]["created_at"]["format"] == "date-time"
     @test schema["properties"]["updated_at"]["format"] == "date-time"
@@ -84,19 +161,13 @@ end
 end
 
 @testset "Field-level overrides - priority over type-level" begin
-    struct Product
-        id::Int
-        price::Float64
-        discounted_price::Float64
-    end
-
     ctx = SchemaContext()
 
     override_type!(ctx, Float64) do ctx
         Dict("type" => "number", "minimum" => 0)
     end
 
-    override_field!(ctx, Product, :discounted_price) do ctx
+    override_field!(ctx, FieldOverrideProduct, :discounted_price) do ctx
         Dict(
             "type" => "number",
             "minimum" => 0,
@@ -105,7 +176,7 @@ end
         )
     end
 
-    result = generate_schema(Product; ctx = ctx, simplify = false)
+    result = generate_schema(FieldOverrideProduct; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
 
     float_schema = defs[field_override_key(Float64)]
@@ -113,23 +184,12 @@ end
     @test float_schema["minimum"] == 0
     @test !haskey(float_schema, "maximum")
 
-    product_schema = defs[field_override_key(Product)]
+    product_schema = defs[field_override_key(FieldOverrideProduct)]
     @test product_schema["properties"]["discounted_price"]["maximum"] == 1000000
     @test product_schema["properties"]["discounted_price"]["description"] == "Discounted price with cap"
 end
 
 @testset "Field-level overrides - with nested types" begin
-    struct Metadata
-        version::String
-        author::String
-    end
-
-    struct Document
-        id::Int
-        metadata::Metadata
-        content::String
-    end
-
     ctx = SchemaContext()
 
     override_field!(ctx, Document, :metadata) do ctx
@@ -148,31 +208,20 @@ end
 end
 
 @testset "Field-level overrides - alternate syntax" begin
-    struct Config
-        timeout::Int
-        retries::Int
-    end
-
     ctx = SchemaContext()
 
     timeout_gen = ctx -> Dict("type" => "integer", "minimum" => 1, "maximum" => 3600)
-    override_field!(timeout_gen, ctx, Config, :timeout)
+    override_field!(timeout_gen, ctx, FieldOverrideConfig, :timeout)
 
-    result = generate_schema(Config; ctx = ctx, simplify = false)
+    result = generate_schema(FieldOverrideConfig; ctx = ctx, simplify = false)
     defs = result.doc["\$defs"]
-    schema = defs[field_override_key(Config)]
+    schema = defs[field_override_key(FieldOverrideConfig)]
 
     @test schema["properties"]["timeout"]["minimum"] == 1
     @test schema["properties"]["timeout"]["maximum"] == 3600
 end
 
 @testset "Field-level overrides - combined with optional fields" begin
-    struct OptionalTimestampRecord
-        id::Int
-        timestamp::Union{DateTime, Nothing}
-        note::Union{String, Nothing}
-    end
-
     ctx = SchemaContext()
     auto_optional_nothing!(ctx)
 
@@ -195,10 +244,6 @@ end
 end
 
 @testset "Type-level overrides - alternate syntax" begin
-    struct MyCustomType
-        value::Int
-    end
-
     ctx = SchemaContext()
 
     custom_gen = ctx -> Dict("type" => "object", "description" => "Custom schema")
@@ -209,13 +254,6 @@ end
     schema = defs[field_override_key(MyCustomType)]
 
     @test schema["description"] == "Custom schema"
-end
-
-struct ApiRequest
-    method::String
-    url::String
-    headers::Dict{String, String}
-    body::String
 end
 
 @testset "field overrides - multiple fields with format" begin
@@ -245,11 +283,6 @@ end
     @test schema["properties"]["method"]["enum"] == ["GET", "POST", "PUT", "DELETE", "PATCH"]
 end
 
-struct Coordinates
-    latitude::Float64
-    longitude::Float64
-end
-
 @testset "field overrides - range constraints" begin
     ctx = SchemaContext()
 
@@ -277,12 +310,6 @@ end
     @test schema["properties"]["latitude"]["maximum"] == 90
     @test schema["properties"]["longitude"]["minimum"] == -180
     @test schema["properties"]["longitude"]["maximum"] == 180
-end
-
-struct StringValidation
-    username::String
-    password::String
-    zipcode::String
 end
 
 @testset "field overrides - string length constraints" begin
@@ -320,12 +347,6 @@ end
     @test haskey(schema["properties"]["zipcode"], "pattern")
 end
 
-struct Pagination
-    page::Int
-    page_size::Int
-    total::Int
-end
-
 @testset "field overrides - integer constraints" begin
     ctx = SchemaContext()
 
@@ -353,12 +374,6 @@ end
     @test schema["properties"]["page_size"]["maximum"] == 100
 end
 
-struct MediaFile
-    filename::String
-    content_type::String
-    size_bytes::Int
-end
-
 @testset "field overrides - MIME type validation" begin
     ctx = SchemaContext()
 
@@ -376,12 +391,6 @@ end
 
     @test haskey(schema["properties"]["content_type"], "pattern")
     @test haskey(schema["properties"]["content_type"], "examples")
-end
-
-struct AccountInfo
-    account_id::String
-    balance::Float64
-    currency::String
 end
 
 @testset "field overrides - currency and UUID" begin
@@ -409,12 +418,6 @@ end
     @test schema["properties"]["currency"]["enum"] == ["USD", "EUR", "GBP", "JPY"]
 end
 
-struct ReviewData
-    rating::Int
-    comment::String
-    created_at::String
-end
-
 @testset "field overrides - rating and timestamp" begin
     ctx = SchemaContext()
 
@@ -440,4 +443,6 @@ end
     @test schema["properties"]["rating"]["minimum"] == 1
     @test schema["properties"]["rating"]["maximum"] == 5
     @test schema["properties"]["created_at"]["format"] == "date-time"
+end
+
 end

@@ -1,5 +1,9 @@
+module optional_fields
+
 using Test
-using Struct2JSONSchema: SchemaContext, generate_schema, auto_optional_nothing!, auto_optional_missing!, auto_optional_null!, optional!, k
+using Struct2JSONSchema: SchemaContext,
+    auto_optional_missing!, auto_optional_nothing!, auto_optional_null!, generate_schema,
+    k, optional!
 
 const _OPTIONAL_KEY_CTX = SchemaContext()
 optional_key(T) = k(T, _OPTIONAL_KEY_CTX)
@@ -15,6 +19,113 @@ struct ExplicitOptionalMerge
     title::String
     description::String
     alias::String
+end
+
+struct UserWithNullableEmail
+    id::Int
+    name::String
+    email::Union{String, Nothing}
+end
+
+struct DataRowWithMissingValue
+    id::Int
+    value::Union{Float64, Missing}
+end
+
+struct RecordWithBoth
+    id::Int
+    notes::Union{String, Nothing}
+    score::Union{Float64, Missing}
+    active::Bool
+end
+
+struct FlexibleField
+    id::Int
+    data::Union{String, Int, Nothing}
+end
+
+struct Address
+    street::String
+    city::String
+    zipcode::Union{String, Nothing}
+end
+
+struct PersonWithAddress
+    name::String
+    address::Address
+    phone::Union{String, Nothing}
+end
+
+struct ExtendedUser
+    id::Int
+    username::String
+    email::Union{String, Nothing}
+    phone::Union{String, Nothing}
+    bio::Union{String, Nothing}
+end
+
+struct SensorData
+    timestamp::Int
+    temperature::Union{Float64, Missing}
+    humidity::Union{Float64, Missing}
+    pressure::Union{Float64, Missing}
+end
+
+struct MixedOptional
+    id::Int
+    field1::Union{String, Nothing}
+    field2::Union{Int, Nothing}
+    field3::Union{Float64, Nothing}
+    field4::Union{Bool, Nothing}
+end
+
+struct Department
+    name::String
+    manager::Union{String, Nothing}
+    budget::Union{Float64, Nothing}
+end
+
+struct Company
+    name::String
+    departments::Vector{Department}
+    ceo::Union{String, Nothing}
+end
+
+struct BlogPost
+    title::String
+    content::String
+    author::Union{String, Nothing}
+    tags::Union{Vector{String}, Nothing}
+    published_at::Union{String, Nothing}
+end
+
+struct Config
+    host::String
+    port::Int
+    username::Union{String, Nothing}
+    password::Union{String, Nothing}
+    ssl_enabled::Union{Bool, Nothing}
+    timeout::Union{Int, Nothing}
+end
+
+struct OptionalWithMissing
+    id::Int
+    data1::Union{String, Missing}
+    data2::Union{Int, Missing}
+    data3::Union{Bool, Missing}
+end
+
+struct AllOptional
+    maybe1::Union{String, Nothing}
+    maybe2::Union{Int, Nothing}
+    maybe3::Union{Float64, Nothing}
+end
+
+struct MixedNullTypes
+    id::Int
+    field_nothing::Union{String, Nothing}
+    field_missing::Union{Int, Missing}
+    field_both::Union{Float64, Nothing, Missing}
 end
 
 @testset "Optional fields - explicit registration API" begin
@@ -50,12 +161,6 @@ end
 end
 
 @testset "Optional fields - Union{T, Nothing}" begin
-    struct UserWithNullableEmail
-        id::Int
-        name::String
-        email::Union{String, Nothing}
-    end
-
     # Test default behavior (nullable, required)
     ctx_default = SchemaContext()
     result_default = generate_schema(UserWithNullableEmail; ctx = ctx_default, simplify = false)
@@ -93,11 +198,6 @@ end
 end
 
 @testset "Optional fields - Union{T, Missing}" begin
-    struct DataRowWithMissingValue
-        id::Int
-        value::Union{Float64, Missing}
-    end
-
     # Test default behavior (nullable with Missing, required)
     ctx_default = SchemaContext()
     result_default = generate_schema(DataRowWithMissingValue; ctx = ctx_default, simplify = false)
@@ -135,13 +235,6 @@ end
 end
 
 @testset "Optional fields - auto_optional_null!" begin
-    struct RecordWithBoth
-        id::Int
-        notes::Union{String, Nothing}
-        score::Union{Float64, Missing}
-        active::Bool
-    end
-
     ctx = SchemaContext()
     auto_optional_null!(ctx)
     result = generate_schema(RecordWithBoth; ctx = ctx, simplify = false)
@@ -156,11 +249,6 @@ end
 end
 
 @testset "Optional fields - Union with more than 2 types" begin
-    struct FlexibleField
-        id::Int
-        data::Union{String, Int, Nothing}
-    end
-
     ctx = SchemaContext()
     auto_optional_nothing!(ctx)
     result = generate_schema(FlexibleField; ctx = ctx, simplify = false)
@@ -173,18 +261,6 @@ end
 end
 
 @testset "Optional fields - nested structs" begin
-    struct Address
-        street::String
-        city::String
-        zipcode::Union{String, Nothing}
-    end
-
-    struct PersonWithAddress
-        name::String
-        address::Address
-        phone::Union{String, Nothing}
-    end
-
     ctx = SchemaContext()
     auto_optional_nothing!(ctx)
     result = generate_schema(PersonWithAddress; ctx = ctx, simplify = false)
@@ -215,14 +291,6 @@ end
     @test ctx3.options.auto_optional_union_missing == true
 end
 
-struct ExtendedUser
-    id::Int
-    username::String
-    email::Union{String, Nothing}
-    phone::Union{String, Nothing}
-    bio::Union{String, Nothing}
-end
-
 @testset "optional fields - multiple Nothing unions" begin
     ctx = SchemaContext()
     auto_optional_nothing!(ctx)
@@ -239,13 +307,6 @@ end
     @test haskey(schema["properties"], "bio")
 end
 
-struct SensorData
-    timestamp::Int
-    temperature::Union{Float64, Missing}
-    humidity::Union{Float64, Missing}
-    pressure::Union{Float64, Missing}
-end
-
 @testset "optional fields - multiple Missing unions" begin
     ctx = SchemaContext()
     auto_optional_missing!(ctx)
@@ -257,14 +318,6 @@ end
     @test "temperature" ∉ schema["required"]
     @test "humidity" ∉ schema["required"]
     @test "pressure" ∉ schema["required"]
-end
-
-struct MixedOptional
-    id::Int
-    field1::Union{String, Nothing}
-    field2::Union{Int, Nothing}
-    field3::Union{Float64, Nothing}
-    field4::Union{Bool, Nothing}
 end
 
 @testset "optional fields - various types with Nothing" begin
@@ -279,18 +332,6 @@ end
     @test "field2" ∉ schema["required"]
     @test "field3" ∉ schema["required"]
     @test "field4" ∉ schema["required"]
-end
-
-struct Department
-    name::String
-    manager::Union{String, Nothing}
-    budget::Union{Float64, Nothing}
-end
-
-struct Company
-    name::String
-    departments::Vector{Department}
-    ceo::Union{String, Nothing}
 end
 
 @testset "optional fields - deeply nested with optionals" begin
@@ -309,14 +350,6 @@ end
     @test "budget" ∉ dept_schema["required"]
 end
 
-struct BlogPost
-    title::String
-    content::String
-    author::Union{String, Nothing}
-    tags::Union{Vector{String}, Nothing}
-    published_at::Union{String, Nothing}
-end
-
 @testset "optional fields - complex types as optional" begin
     ctx = SchemaContext()
     auto_optional_nothing!(ctx)
@@ -328,15 +361,6 @@ end
     @test "author" ∉ schema["required"]
     @test "tags" ∉ schema["required"]
     @test "published_at" ∉ schema["required"]
-end
-
-struct Config
-    host::String
-    port::Int
-    username::Union{String, Nothing}
-    password::Union{String, Nothing}
-    ssl_enabled::Union{Bool, Nothing}
-    timeout::Union{Int, Nothing}
 end
 
 @testset "optional fields - configuration schema" begin
@@ -353,13 +377,6 @@ end
     @test "timeout" ∉ schema["required"]
 end
 
-struct OptionalWithMissing
-    id::Int
-    data1::Union{String, Missing}
-    data2::Union{Int, Missing}
-    data3::Union{Bool, Missing}
-end
-
 @testset "optional fields - Missing with various types" begin
     ctx = SchemaContext()
     auto_optional_missing!(ctx)
@@ -371,12 +388,6 @@ end
     @test "data1" ∉ schema["required"]
     @test "data2" ∉ schema["required"]
     @test "data3" ∉ schema["required"]
-end
-
-struct AllOptional
-    maybe1::Union{String, Nothing}
-    maybe2::Union{Int, Nothing}
-    maybe3::Union{Float64, Nothing}
 end
 
 @testset "optional fields - all fields optional" begin
@@ -392,13 +403,6 @@ end
     @test haskey(schema["properties"], "maybe3")
 end
 
-struct MixedNullTypes
-    id::Int
-    field_nothing::Union{String, Nothing}
-    field_missing::Union{Int, Missing}
-    field_both::Union{Float64, Nothing, Missing}
-end
-
 @testset "optional fields - mix of Nothing and Missing" begin
     ctx = SchemaContext()
     auto_optional_null!(ctx)
@@ -411,4 +415,6 @@ end
     @test "field_nothing" ∉ schema["required"]
     @test "field_missing" ∉ schema["required"]
     @test "field_both" ∉ schema["required"]
+end
+
 end

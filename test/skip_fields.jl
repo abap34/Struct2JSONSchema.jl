@@ -1,14 +1,124 @@
+module skip_fields
+
 using Test
 using Struct2JSONSchema
 
+struct SimpleSkip
+    id::Int
+    name::String
+    _internal::String
+end
+
+struct MultiSkip
+    keep1::Int
+    skip1::String
+    keep2::Bool
+    skip2::Float64
+    skip3::Vector{Int}
+end
+
+struct SkipOptional
+    id::Int
+    optional_field::Union{String, Nothing}
+    _skip_me::Dict
+end
+
+struct ErrorTest
+    field1::Int
+end
+
+struct AlmostEmpty
+    keep::Int
+    skip1::String
+    skip2::Bool
+end
+
+struct NoSkip
+    field1::Int
+    field2::String
+end
+
+struct Cumulative
+    f1::Int
+    f2::String
+    f3::Bool
+    f4::Float64
+end
+
+struct SkipDescription
+    id::Int
+    name::String
+    _internal::String
+end
+
+struct OnlyBasic
+    keep1::Int
+    keep2::String
+    skip1::Bool
+    skip2::Float64
+end
+
+struct OnlySingle
+    important::String
+    noise1::Int
+    noise2::Bool
+end
+
+struct OnlyAll
+    f1::Int
+    f2::String
+end
+
+struct OnlyError
+    f1::Int
+end
+
+struct AllSkipped
+    f1::Int
+    f2::String
+    f3::Bool
+end
+
+struct SkipOverride
+    id::Int
+    email::String
+    _cache::Dict
+end
+
+struct SkipOptionalConflict
+    id::Int
+    maybe_skip::Union{String, Nothing}
+end
+
+struct NestedInner
+    value::Int
+    _internal::String
+end
+
+struct NestedOuter
+    inner::NestedInner
+    name::String
+    _metadata::Dict
+end
+
+struct UsedElsewhere
+    data::Vector{Int}
+end
+
+struct Container
+    used::UsedElsewhere
+    skipped::UsedElsewhere
+end
+
+struct CombineSkipOnly
+    f1::Int
+    f2::String
+    f3::Bool
+    f4::Float64
+end
+
 @testset "Skip Fields" begin
     @testset "Basic skip functionality" begin
-        struct SimpleSkip
-            id::Int
-            name::String
-            _internal::String
-        end
-
         ctx = SchemaContext()
         skip!(ctx, SimpleSkip, :_internal)
 
@@ -25,14 +135,6 @@ using Struct2JSONSchema
     end
 
     @testset "Multiple fields skip" begin
-        struct MultiSkip
-            keep1::Int
-            skip1::String
-            keep2::Bool
-            skip2::Float64
-            skip3::Vector{Int}
-        end
-
         ctx = SchemaContext()
         skip!(ctx, MultiSkip, :skip1, :skip2, :skip3)
 
@@ -45,12 +147,6 @@ using Struct2JSONSchema
     end
 
     @testset "Skip with optional fields" begin
-        struct SkipOptional
-            id::Int
-            optional_field::Union{String, Nothing}
-            _skip_me::Dict
-        end
-
         ctx = SchemaContext()
         auto_optional_nothing!(ctx)
         skip!(ctx, SkipOptional, :_skip_me)
@@ -66,10 +162,6 @@ using Struct2JSONSchema
     end
 
     @testset "Error on non-existent field" begin
-        struct ErrorTest
-            field1::Int
-        end
-
         ctx = SchemaContext()
         @test_throws ArgumentError skip!(ctx, ErrorTest, :nonexistent)
     end
@@ -80,12 +172,6 @@ using Struct2JSONSchema
     end
 
     @testset "Skip all fields except one" begin
-        struct AlmostEmpty
-            keep::Int
-            skip1::String
-            skip2::Bool
-        end
-
         ctx = SchemaContext()
         skip!(ctx, AlmostEmpty, :skip1, :skip2)
 
@@ -99,11 +185,6 @@ using Struct2JSONSchema
     end
 
     @testset "Empty skip list" begin
-        struct NoSkip
-            field1::Int
-            field2::String
-        end
-
         ctx = SchemaContext()
         skip!(ctx, NoSkip)  # No fields specified
 
@@ -116,13 +197,6 @@ using Struct2JSONSchema
     end
 
     @testset "Cumulative skip registration" begin
-        struct Cumulative
-            f1::Int
-            f2::String
-            f3::Bool
-            f4::Float64
-        end
-
         ctx = SchemaContext()
         skip!(ctx, Cumulative, :f2)
         skip!(ctx, Cumulative, :f4)  # Add more
@@ -136,12 +210,6 @@ using Struct2JSONSchema
     end
 
     @testset "Skip with field descriptions" begin
-        struct SkipDescription
-            id::Int
-            name::String
-            _internal::String
-        end
-
         ctx = SchemaContext()
         skip!(ctx, SkipDescription, :_internal)
         describe!(ctx, SkipDescription, :id, "User ID")
@@ -156,13 +224,6 @@ using Struct2JSONSchema
     end
 
     @testset "only! basic" begin
-        struct OnlyBasic
-            keep1::Int
-            keep2::String
-            skip1::Bool
-            skip2::Float64
-        end
-
         ctx = SchemaContext()
         only!(ctx, OnlyBasic, :keep1, :keep2)
 
@@ -177,12 +238,6 @@ using Struct2JSONSchema
     end
 
     @testset "only! single field" begin
-        struct OnlySingle
-            important::String
-            noise1::Int
-            noise2::Bool
-        end
-
         ctx = SchemaContext()
         only!(ctx, OnlySingle, :important)
 
@@ -196,11 +251,6 @@ using Struct2JSONSchema
     end
 
     @testset "only! all fields" begin
-        struct OnlyAll
-            f1::Int
-            f2::String
-        end
-
         ctx = SchemaContext()
         only!(ctx, OnlyAll, :f1, :f2)
 
@@ -213,21 +263,11 @@ using Struct2JSONSchema
     end
 
     @testset "only! error on non-existent field" begin
-        struct OnlyError
-            f1::Int
-        end
-
         ctx = SchemaContext()
         @test_throws ArgumentError only!(ctx, OnlyError, :nonexistent)
     end
 
     @testset "Skip all fields" begin
-        struct AllSkipped
-            f1::Int
-            f2::String
-            f3::Bool
-        end
-
         ctx = SchemaContext()
         skip!(ctx, AllSkipped, :f1, :f2, :f3)
 
@@ -240,12 +280,6 @@ using Struct2JSONSchema
     end
 
     @testset "Skip with field override" begin
-        struct SkipOverride
-            id::Int
-            email::String
-            _cache::Dict
-        end
-
         ctx = SchemaContext()
         override_field!(ctx, SkipOverride, :email) do ctx
             Dict("type" => "string", "format" => "email")
@@ -262,11 +296,6 @@ using Struct2JSONSchema
     end
 
     @testset "Skip and optional on same field prioritizes skip" begin
-        struct SkipOptionalConflict
-            id::Int
-            maybe_skip::Union{String, Nothing}
-        end
-
         ctx = SchemaContext()
         optional!(ctx, SkipOptionalConflict, :maybe_skip)
         skip!(ctx, SkipOptionalConflict, :maybe_skip)
@@ -280,17 +309,6 @@ using Struct2JSONSchema
     end
 
     @testset "Nested struct with skip" begin
-        struct NestedInner
-            value::Int
-            _internal::String
-        end
-
-        struct NestedOuter
-            inner::NestedInner
-            name::String
-            _metadata::Dict
-        end
-
         ctx = SchemaContext()
         skip!(ctx, NestedInner, :_internal)
         skip!(ctx, NestedOuter, :_metadata)
@@ -309,15 +327,6 @@ using Struct2JSONSchema
     end
 
     @testset "Skipped field type still defined if used elsewhere" begin
-        struct UsedElsewhere
-            data::Vector{Int}
-        end
-
-        struct Container
-            used::UsedElsewhere
-            skipped::UsedElsewhere
-        end
-
         ctx = SchemaContext()
         skip!(ctx, Container, :skipped)
 
@@ -330,13 +339,6 @@ using Struct2JSONSchema
     end
 
     @testset "Combining skip and only on same type" begin
-        struct CombineSkipOnly
-            f1::Int
-            f2::String
-            f3::Bool
-            f4::Float64
-        end
-
         ctx = SchemaContext()
         only!(ctx, CombineSkipOnly, :f1, :f2, :f3)
         skip!(ctx, CombineSkipOnly, :f3)  # Further restrict
@@ -348,4 +350,6 @@ using Struct2JSONSchema
         # f4 skipped by only, f3 skipped by skip, so only f1 and f2 remain
         @test Set(keys(schema["properties"])) == Set(["f1", "f2"])
     end
+end
+
 end

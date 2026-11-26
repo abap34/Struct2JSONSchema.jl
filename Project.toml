@@ -3,6 +3,9 @@ uuid = "6b9a66ba-ce23-4e49-9189-ad500babf267"
 version = "0.5.1"
 authors = ["abap34 <abap0002@gmail.com> and contributors"]
 
+[workspace]
+projects = ["test"]
+
 [deps]
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
@@ -17,9 +20,3 @@ OrderedCollections = "1, 2"
 REPL = "1.11.0"
 SHA = "0.7.0"
 julia = "1.12"
-
-[extras]
-Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
-
-[targets]
-test = ["Test"]
